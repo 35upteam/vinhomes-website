@@ -74,7 +74,6 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState('Cho thuê');
   const [sortBy, setSortBy] = useState('newest');
   
-  // Trạng thái Phân trang
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 9;
 
@@ -87,7 +86,6 @@ export default function Home() {
   });
 
   const CONTACT_PHONE = "0912791925";
-  const LOGO_URL = "https://res.cloudinary.com/ibzfmsqp/image/upload/v1714576332/logo-quy-can_p1d8r4.png"; // Link giả định chứa Logo xịn của bạn, hệ thống sẽ render ảnh từ link này
 
   useEffect(() => {
     const fetchProperties = async () => {
@@ -106,7 +104,7 @@ export default function Home() {
 
   const handleFilterChange = (e) => { 
     setFilters({ ...filters, [e.target.name]: e.target.value }); 
-    setCurrentPage(1); // Reset về trang 1 khi đổi bộ lọc
+    setCurrentPage(1); 
   };
   const handleLoaiCanClick = (type) => { 
     setFilters({ ...filters, loaiCan: filters.loaiCan === type ? 'Tất cả loại căn' : type }); 
@@ -133,7 +131,6 @@ export default function Home() {
     }
   });
 
-  // Tính toán dữ liệu hiển thị cho trang hiện tại
   const totalPages = Math.ceil(sortedProperties.length / itemsPerPage);
   const currentProperties = sortedProperties.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
@@ -142,17 +139,30 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gray-50 text-gray-800 font-sans flex flex-col">
       
-      {/* HEADER: Gắn Logo xịn và Nút Liên hệ tinh tế */}
+      {/* HEADER */}
       <header className="bg-white sticky top-0 z-50 px-4 md:px-8 py-3 flex justify-between items-center shadow-sm">
         <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition">
           <div className="h-10 md:h-12 w-auto flex items-center">
-             <img src="https://i.ibb.co/tCg9sT4/logo-quy-can-smart-city.png" alt="Quỹ Căn Smart City Logo" className="h-full object-contain" />
+             {/* LOGO NHÚNG TRỰC TIẾP BẰNG SVG ĐỂ SẮC NÉT TUYỆT ĐỐI */}
+             <svg viewBox="0 0 400 120" className="h-full w-auto">
+                <g>
+                  {/* Ngôi nhà */}
+                  <path fill="#1a3b68" d="M123.3,42.8L61.7,4.3L0,42.8v8.6l10-6.2v64.6h103.3V45.2l10,6.2V42.8z M103.3,100H20V38.9L61.7,13l41.7,26V100z"/>
+                  {/* Dấu tích */}
+                  <path fill="#f06a1d" d="M136.2,16.2c-5.5,5.9-29.2,32.7-41.5,47.4L61,38.1c-2.8,4.1-13.6,18.7-18.7,27.1L68,96.3c15-20.7,51.8-63.5,84.6-77 C147,17.4,142.2,14.6,136.2,16.2z"/>
+                  {/* Text QUỸ CĂN */}
+                  <path fill="#1a3b68" d="M192.4,50.7c-9,0-15.6-7-15.6-16c0-9,6.6-16.1,15.6-16.1c9,0,15.6,7.1,15.6,16.1C208.1,43.7,201.4,50.7,192.4,50.7z M192.4,45.4c5.7,0,9.9-4.8,9.9-10.7c0-6-4.1-10.7-9.9-10.7c-5.7,0-9.9,4.7-9.9,10.7C182.5,40.6,186.7,45.4,192.4,45.4z M204.6,47.2l3.2-3.8l5.2,5.2l-3.2,3.8L204.6,47.2z M218.6,19.3v20.4c0,4.8,3,7.6,7.5,7.6c4.6,0,7.5-2.7,7.5-7.6V19.3h5.7v20.4c0,8-5.3,12.7-13.2,12.7c-7.9,0-13.2-4.7-13.2-12.7V19.3H218.6z M261.2,19.3h6v12.2l12.4-12.2h7.3L273,33l14.3,18.9h-7L269,36.5v15.5h-5.9V19.3h-2V19.3z M253.9,13.6h-5.2c-1.4,0-2.6,1-2.9,2.4h-2.1c0.3-2.5,2.4-4.4,5-4.4h5.2v2H253.9z M260,11.2h-5.2c-2.6,0-4.7,1.9-5,4.4h2.1c0.3-1.4,1.5-2.4,2.9-2.4H260V11.2z"/>
+                  {/* Text SMART CITY */}
+                  <path fill="#1a3b68" d="M192.3,86.5c-4.3,0-7.8-1.5-10.2-4l4.2-4c1.6,1.8,3.9,2.9,6,2.9c3,0,4.8-1.4,4.8-3.4c0-2-1.6-3-4.7-3.6l-2.4-0.4c-4.8-0.9-8.4-2.8-8.4-8c0-5,4.2-8.5,10.1-8.5c4,0,7.3,1.4,9.6,3.6l-3.8,4.2c-1.6-1.5-3.6-2.5-5.8-2.5c-2.7,0-4.4,1.4-4.4,3.2c0,1.9,1.5,2.7,4.6,3.3l2.4,0.4c5,1,8.5,2.9,8.5,8.2C203.1,83.2,198.5,86.5,192.3,86.5z M214.3,58v28h-5.8V58H214.3z M214.4,58l10,21l10-21h6v28h-5.5V66.6l-8.5,18.1h-4l-8.5-18.1V86h-5.5V58H214.4z M261.2,86l-2-6.5h-10l-2,6.5h-6l10-28h6l10,28H261.2z M257.6,74.5l-3.3-10.8l-3.3,10.8H257.6z M273,58h10.4c6.3,0,10.3,3.6,10.3,8.7c0,4.3-2.5,7-6.2,8l6.8,11.3H292l-6-10.3h-7.1V86h-5.8V58z M278.8,70.9h4.5c3.2,0,4.8-1.6,4.8-4s-1.6-4.1-4.8-4.1h-4.5V70.9z M301.7,63.1h-7v-5.1h19.8v5.1h-7V86h-5.8V63.1z M340.9,86.5c-8.9,0-15.4-7-15.4-16c0-9,6.5-16.1,15.4-16.1c5.2,0,9.5,2.3,12,6l-4.7,3.5c-1.8-2.3-4.3-4-7.3-4c-5.7,0-9.7,4.7-9.7,10.7c0,6,4,10.7,9.7,10.7c3,0,5.5-1.7,7.3-4l4.7,3.5C350.4,84.1,346.1,86.5,340.9,86.5z M359.5,58v28h-5.8V58H359.5z M374.3,63.1h-7v-5.1h19.8v5.1h-7V86h-5.8V63.1z M397.6,73.4l-7.5-15.4h6.5l4,8.5l4-8.5h6.5l-7.5,15.4V86h-5.8V73.4z"/>
+                </g>
+             </svg>
           </div>
         </Link>
         <div className="flex items-center gap-4">
-           <a href={`https://zalo.me/${CONTACT_PHONE}`} target="_blank" rel="noreferrer" className="flex items-center gap-2 border border-blue-600 text-blue-600 hover:bg-blue-50 px-4 py-1.5 rounded-full font-medium transition text-sm">
-             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M21.406 9.353c-.114-5.06-4.523-8.88-9.83-8.88C6.073.473 1.5 4.542 1.5 9.873c0 2.68 1.157 5.178 3.167 6.945-.333 1.09-1.077 2.37-1.196 2.585-.148.267.085.57.382.493 1.838-.475 3.33-1.393 4.22-2.025 1.12.316 2.296.485 3.504.485 5.503 0 10.073-4.068 10.073-9.4 0-.154-.01-.307-.024-.46v-.142h-.22zM15.42 11.23h-2.12v1.39h2.12v.94H12.24v-4.14h3.18v.93h-2.12v.88zM9.54 12.35l-2.01-2.92h1.99v-.94H6.38v.94l2.02 2.92H6.38v.93h3.16v-.93zM18.89 12.18c0 1.2-.84 1.82-1.92 1.82s-1.92-.62-1.92-1.82v-1.63c0-1.2.84-1.82 1.92-1.82s1.92.62 1.92 1.82v1.63zm-2.88 0c0 .64.39 1 1 1s1-.36 1-1v-1.63c0-.64-.39-1-1-1s-1 .36-1 1v1.63zM21.57 6.13c-.02-.13-.04-.26-.06-.39-.02-.12-.04-.25-.07-.37-.03-.13-.06-.25-.09-.37-.04-.12-.08-.24-.12-.36-.05-.13-.1-.25-.15-.37-.05-.12-.11-.23-.17-.35-.06-.12-.12-.24-.19-.36-.07-.12-.14-.23-.21-.34-.08-.12-.16-.23-.24-.34-.09-.11-.18-.22-.27-.33-.1-.11-.2-.21-.3-.32-.1-.1-.21-.21-.32-.3-.11-.1-.22-.2-.33-.29-.11-.09-.23-.18-.35-.26-.12-.08-.24-.16-.36-.23-.13-.07-.26-.14-.4-.2-.13-.06-.26-.11-.39-.16-.14-.05-.28-.1-.42-.14-.14-.04-.28-.08-.42-.11-.15-.03-.3-.06-.45-.08-.15-.02-.3-.04-.45-.05h-.9c-.15.01-.3.03-.45.05-.15.02-.3.05-.45.08-.14.03-.28.07-.42.11-.14.04-.28.09-.42.14-.13.05-.26.1-.39.16-.14.06-.27.13-.4.2-.12.07-.24.15-.36.23-.12.08-.24.17-.35.26-.11.09-.22.19-.33.29-.1.1-.21.2-.32.3-.11.11-.21.22-.3.32-.09.11-.18.22-.27.33-.08.11-.15.22-.24.34-.07.11-.14.22-.21.34-.07.12-.13.24-.19.36-.06.12-.12.23-.17.35-.05.12-.1.24-.15.37-.04.12-.08.24-.12.36-.03.12-.06.24-.09.37-.03.12-.05.25-.07.37-.02.13-.04.26-.06.39-.01.13-.02.26-.03.39v.78c.01.13.02.26.03.39.02.13.04.26.06.39.02.12.04.25.07.37.03.13.06.25.09.37.04.12.08.24.12.36.05.13.1.25.15.37.05.12.11.23.17.35.06.12.12.24.19.36.07.12.14.23.21.34.08.12.16.23.24.34.09.11.18.22.27.33.1.11.2.21.3.32.1.1.21.21.32.3.11.1.22.2.33.29.11.09.23.18.35.26.12.08.24.16.36.23.13.07.26.14.4.2.13.06.26.11.39.16.14.05.28.1.42.14.14.04.28.08.42.11.15.03.3.06.45.08.15.02.3.04.45.05h.9c.15-.01.3-.03.45-.05.15-.02.3-.05.45-.08.14-.03.28-.07.42-.11.14-.04.28-.09.42-.14.13-.05.26-.1.39-.16.14-.06.27-.13.4-.2.12-.07.24-.15.36-.23.12-.08.24-.17.35-.26.11-.09.22-.19.33-.29.1-.1.21-.2.32-.3.11-.11.21-.22.3-.32.09-.11.18-.22.27-.33.08-.11.15-.22.24-.34.07-.11.14-.22.21-.34.07-.12.13-.24.19-.36.06-.12.12-.23.17-.35.05-.12.1-.24.15-.37.04-.12.08-.24.12-.36.03-.12.06-.24.09-.37.03-.12.05-.25.07-.37.02-.13.04-.26.06-.39z"/></svg>
-             Chat Zalo ngay
+           {/* ĐỔI TEXT NÚT THEO YÊU CẦU */}
+           <a href={`https://zalo.me/${CONTACT_PHONE}`} target="_blank" rel="noreferrer" className="flex items-center gap-2 border border-blue-600 text-blue-600 hover:bg-blue-50 px-4 py-1.5 rounded-full font-bold transition text-sm">
+             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M21.406 9.353c-.114-5.06-4.523-8.88-9.83-8.88C6.073.473 1.5 4.542 1.5 9.873c0 2.68 1.157 5.178 3.167 6.945-.333 1.09-1.077 2.37-1.196 2.585-.148.267.085.57.382.493 1.838-.475 3.33-1.393 4.22-2.025 1.12.316 2.296.485 3.504.485 5.503 0 10.073-4.068 10.073-9.4 0-.154-.01-.307-.024-.46v-.142h-.22zM15.42 11.23h-2.12v1.39h2.12v.94H12.24v-4.14h3.18v.93h-2.12v.88zM9.54 12.35l-2.01-2.92h1.99v-.94H6.38v.94l2.02 2.92H6.38v.93h3.16v-.93zM18.89 12.18c0 1.2-.84 1.82-1.92 1.82s-1.92-.62-1.92-1.82v-1.63c0-1.2.84-1.82 1.92-1.82s1.92.62 1.92 1.82v1.63zm-2.88 0c0 .64.39 1 1 1s1-.36 1-1v-1.63c0-.64-.39-1-1-1s-1 .36-1 1v1.63zM21.57 6.13c-.02-.13-.04-.26-.06-.39-.02-.12-.04-.25-.07-.37-.03-.13-.06-.25-.09-.37-.04-.12-.08-.24-.12-.36-.05-.13-.1-.25-.15-.37-.05-.12-.11-.23-.17-.35-.06-.12-.12-.24-.19-.36-.07-.12-.14-.23-.21-.34-.08-.12-.16-.23-.24-.34-.09-.11-.18-.22-.27-.33-.1-.11-.2-.21-.3-.32-.1-.1-.21-.21-.32-.3-.11-.1-.22-.2-.33-.29-.11-.09-.23-.18-.35-.26-.12-.08-.24-.16-.36-.23-.13-.07-.26-.14-.4-.2-.13-.06-.26-.11-.39-.16-.14-.05-.28-.1-.42-.14-.14-.04-.28-.08-.42-.11-.15-.03-.3-.06-.45-.08-.15-.02-.3-.04-.45-.05h-.9c-.15.01-.3.03-.45.05-.15.02-.3.05-.45.08-.14.03-.28.07-.42.11-.14.04-.28.09-.42.14-.13.05-.26.1-.39.16-.14.06-.27.13-.4.2-.12.07-.24.15-.36.23-.12.08-.24.17-.35.26-.11-.09-.22-.19-.33-.29-.1-.1-.21-.2-.32-.3-.11-.11-.21-.22-.3-.32-.09-.11-.18-.22-.27-.33-.08-.11-.15-.22-.24-.34-.07-.11-.14-.22-.21-.34-.07-.12-.13-.24.19-.36-.06-.12-.12-.23-.17-.35-.05-.12-.1-.24-.15-.37-.04-.12-.08-.24-.12-.36-.03-.12-.06-.24-.09-.37-.03-.12-.05-.25-.07-.37-.02-.13-.04-.26-.06-.39-.01.13-.02.26-.03.39v.78c.01.13.02.26.03.39.02.13.04.26.06.39.02.12.04.25.07.37.03.13.06.25.09.37.04.12.08.24.12.36.05.13.1.25.15.37.05.12.11.23.17.35.06.12.12.24.19.36.07.12.14.23.21.34.08.12.16.23.24.34.09.11.18.22.27.33.1.11.2.21.3.32.1.1.21.21.32.3.11.1.22.2.33.29.11.09.23.18.35.26.12.08.24.16.36.23.13.07.26.14.4.2.13.06.26.11.39.16.14.05.28.1.42.14.14.04.28.08.42.11.15.03.3.06.45.08.15.02.3.04.45.05h.9c.15-.01.3-.03.45-.05.15-.02.3-.05.45-.08.14-.03.28-.07.42-.11.14-.04.28-.09.42-.14.13-.05.26-.1.39-.16.14-.06.27-.13.4-.2.12-.07.24-.15.36-.23.12-.08.24-.17.35-.26.11-.09.22-.19.33-.29.1-.1.21-.2.32-.3.11-.11.21-.22.3-.32.09-.11.18-.22.27-.33.08-.11.15-.22.24-.34.07-.11.14-.22-.21-.34-.07-.12-.13-.24.19-.36-.06-.12-.12-.23-.17-.35-.05-.12-.1-.24-.15-.37-.04-.12-.08-.24-.12-.36-.03-.12-.06-.24-.09-.37-.03-.12-.05-.25-.07-.37-.02-.13-.04-.26-.06-.39z"/></svg>
+             Liên hệ tư vấn
            </a>
         </div>
       </header>
@@ -247,18 +257,17 @@ export default function Home() {
              </div>
           ) : (
             <>
-              {/* Lưới 9 Căn hộ */}
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5 mb-8">
                 {currentProperties.map(item => (
                   <PropertyCard key={item.id} item={item} contactPhone={CONTACT_PHONE} />
                 ))}
               </div>
               
-              {/* Khối Gợi Ý "Nhờ Tìm Căn" */}
+              {/* KHỐI NHỜ TÌM CĂN */}
               <div className="bg-white border border-gray-200 rounded-xl p-6 md:p-8 flex flex-col md:flex-row justify-between items-center gap-6 shadow-sm mb-10 w-full">
                 <div>
                   <h4 className="text-xl font-bold text-blue-900 mb-2">Không cần tự lướt hết quỹ căn</h4>
-                  <p className="text-sm text-gray-600">Gửi nhu cầu, chúng tôi sẽ chọn 3-5 căn sát ngân sách và thời gian vào ở nhất để gửi lại cho anh/chị.</p>
+                  <p className="text-sm text-gray-600">Gửi nhu cầu của bạn, chúng tôi sẽ chọn 3-5 căn phù hợp nhất để gửi lại bạn nhanh nhất.</p>
                 </div>
                 <a href={`https://zalo.me/${CONTACT_PHONE}?text=${encodeURIComponent(`Xin chào, tôi muốn nhờ tìm giúp một căn hộ ${activeTab} tại Vinhomes Smart City.`)}`} target="_blank" rel="noreferrer" className="bg-blue-800 hover:bg-blue-900 text-white px-8 py-3 rounded-md font-bold whitespace-nowrap transition shadow flex items-center gap-2 w-full md:w-auto justify-center">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
@@ -266,20 +275,15 @@ export default function Home() {
                 </a>
               </div>
 
-              {/* Bộ phân trang (Pagination) */}
               {totalPages > 1 && (
                 <div className="flex justify-center items-center gap-2 mt-auto">
-                  <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="w-10 h-10 flex items-center justify-center rounded-md border border-gray-200 bg-white text-gray-500 hover:bg-gray-50 disabled:opacity-50 transition">
-                    ‹
-                  </button>
+                  <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="w-10 h-10 flex items-center justify-center rounded-md border border-gray-200 bg-white text-gray-500 hover:bg-gray-50 disabled:opacity-50 transition">‹</button>
                   {[...Array(totalPages)].map((_, i) => (
                     <button key={i} onClick={() => setCurrentPage(i + 1)} className={`w-10 h-10 flex items-center justify-center rounded-md font-bold transition ${currentPage === i + 1 ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'}`}>
                       {i + 1}
                     </button>
                   ))}
-                  <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="w-10 h-10 flex items-center justify-center rounded-md border border-gray-200 bg-white text-gray-500 hover:bg-gray-50 disabled:opacity-50 transition">
-                    ›
-                  </button>
+                  <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="w-10 h-10 flex items-center justify-center rounded-md border border-gray-200 bg-white text-gray-500 hover:bg-gray-50 disabled:opacity-50 transition">›</button>
                 </div>
               )}
             </>
@@ -287,44 +291,53 @@ export default function Home() {
         </section>
       </main>
 
-      {/* FOOTER: Rút gọn thành 2 cột */}
+      {/* FOOTER 2 CỘT TỐI GIẢN */}
       <footer className="bg-white border-t border-gray-200 py-12 px-4 md:px-12 w-full mt-auto">
         <div className="max-w-[1400px] mx-auto grid grid-cols-1 md:grid-cols-2 gap-12 text-sm text-gray-600">
            
-           {/* Cột 1: Thông tin thương hiệu */}
            <div className="md:pr-10">
              <div className="flex items-center gap-3 mb-6">
-               <div className="h-12 w-auto flex items-center">
-                 <img src="https://i.ibb.co/tCg9sT4/logo-quy-can-smart-city.png" alt="Quỹ Căn Smart City Logo" className="h-full object-contain grayscale opacity-80" />
+               <div className="h-10 w-auto flex items-center">
+                 {/* LOGO SVG Ở FOOTER */}
+                 <svg viewBox="0 0 400 120" className="h-full w-auto grayscale opacity-80">
+                    <g>
+                      <path fill="#1a3b68" d="M123.3,42.8L61.7,4.3L0,42.8v8.6l10-6.2v64.6h103.3V45.2l10,6.2V42.8z M103.3,100H20V38.9L61.7,13l41.7,26V100z"/>
+                      <path fill="#f06a1d" d="M136.2,16.2c-5.5,5.9-29.2,32.7-41.5,47.4L61,38.1c-2.8,4.1-13.6,18.7-18.7,27.1L68,96.3c15-20.7,51.8-63.5,84.6-77 C147,17.4,142.2,14.6,136.2,16.2z"/>
+                      <path fill="#1a3b68" d="M192.4,50.7c-9,0-15.6-7-15.6-16c0-9,6.6-16.1,15.6-16.1c9,0,15.6,7.1,15.6,16.1C208.1,43.7,201.4,50.7,192.4,50.7z M192.4,45.4c5.7,0,9.9-4.8,9.9-10.7c0-6-4.1-10.7-9.9-10.7c-5.7,0-9.9,4.7-9.9,10.7C182.5,40.6,186.7,45.4,192.4,45.4z M204.6,47.2l3.2-3.8l5.2,5.2l-3.2,3.8L204.6,47.2z M218.6,19.3v20.4c0,4.8,3,7.6,7.5,7.6c4.6,0,7.5-2.7,7.5-7.6V19.3h5.7v20.4c0,8-5.3,12.7-13.2,12.7c-7.9,0-13.2-4.7-13.2-12.7V19.3H218.6z M261.2,19.3h6v12.2l12.4-12.2h7.3L273,33l14.3,18.9h-7L269,36.5v15.5h-5.9V19.3h-2V19.3z M253.9,13.6h-5.2c-1.4,0-2.6,1-2.9,2.4h-2.1c0.3-2.5,2.4-4.4,5-4.4h5.2v2H253.9z M260,11.2h-5.2c-2.6,0-4.7,1.9-5,4.4h2.1c0.3-1.4,1.5-2.4,2.9-2.4H260V11.2z"/>
+                      <path fill="#1a3b68" d="M192.3,86.5c-4.3,0-7.8-1.5-10.2-4l4.2-4c1.6,1.8,3.9,2.9,6,2.9c3,0,4.8-1.4,4.8-3.4c0-2-1.6-3-4.7-3.6l-2.4-0.4c-4.8-0.9-8.4-2.8-8.4-8c0-5,4.2-8.5,10.1-8.5c4,0,7.3,1.4,9.6,3.6l-3.8,4.2c-1.6-1.5-3.6-2.5-5.8-2.5c-2.7,0-4.4,1.4-4.4,3.2c0,1.9,1.5,2.7,4.6,3.3l2.4,0.4c5,1,8.5,2.9,8.5,8.2C203.1,83.2,198.5,86.5,192.3,86.5z M214.3,58v28h-5.8V58H214.3z M214.4,58l10,21l10-21h6v28h-5.5V66.6l-8.5,18.1h-4l-8.5-18.1V86h-5.5V58H214.4z M261.2,86l-2-6.5h-10l-2,6.5h-6l10-28h6l10,28H261.2z M257.6,74.5l-3.3-10.8l-3.3,10.8H257.6z M273,58h10.4c6.3,0,10.3,3.6,10.3,8.7c0,4.3-2.5,7-6.2,8l6.8,11.3H292l-6-10.3h-7.1V86h-5.8V58z M278.8,70.9h4.5c3.2,0,4.8-1.6,4.8-4s-1.6-4.1-4.8-4.1h-4.5V70.9z M301.7,63.1h-7v-5.1h19.8v5.1h-7V86h-5.8V63.1z M340.9,86.5c-8.9,0-15.4-7-15.4-16c0-9,6.5-16.1,15.4-16.1c5.2,0,9.5,2.3,12,6l-4.7,3.5c-1.8-2.3-4.3-4-7.3-4c-5.7,0-9.7,4.7-9.7,10.7c0,6,4,10.7,9.7,10.7c3,0,5.5-1.7,7.3-4l4.7,3.5C350.4,84.1,346.1,86.5,340.9,86.5z M359.5,58v28h-5.8V58H359.5z M374.3,63.1h-7v-5.1h19.8v5.1h-7V86h-5.8V63.1z M397.6,73.4l-7.5-15.4h6.5l4,8.5l4-8.5h6.5l-7.5,15.4V86h-5.8V73.4z"/>
+                    </g>
+                 </svg>
                </div>
              </div>
              <p className="leading-relaxed font-light mb-4">Cổng thông tin dữ liệu về căn hộ chuyển nhượng, cho thuê uy tín, chuyên nghiệp tại dự án Vinhomes Smart City.</p>
-             <p className="text-xs text-gray-400">© 2026 Quỹ Căn Smart City. Không phải website của chủ đầu tư.</p>
+             <p className="text-xs text-gray-400">© 2026 Quỹ Căn Smart City.</p>
            </div>
            
-           {/* Cột 2: Liên hệ (Theo yêu cầu) */}
            <div className="md:pl-10 md:border-l border-gray-100">
-             <p className="font-bold text-blue-900 mb-5 text-xs uppercase tracking-wider">Thông tin chuyên viên</p>
+             <p className="font-bold text-blue-900 mb-5 text-xs uppercase tracking-wider">Liên hệ tư vấn</p>
              <div className="space-y-4 font-light text-[15px]">
                <p className="flex items-center gap-3">
                  <span className="text-gray-400">👤</span> <strong className="text-gray-800">Nguyễn An Ninh</strong>
                </p>
-               <p className="flex items-center gap-3">
-                 <span className="text-gray-400">📍</span> Vinhomes Smart City, Tây Mỗ, Nam Từ Liêm, Hà Nội
-               </p>
+               {/* ĐẨY SĐT LÊN TRÊN THEO YÊU CẦU */}
                <p className="flex items-center gap-3">
                  <span className="text-gray-400">📞</span> 
                  <a href={`tel:${CONTACT_PHONE}`} className="font-bold text-blue-600 hover:text-blue-800 transition">{CONTACT_PHONE.replace(/(\d{4})(\d{3})(\d{3})/, '$1 $2 $3')}</a> 
                  <span className="text-gray-400 text-xs ml-1">(SĐT / Zalo)</span>
                </p>
+               <p className="flex items-center gap-3">
+                 <span className="text-gray-400">📍</span> Vinhomes Smart City, Tây Mỗ, Nam Từ Liêm, Hà Nội
+               </p>
              </div>
              
-             {/* Mạng xã hội */}
+             {/* MẠNG XÃ HỘI (Màu nguyên bản) */}
              <div className="flex items-center gap-4 mt-6">
-                <a href="https://www.facebook.com/AnNinhNAN/" target="_blank" rel="noreferrer" className="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center hover:bg-blue-600 hover:text-white transition">
+                {/* Facebook Xanh dương đặc trưng */}
+                <a href="https://www.facebook.com/AnNinhNAN/" target="_blank" rel="noreferrer" className="w-10 h-10 rounded-full bg-[#1877F2]/10 text-[#1877F2] flex items-center justify-center hover:bg-[#1877F2] hover:text-white transition">
                   <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
                 </a>
-                <a href="#" target="_blank" rel="noreferrer" className="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center hover:bg-black hover:text-white transition">
+                {/* TikTok Đen đặc trưng */}
+                <a href="#" target="_blank" rel="noreferrer" className="w-10 h-10 rounded-full bg-black/10 text-black flex items-center justify-center hover:bg-black hover:text-white transition">
                   <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.34 2.88 2.88 0 0 1 2.31-4.53 2.66 2.66 0 0 1 1.61.53V9.5a6.33 6.33 0 0 0-3.92-1.34 6.33 6.33 0 1 0 6.33 6.33V8.67a8.4 8.4 0 0 0 6.09 2.36V7.61a5 5 0 0 1-1-.92z"/></svg>
                 </a>
              </div>
