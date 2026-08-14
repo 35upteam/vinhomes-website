@@ -63,7 +63,7 @@ export default function PropertyDetail() {
            </Link>
            <a href={`tel:${CONTACT_PHONE}`} className="flex items-center gap-2 bg-gradient-to-r from-[#d4af37] to-[#b5852a] text-gray-900 px-5 py-2 rounded-full font-bold hover:opacity-90 transition shadow-md text-sm">
              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M20 15.5c-1.2 0-2.4-.2-3.6-.6-.3-.1-.7 0-1 .2l-2.2 2.2c-2.8-1.4-5.1-3.8-6.6-6.6l2.2-2.2c.3-.3.4-.7.2-1-.4-1.2-.6-2.4-.6-3.6 0-.6-.4-1-1-1H4c-.6 0-1 .4-1 1 0 9.4 7.6 17 17 17 .6 0 1-.4 1-1v-3.5c0-.6-.4-1-1-1zM19 12h2a9 9 0 00-9-9v2c3.9 0 7.1 3.2 7.1 7.1zM15 12h2c0-2.8-2.2-5-5-5v2c1.7 0 3 1.3 3 3z"/></svg>
-             Liên hệ
+             Liên hệ tư vấn
            </a>
         </div>
       </header>
@@ -198,7 +198,7 @@ export default function PropertyDetail() {
            </div>
            
            <div className="md:pl-10 md:border-l border-gray-100">
-             <h3 className="font-extrabold text-blue-900 mb-5 text-lg uppercase tracking-wider">Liên hệ tư vấn</h3>
+             <p className="font-bold text-blue-900 mb-5 text-xs uppercase tracking-wider">Liên hệ tư vấn</p>
              <div className="space-y-4 font-light text-[15px]">
                <p className="flex items-center gap-3"><span className="text-gray-400">👤</span> <strong className="text-gray-800">Nguyễn An Ninh</strong></p>
                <p className="flex items-center gap-3">
@@ -207,6 +207,15 @@ export default function PropertyDetail() {
                  <span className="text-gray-400 text-xs ml-1">(SĐT / Zalo)</span>
                </p>
                <p className="flex items-center gap-3"><span className="text-gray-400">📍</span> Vinhomes Smart City, Tây Mỗ, Nam Từ Liêm, Hà Nội</p>
+             </div>
+             
+             <div className="flex items-center gap-4 mt-6">
+                <a href="https://www.facebook.com/AnNinhNAN/" target="_blank" rel="noreferrer" className="w-10 h-10 rounded-full bg-[#1877F2]/10 text-[#1877F2] flex items-center justify-center hover:bg-[#1877F2] hover:text-white transition">
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+                </a>
+                <a href="#" target="_blank" rel="noreferrer" className="w-10 h-10 rounded-full bg-black/10 text-black flex items-center justify-center hover:bg-black hover:text-white transition">
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.34 2.88 2.88 0 0 1 2.31-4.53 2.66 2.66 0 0 1 1.61.53V9.5a6.33 6.33 0 0 0-3.92-1.34 6.33 6.33 0 1 0 6.33 6.33V8.67a8.4 8.4 0 0 0 6.09 2.36V7.61a5 5 0 0 1-1-.92z"/></svg>
+                </a>
              </div>
            </div>
         </div>

@@ -7,23 +7,57 @@ import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 export default function KyGuiPage() {
   const CONTACT_PHONE = "0912791925";
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isSending, setIsSending] = useState(false);
   const [formData, setFormData] = useState({ nhuCau: 'Cho thuê', toaNha: '', soCan: '', loaiCan: 'Studio', dienTich: '', noiThat: 'Nguyên bản CĐT', gia: '', ngayVaoO: '', ghiChu: '', soDienThoai: '' });
 
   const handleInputChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
+  // HÀM GỬI THÔNG BÁO QUA TELEGRAM (Đã tích hợp API của bạn)
+  const sendTelegramMessage = async (data) => {
+    const BOT_TOKEN = "8975441150:AAGenhx-AvTBdgP2DUF6wT0SMoJszJGeGzU"; 
+    const CHAT_ID = "5200264454";
+
+    const message = `🚨 <b>CÓ KHÁCH KÝ GỬI MỚI!</b>\n\n`
+                  + `👤 <b>Nhu cầu:</b> ${data.nhuCau}\n`
+                  + `🏢 <b>Tòa/Căn:</b> ${data.toaNha} - Căn ${data.soCan}\n`
+                  + `🛏 <b>Loại căn:</b> ${data.loaiCan} (${data.dienTich}m2)\n`
+                  + `🛋 <b>Nội thất:</b> ${data.noiThat}\n`
+                  + `💰 <b>Giá mong muốn:</b> ${data.gia}\n`
+                  + `📞 <b>SĐT Khách:</b> <code>${data.soDienThoai}</code>\n`
+                  + `${data.ghiChu ? `📝 <b>Ghi chú:</b> ${data.ghiChu}` : ''}`;
+
+    const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
+    
+    try {
+      await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: CHAT_ID,
+          text: message,
+          parse_mode: 'HTML'
+        })
+      });
+    } catch (err) {
+      console.error("Lỗi gửi Telegram", err);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setIsSending(true);
     try {
       await addDoc(collection(db, 'ky_gui'), { ...formData, createdAt: serverTimestamp(), status: 'Chưa xử lý' });
+      await sendTelegramMessage(formData);
       setIsSubmitted(true);
     } catch (error) {
       alert("Có lỗi xảy ra, vui lòng thử lại sau hoặc liên hệ Zalo!");
     }
+    setIsSending(false);
   };
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans flex flex-col">
-      {/* HEADER */}
       <header className="bg-white sticky top-0 z-50 px-4 md:px-8 py-3 flex justify-between items-center shadow-sm">
         <Link href="/" className="flex items-center hover:opacity-80 transition">
           <img src="/logo.png" alt="Quỹ Căn Smart City" className="h-10 md:h-12 w-auto object-contain" />
@@ -31,7 +65,6 @@ export default function KyGuiPage() {
         <Link href="/" className="text-blue-900 font-bold hover:text-blue-600 transition text-sm">Quay về trang chủ</Link>
       </header>
 
-      {/* HERO SECTION */}
       <section className="relative bg-blue-900 text-white py-16 px-4 md:px-12 flex items-center overflow-hidden">
         <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?q=80&w=2000&auto=format&fit=crop')] bg-cover bg-center opacity-20"></div>
         <div className="absolute inset-0 bg-gradient-to-r from-blue-900 via-blue-900/90 to-transparent"></div>
@@ -47,7 +80,6 @@ export default function KyGuiPage() {
         </div>
       </section>
 
-      {/* MAIN FORM */}
       <main className="max-w-4xl mx-auto px-4 w-full -mt-8 relative z-20 mb-20">
         {isSubmitted ? (
           <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-12 text-center">
@@ -55,7 +87,7 @@ export default function KyGuiPage() {
               <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>
             </div>
             <h2 className="text-2xl font-bold text-blue-900 mb-2">Đã nhận thông tin căn của anh/chị!</h2>
-            <p className="text-blue-600 font-bold text-xl mb-4">{formData.toaNha} - {formData.soCan}</p>
+            <p className="text-blue-600 font-bold text-xl mb-4">{formData.toaNha} - Căn {formData.soCan}</p>
             <p className="text-gray-600 mb-8 max-w-lg mx-auto">Chúng tôi sẽ kiểm tra, đăng lên web trong ngày và bắt đầu tìm khách. Nếu cần bổ sung gì, chúng tôi sẽ liên hệ qua SĐT/Zalo anh/chị vừa để lại.</p>
             <Link href="/" className="inline-block border border-blue-600 text-blue-600 hover:bg-blue-50 px-6 py-2 rounded-md font-bold transition">Xem các căn đang giao dịch</Link>
           </div>
@@ -129,8 +161,8 @@ export default function KyGuiPage() {
                 </div>
               </div>
 
-              <button type="submit" className="w-full bg-blue-900 hover:bg-blue-800 text-white p-4 rounded-md font-bold text-lg transition mt-4">
-                Gửi thông tin căn hộ
+              <button type="submit" disabled={isSending} className="w-full bg-blue-900 hover:bg-blue-800 text-white p-4 rounded-md font-bold text-lg transition mt-4 disabled:bg-gray-400">
+                {isSending ? 'Đang gửi dữ liệu...' : 'Gửi thông tin căn hộ'}
               </button>
             </form>
           </div>
