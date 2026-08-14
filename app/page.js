@@ -2,8 +2,9 @@
 import { useEffect, useState } from 'react';
 import { db } from '../firebaseConfig';
 import { collection, query, orderBy, getDocs } from 'firebase/firestore';
+import Link from 'next/link';
 
-// Component Thẻ Căn Hộ
+// Component Thẻ Căn Hộ (Đã thêm hiệu ứng Hover và Link Click)
 const PropertyCard = ({ item, contactPhone }) => {
   const [currentImg, setCurrentImg] = useState(0);
   const images = item.images && item.images.length > 0 ? item.images : [];
@@ -12,33 +13,36 @@ const PropertyCard = ({ item, contactPhone }) => {
   const prevImg = (e) => { e.preventDefault(); if (currentImg > 0) setCurrentImg(currentImg - 1); };
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition flex flex-col">
-      <div className="relative h-56 bg-gray-200 group overflow-hidden">
+    <Link href={`/property/${item.id}`} className="block bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 cursor-pointer group flex flex-col">
+      
+      {/* Khối Ảnh */}
+      <div className="relative h-56 bg-gray-200 overflow-hidden">
         {images.length > 0 ? (
-          <img src={images[currentImg]} alt="Căn hộ" className="w-full h-full object-cover transition-transform duration-300" />
+          <img src={images[currentImg]} alt="Căn hộ" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
         ) : (
           <div className="flex items-center justify-center h-full text-gray-400 text-sm">Chưa có ảnh</div>
         )}
         
         {images.length > 1 && (
           <>
-            <button onClick={prevImg} className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/30 hover:bg-black/50 text-white w-6 h-6 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition">‹</button>
-            <button onClick={nextImg} className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/30 hover:bg-black/50 text-white w-6 h-6 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition">›</button>
-            <div className="absolute bottom-2 left-0 right-0 flex justify-center gap-1.5">
+            <button onClick={prevImg} className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/30 hover:bg-black/50 text-white w-7 h-7 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition z-10">‹</button>
+            <button onClick={nextImg} className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/30 hover:bg-black/50 text-white w-7 h-7 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition z-10">›</button>
+            <div className="absolute bottom-2 left-0 right-0 flex justify-center gap-1.5 z-10">
               {images.map((_, idx) => (
                 <div key={idx} className={`h-1.5 rounded-full transition-all ${currentImg === idx ? 'w-3 bg-white' : 'w-1.5 bg-white/50'}`}></div>
               ))}
             </div>
           </>
         )}
-        <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-sm px-2.5 py-1 rounded-md text-[10px] font-bold text-gray-800 uppercase shadow-sm">
+        <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-sm px-2.5 py-1 rounded-md text-[10px] font-bold text-gray-800 uppercase shadow-sm z-10">
           {item.loaiCan || item.type}
         </div>
       </div>
 
+      {/* Khối Thông tin */}
       <div className="p-4 flex flex-col flex-grow">
         <div className="mb-4 pb-3 border-b border-gray-100">
-           <h3 className="font-extrabold text-[#a07d46] text-lg uppercase tracking-tight">{item.phanKhu}</h3>
+           <h3 className="font-extrabold text-[#a07d46] text-lg uppercase tracking-tight group-hover:text-[#b08d66] transition-colors">{item.phanKhu}</h3>
            <p className="text-sm text-gray-700 font-bold mt-1">Tòa {item.toaNha || item.building}</p>
         </div>
         
@@ -54,17 +58,12 @@ const PropertyCard = ({ item, contactPhone }) => {
             {item.price} <span className="text-xs font-medium text-gray-500">{item.listingType === 'Chuyển nhượng' ? 'Tỷ' : 'triệu/tháng'}</span>
           </div>
           <div className="flex gap-2">
-            <a href={`tel:${contactPhone}`} className="flex-1 bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 text-center py-2.5 rounded-lg text-sm font-semibold transition flex justify-center items-center gap-1.5">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg>
-                Liên hệ
-            </a>
-            <a href={`https://zalo.me/${contactPhone}`} target="_blank" rel="noreferrer" className="flex-1 bg-[#c5a47e] hover:bg-[#b08d66] text-white text-center py-2.5 rounded-lg text-sm font-semibold transition flex justify-center items-center gap-1.5 shadow-sm">
-                Zalo
-            </a>
+            <object className="flex-1"><a href={`tel:${contactPhone}`} className="block w-full bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 text-center py-2.5 rounded-lg text-sm font-semibold transition flex justify-center items-center gap-1.5">Liên hệ</a></object>
+            <object className="flex-1"><a href={`https://zalo.me/${contactPhone}`} target="_blank" rel="noreferrer" className="block w-full bg-[#c5a47e] hover:bg-[#b08d66] text-white text-center py-2.5 rounded-lg text-sm font-semibold transition flex justify-center items-center gap-1.5 shadow-sm">Zalo</a></object>
           </div>
         </div>
       </div>
-    </div>
+    </Link>
   );
 };
 
@@ -73,7 +72,7 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   
   const [activeTab, setActiveTab] = useState('Cho thuê');
-  const [sortBy, setSortBy] = useState('newest'); // Trạng thái sắp xếp
+  const [sortBy, setSortBy] = useState('newest');
 
   const [filters, setFilters] = useState({
     phanKhu: 'Tất cả phân khu',
@@ -117,9 +116,8 @@ export default function Home() {
   // 2. Sắp xếp dữ liệu sau khi lọc
   const sortedProperties = [...filteredProperties].sort((a, b) => {
     if (sortBy === 'priceAsc') {
-      return a.price - b.price; // Giá từ thấp đến cao
+      return a.price - b.price;
     } else {
-      // Cập nhật mới nhất (so sánh timestamp)
       const timeA = a.createdAt?.seconds || 0;
       const timeB = b.createdAt?.seconds || 0;
       return timeB - timeA;
@@ -129,7 +127,7 @@ export default function Home() {
   if (loading) return <div className="flex justify-center items-center h-screen bg-[#fbfaf7]"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#c5a47e]"></div></div>;
 
   return (
-    <div className="min-h-screen bg-[#fbfaf7] text-gray-800 font-sans">
+    <div className="min-h-screen bg-[#fbfaf7] text-gray-800 font-sans flex flex-col">
       <header className="bg-white sticky top-0 z-50 px-4 md:px-8 py-4 flex justify-between items-center shadow-sm">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 border border-[#c5a47e] text-[#c5a47e] flex items-center justify-center font-serif font-medium text-lg">V</div>
@@ -155,7 +153,7 @@ export default function Home() {
         </div>
       </section>
 
-      <div className="max-w-[1400px] mx-auto px-4 md:px-8 mt-6">
+      <div className="max-w-[1400px] mx-auto px-4 md:px-8 mt-6 w-full">
         <div className="flex gap-2 border-b border-gray-200">
            <button onClick={() => {setActiveTab('Cho thuê'); setFilters({...filters, loaiCan: 'Tất cả loại căn'})}} className={`py-3 px-6 text-sm font-semibold transition relative ${activeTab === 'Cho thuê' ? 'text-[#c5a47e]' : 'text-gray-500 hover:text-gray-800'}`}>
              Cho thuê
@@ -168,7 +166,8 @@ export default function Home() {
         </div>
       </div>
 
-      <main className="max-w-[1400px] mx-auto px-4 md:px-8 py-8 flex flex-col lg:flex-row gap-8 items-start">
+      {/* Main Content sẽ tự giãn để đẩy Footer xuống đáy nếu ít bài */}
+      <main className="max-w-[1400px] mx-auto px-4 md:px-8 py-8 flex flex-col lg:flex-row gap-8 items-start flex-grow w-full">
         
         <aside className="w-full lg:w-[280px] flex-shrink-0 bg-white p-5 rounded-xl shadow-sm border border-gray-100 sticky top-24">
           <h3 className="font-bold text-lg mb-6 text-gray-900">Bộ lọc chi tiết</h3>
@@ -215,7 +214,6 @@ export default function Home() {
         </aside>
 
         <section className="flex-1 w-full">
-          {/* TIÊU ĐỀ VÀ BỘ LỌC SẮP XẾP */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4 border-b pb-4 sm:border-0 sm:pb-0 border-gray-200">
              <div>
                <h3 className="text-xl font-bold text-gray-900 inline-block mr-2">{activeTab}</h3>
@@ -244,6 +242,24 @@ export default function Home() {
           )}
         </section>
       </main>
+
+      <footer className="bg-white border-t border-gray-200 py-10 px-4 md:px-12 w-full">
+        <div className="max-w-[1400px] mx-auto flex flex-col md:flex-row justify-between gap-8 text-sm text-gray-500">
+           <div className="max-w-md">
+             <div className="flex items-center gap-2 mb-4">
+               <div className="w-8 h-8 border border-[#c5a47e] text-[#c5a47e] flex items-center justify-center font-serif font-medium text-lg">V</div>
+               <span className="font-bold text-gray-800 tracking-widest uppercase text-xs">VINHOMES LIFESTYLE</span>
+             </div>
+             <p className="text-xs leading-relaxed font-light">Cổng thông tin dữ liệu về căn hộ chuyển nhượng, cho thuê và đời sống cư dân. Không phải website của chủ đầu tư.</p>
+           </div>
+           <div>
+             <p className="font-bold text-gray-800 mb-3 text-xs uppercase tracking-wider">Liên hệ</p>
+             <p className="mb-1.5 font-light">Hotline: <a href={`tel:${CONTACT_PHONE}`} className="text-gray-600 font-medium hover:text-[#c5a47e]">{CONTACT_PHONE.replace(/(\d{4})(\d{3})(\d{3})/, '$1 $2 $3')}</a></p>
+             <p className="mb-1.5 font-light">Zalo: <a href={`https://zalo.me/${CONTACT_PHONE}`} className="text-gray-600 font-medium hover:text-[#c5a47e]">{CONTACT_PHONE.replace(/(\d{4})(\d{3})(\d{3})/, '$1 $2 $3')}</a></p>
+             <p className="font-light">Đại lộ Thăng Long, Nam Từ Liêm, Hà Nội</p>
+           </div>
+        </div>
+      </footer>
     </div>
   );
 }

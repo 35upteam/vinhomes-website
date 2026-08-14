@@ -1,38 +1,64 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { db } from '../../firebaseConfig';
-import { collection, addDoc, getDocs, doc, deleteDoc, updateDoc, serverTimestamp, query, orderBy } from 'firebase/firestore';
+import { collection, addDoc, getDocs, doc, getDoc, setDoc, deleteDoc, updateDoc, serverTimestamp, query, orderBy } from 'firebase/firestore';
 
 export default function AdminPage() {
-  // Trạng thái Bảo mật
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState('');
 
-  // Trạng thái Form và Dữ liệu
-  const initialForm = { listingType: 'Cho thuê', phanKhu: 'Sapphire', loaiCan: 'Studio', toaNha: '', khoangTang: 'Tầng trung', huongBanCong: 'Đông Nam', noiThat: 'Đầy đủ nội thất', area: '', price: '' };
+  // 1. Quản lý Phí Dịch Vụ
+  const phanKhuList = ['Sapphire', 'Miami', 'Sakura', 'Victoria', 'Imperia', 'Sola Park', 'Tonkin', 'Canopy', 'Masteri West Height', 'Lumiere Evergreen'];
+  const [serviceFees, setServiceFees] = useState({});
+  const [isSavingFees, setIsSavingFees] = useState(false);
+
+  // 2. Quản lý Form Căn hộ
+  const initialForm = { listingType: 'Cho thuê', phanKhu: 'Sapphire', loaiCan: 'Studio', toaNha: '', khoangTang: 'Tầng trung', huongBanCong: 'Đông Nam', noiThat: 'Đầy đủ nội thất', area: '', price: '', ngayNhanNha: '', moTa: '' };
   const [formData, setFormData] = useState(initialForm);
   const [images, setImages] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
   
-  // Trạng thái Quản lý danh sách
   const [properties, setProperties] = useState([]);
   const [editingId, setEditingId] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
 
-  // Lấy dữ liệu danh sách căn hộ
+  // Tải dữ liệu ban đầu
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchProperties();
+      fetchServiceFees();
+    }
+  }, [isAuthenticated]);
+
   const fetchProperties = async () => {
     const q = query(collection(db, 'properties'), orderBy('createdAt', 'desc'));
     const querySnapshot = await getDocs(q);
     setProperties(querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
   };
 
-  useEffect(() => {
-    if (isAuthenticated) fetchProperties();
-  }, [isAuthenticated]);
+  const fetchServiceFees = async () => {
+    const feeDoc = await getDoc(doc(db, 'settings', 'serviceFees'));
+    if (feeDoc.exists()) setServiceFees(feeDoc.data());
+    else {
+      const defaultFees = phanKhuList.reduce((acc, curr) => ({ ...acc, [curr]: '8.800' }), {});
+      setServiceFees(defaultFees);
+    }
+  };
+
+  const handleSaveFees = async () => {
+    setIsSavingFees(true);
+    try {
+      await setDoc(doc(db, 'settings', 'serviceFees'), serviceFees);
+      alert('Đã cập nhật bảng phí dịch vụ thành công!');
+    } catch (error) {
+      alert('Lỗi khi lưu phí dịch vụ!');
+    }
+    setIsSavingFees(false);
+  };
 
   const handleInputChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
   const handleImageChange = (e) => { if (e.target.files) setImages(Array.from(e.target.files)); };
 
-  // Xử lý Xóa
   const handleDelete = async (id) => {
     if (window.confirm('Bạn có chắc chắn muốn xóa căn hộ này không?')) {
       await deleteDoc(doc(db, 'properties', id));
@@ -41,26 +67,23 @@ export default function AdminPage() {
     }
   };
 
-  // Xử lý Bấm nút Sửa
   const handleEdit = (item) => {
-    setFormData(item);
+    setFormData({ ...initialForm, ...item });
     setEditingId(item.id);
-    setImages([]); // Yêu cầu chọn lại ảnh nếu muốn đổi ảnh, hoặc giữ ảnh cũ
+    setImages([]);
     window.scrollTo(0, 0);
   };
 
-  // Xử lý Lưu (Thêm mới hoặc Cập nhật)
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (images.length === 0 && !editingId) return alert('Vui lòng chọn ít nhất 1 ảnh!');
     setIsUploading(true);
     
     try {
-      let imageUrls = editingId ? formData.images : []; // Nếu đang sửa và không up ảnh mới thì giữ ảnh cũ
+      let imageUrls = editingId ? formData.images : []; 
       
-      // Nếu có chọn ảnh mới thì up lên Cloudinary
       if (images.length > 0) {
-        imageUrls = []; // Reset để up ảnh mới
+        imageUrls = [];
         const CLOUD_NAME = "ibzfmsqp"; 
         const UPLOAD_PRESET = "upload preset";
         for (const file of images) {
@@ -81,11 +104,9 @@ export default function AdminPage() {
       };
 
       if (editingId) {
-        // Cập nhật
         await updateDoc(doc(db, 'properties', editingId), dataToSave);
         alert('Cập nhật thông tin thành công!');
       } else {
-        // Thêm mới
         await addDoc(collection(db, 'properties'), { ...dataToSave, createdAt: serverTimestamp() });
         alert(`Đã đăng thành công căn ${formData.listingType}!`);
       }
@@ -93,7 +114,7 @@ export default function AdminPage() {
       setFormData(initialForm);
       setEditingId(null);
       setImages([]);
-      fetchProperties(); // Tải lại danh sách
+      fetchProperties();
     } catch (error) {
       console.error('Lỗi:', error);
       alert('Có lỗi xảy ra, vui lòng thử lại!');
@@ -101,7 +122,6 @@ export default function AdminPage() {
     setIsUploading(false);
   };
 
-  // Giao diện Khóa đăng nhập
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100 p-4">
@@ -110,7 +130,6 @@ export default function AdminPage() {
              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
           </div>
           <h2 className="text-xl font-bold mb-2 text-gray-800">Mật khẩu Quản trị</h2>
-          <p className="text-sm text-gray-500 mb-6">Vui lòng nhập mật mã để truy cập hệ thống đăng bài.</p>
           <input type="password" value={password} onChange={e => setPassword(e.target.value)} onKeyDown={(e) => {if(e.key === 'Enter') document.getElementById('btnLogin').click()}} className="w-full p-3 border border-gray-300 rounded-lg mb-4 text-center text-lg tracking-widest focus:ring-2 focus:ring-blue-500 outline-none" placeholder="••••••••" />
           <button id="btnLogin" onClick={() => { if(password === '0912791925') setIsAuthenticated(true); else alert('Sai mật khẩu!'); }} className="w-full bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-lg font-bold transition shadow-md">Truy cập</button>
         </div>
@@ -118,19 +137,37 @@ export default function AdminPage() {
     );
   }
 
-  // Giao diện Admin chính
   return (
     <div className="min-h-screen bg-gray-100 p-4 md:p-8 text-gray-900 font-sans">
       <div className="max-w-5xl mx-auto flex flex-col gap-8">
         
-        {/* KHỐI 1: FORM THÊM/SỬA */}
+        {/* KHỐI 1: CÀI ĐẶT PHÍ DỊCH VỤ */}
+        <div className="bg-white p-6 md:p-8 rounded-lg shadow-md border-t-4 border-orange-500">
+           <div className="flex justify-between items-center mb-4">
+             <h2 className="text-xl font-bold text-gray-800">Cài đặt Phí dịch vụ (VNĐ/m²)</h2>
+             <button onClick={handleSaveFees} disabled={isSavingFees} className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded font-bold shadow-sm disabled:opacity-50 transition">
+               {isSavingFees ? 'Đang lưu...' : 'Lưu bảng phí'}
+             </button>
+           </div>
+           <p className="text-xs text-gray-500 mb-4">Cập nhật phí tại đây, tất cả các căn hộ trên web sẽ tự động hiển thị phí mới tương ứng với phân khu của nó.</p>
+           <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+             {phanKhuList.map(pk => (
+               <div key={pk} className="border border-gray-200 rounded p-2 bg-gray-50">
+                 <label className="block text-[10px] font-bold text-gray-600 uppercase mb-1">{pk}</label>
+                 <input type="text" value={serviceFees[pk] || ''} onChange={(e) => setServiceFees({...serviceFees, [pk]: e.target.value})} className="w-full p-1.5 text-sm border rounded outline-none focus:border-orange-500" placeholder="VD: 8.800" />
+               </div>
+             ))}
+           </div>
+        </div>
+
+        {/* KHỐI 2: FORM THÊM/SỬA CĂN HỘ */}
         <div className="bg-white p-6 md:p-8 rounded-lg shadow-md border-t-4 border-blue-600">
           <div className="flex justify-between items-center mb-6 border-b pb-4">
              <h1 className="text-2xl font-bold text-gray-800 uppercase tracking-wide">
                {editingId ? 'Sửa thông tin căn hộ' : 'Đăng tin Bất động sản'}
              </h1>
              {editingId && (
-               <button onClick={() => {setEditingId(null); setFormData(initialForm);}} className="text-sm bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded-md font-semibold transition">Hủy sửa</button>
+               <button onClick={() => {setEditingId(null); setFormData(initialForm);}} className="text-sm bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded-md font-semibold transition">Hủy sửa / Tạo mới</button>
              )}
           </div>
           
@@ -148,9 +185,9 @@ export default function AdminPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div>
-                <label className="block text-sm font-semibold mb-1 text-gray-600">Phân khu</label>
+                <label className="block text-sm font-semibold mb-1 text-gray-600">Phân khu (Để tự tính phí DV)</label>
                 <select name="phanKhu" value={formData.phanKhu} onChange={handleInputChange} className="w-full p-2.5 border rounded-md focus:ring-2 focus:ring-blue-500 outline-none">
-                  {['Sapphire', 'Miami', 'Sakura', 'Victoria', 'Imperia', 'Sola Park', 'Tonkin', 'Canopy', 'Masteri West Height', 'Lumiere Evergreen'].map(opt => <option key={opt}>{opt}</option>)}
+                  {phanKhuList.map(opt => <option key={opt}>{opt}</option>)}
                 </select>
               </div>
               <div>
@@ -193,6 +230,21 @@ export default function AdminPage() {
                </div>
             </div>
 
+            {/* Khối nhập liệu riêng cho Cho Thuê */}
+            {formData.listingType === 'Cho thuê' && (
+              <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
+                <label className="block text-sm font-semibold mb-1 text-blue-800">Ngày nhận nhà (Cho thuê)</label>
+                <input type="date" name="ngayNhanNha" value={formData.ngayNhanNha || ''} onChange={handleInputChange} className="w-full md:w-1/2 p-2.5 border rounded-md focus:ring-2 focus:ring-blue-500 outline-none" />
+              </div>
+            )}
+
+            {/* Mô tả tùy chỉnh */}
+            <div>
+              <label className="block text-sm font-semibold mb-1 text-gray-600">Mô tả bổ sung (Mục Khác)</label>
+              <textarea name="moTa" value={formData.moTa || ''} onChange={handleInputChange} rows="3" placeholder="Nhập thêm ghi chú (Ví dụ: Bao phí quản lý, ưu tiên nữ... Bỏ trống nếu không có)" className="w-full p-2.5 border rounded-md focus:ring-2 focus:ring-blue-500 outline-none"></textarea>
+              <p className="text-xs text-gray-500 mt-1">Các thông tin cơ bản như Giá, Nội thất, Hợp đồng... hệ thống sẽ tự động tạo theo định dạng chuẩn. Bạn chỉ cần nhập những yêu cầu đặc biệt vào đây.</p>
+            </div>
+
             <div className="border-2 border-dashed border-gray-300 p-6 text-center rounded-lg bg-gray-50">
               <label className="block font-bold mb-2 cursor-pointer text-gray-700">Tải lên Ảnh căn hộ (Bỏ trống nếu muốn giữ ảnh cũ khi đang sửa)</label>
               <input type="file" multiple accept="image/*" onChange={handleImageChange} className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />
@@ -205,9 +257,23 @@ export default function AdminPage() {
           </form>
         </div>
 
-        {/* KHỐI 2: DANH SÁCH CĂN ĐANG ĐĂNG */}
+        {/* KHỐI 3: DANH SÁCH CĂN ĐANG ĐĂNG CÓ TÌM KIẾM */}
         <div className="bg-white p-6 md:p-8 rounded-lg shadow-md">
-          <h2 className="text-xl font-bold mb-6 text-gray-800 border-b pb-4">Danh sách căn hộ đang hiển thị ({properties.length})</h2>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 border-b pb-4 gap-4">
+            <h2 className="text-xl font-bold text-gray-800">Danh sách hiển thị ({properties.length})</h2>
+            
+            <div className="relative w-full sm:w-72">
+              <input 
+                type="text" 
+                placeholder="Tìm mã căn, tòa nhà..." 
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <svg className="w-4 h-4 text-gray-400 absolute left-2.5 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+            </div>
+          </div>
+
           <div className="overflow-x-auto">
             <table className="w-full text-sm text-left border-collapse">
               <thead className="bg-gray-100 text-gray-700">
@@ -220,7 +286,13 @@ export default function AdminPage() {
                 </tr>
               </thead>
               <tbody>
-                {properties.map(item => (
+                {properties
+                  .filter(item => 
+                    item.toaNha?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                    item.phanKhu?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    item.id.toLowerCase().includes(searchTerm.toLowerCase())
+                  )
+                  .map(item => (
                   <tr key={item.id} className="border-b hover:bg-gray-50 transition">
                     <td className="p-3">
                       <span className={`px-2 py-1 rounded text-xs font-bold ${item.listingType === 'Cho thuê' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'}`}>
@@ -236,9 +308,6 @@ export default function AdminPage() {
                     </td>
                   </tr>
                 ))}
-                {properties.length === 0 && (
-                  <tr><td colSpan="5" className="p-4 text-center text-gray-500">Chưa có căn hộ nào.</td></tr>
-                )}
               </tbody>
             </table>
           </div>
