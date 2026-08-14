@@ -38,7 +38,7 @@ export default function PropertyDetail() {
     fetchData();
   }, [id]);
 
-  if (loading) return <div className="flex justify-center items-center h-screen bg-[#fbfaf7]"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#c5a47e]"></div></div>;
+  if (loading) return <div className="flex justify-center items-center h-screen bg-gray-50"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-900"></div></div>;
   if (!property) return <div className="text-center py-20">Không tìm thấy căn hộ!</div>;
 
   const images = property.images || [];
@@ -49,24 +49,28 @@ export default function PropertyDetail() {
     formattedDate = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
   }
 
-  // Sử dụng Mã căn thật sinh ra từ form Admin
   const displayId = property.maCan || property.id.substring(0, 5).toUpperCase();
 
   return (
-    <div className="min-h-screen bg-[#fbfaf7] text-gray-800 font-sans flex flex-col">
+    <div className="min-h-screen bg-gray-50 text-gray-800 font-sans flex flex-col">
       <header className="bg-white sticky top-0 z-50 px-4 md:px-8 py-4 flex justify-between items-center shadow-sm">
         <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition">
-          <div className="w-9 h-9 border border-[#c5a47e] text-[#c5a47e] flex items-center justify-center font-serif font-medium text-lg">V</div>
+          <div className="w-10 h-10 flex items-center justify-center">
+            <svg viewBox="0 0 24 24" className="w-full h-full drop-shadow-sm">
+              <path fill="#1e3a8a" d="M12 2L1 12h3v9h16v-9h3L12 2z"/>
+              <path fill="#f97316" d="M10.5 16.5l-3-3 1.41-1.41 1.59 1.59 4.59-4.59L16.5 10.5l-6 6z"/>
+            </svg>
+          </div>
           <div>
-            <h1 className="text-base font-bold text-gray-900 leading-none uppercase tracking-widest mb-1">Vinhomes Lifestyle</h1>
-            <p className="text-[9px] text-gray-400 uppercase tracking-widest">Căn hộ chuyển nhượng & cho thuê</p>
+            <h1 className="text-base font-extrabold text-blue-900 leading-none uppercase tracking-widest mb-1">Quỹ Căn Smart City</h1>
+            <p className="text-[9px] text-gray-500 uppercase tracking-widest">Kênh phân phối BĐS Uy Tín</p>
           </div>
         </Link>
-        <a href={`tel:${CONTACT_PHONE}`} className="bg-[#c5a47e] text-white px-6 py-2 rounded-md font-semibold hover:bg-[#b08d66] transition text-sm shadow-md">Liên hệ</a>
+        <a href={`tel:${CONTACT_PHONE}`} className="bg-orange-500 text-white px-6 py-2 rounded-md font-semibold hover:bg-orange-600 transition text-sm shadow-md">Liên hệ</a>
       </header>
 
       <main className="max-w-[1200px] mx-auto px-4 md:px-8 py-8 flex-grow w-full">
-        <Link href="/" className="inline-flex items-center text-sm font-medium text-gray-500 hover:text-gray-900 mb-6 transition">
+        <Link href="/" className="inline-flex items-center text-sm font-bold text-blue-900 hover:text-orange-500 mb-6 transition">
           <span className="mr-2">←</span> Quay lại danh sách
         </Link>
 
@@ -80,8 +84,8 @@ export default function PropertyDetail() {
                 ) : <div className="flex items-center justify-center h-full text-gray-400">Chưa có ảnh</div>}
                 {images.length > 1 && (
                   <>
-                    <button onClick={() => setCurrentImg(prev => prev > 0 ? prev - 1 : prev)} className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white text-gray-800 w-10 h-10 rounded-full shadow flex items-center justify-center transition">‹</button>
-                    <button onClick={() => setCurrentImg(prev => prev < images.length - 1 ? prev + 1 : prev)} className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white text-gray-800 w-10 h-10 rounded-full shadow flex items-center justify-center transition">›</button>
+                    <button onClick={() => setCurrentImg(prev => prev > 0 ? prev - 1 : prev)} className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white text-blue-900 w-10 h-10 rounded-full shadow flex items-center justify-center transition">‹</button>
+                    <button onClick={() => setCurrentImg(prev => prev < images.length - 1 ? prev + 1 : prev)} className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white text-blue-900 w-10 h-10 rounded-full shadow flex items-center justify-center transition">›</button>
                     <div className="absolute top-4 right-4 bg-black/60 text-white px-3 py-1 rounded-full text-xs font-medium tracking-widest">{currentImg + 1} / {images.length}</div>
                   </>
                 )}
@@ -89,7 +93,7 @@ export default function PropertyDetail() {
               {images.length > 1 && (
                 <div className="flex gap-2 p-2 overflow-x-auto">
                   {images.map((img, idx) => (
-                    <div key={idx} onClick={() => setCurrentImg(idx)} className={`flex-shrink-0 w-24 h-16 rounded cursor-pointer overflow-hidden border-2 transition ${currentImg === idx ? 'border-[#c5a47e]' : 'border-transparent opacity-60 hover:opacity-100'}`}>
+                    <div key={idx} onClick={() => setCurrentImg(idx)} className={`flex-shrink-0 w-24 h-16 rounded cursor-pointer overflow-hidden border-2 transition ${currentImg === idx ? 'border-orange-500' : 'border-transparent opacity-60 hover:opacity-100'}`}>
                       <img src={img} className="w-full h-full object-cover" />
                     </div>
                   ))}
@@ -99,13 +103,13 @@ export default function PropertyDetail() {
 
             {/* Tiêu đề & Giá */}
             <div className="mb-8">
-              <span className="inline-block bg-[#f8f1e7] text-[#c5a47e] px-3 py-1 rounded text-[10px] font-bold uppercase tracking-widest mb-3">
+              <span className="inline-block bg-orange-100 text-orange-700 px-3 py-1 rounded text-[10px] font-bold uppercase tracking-widest mb-3">
                 {property.listingType || 'Cho thuê'}
               </span>
-              <h1 className="text-3xl font-extrabold text-gray-900 mb-3 leading-tight">
+              <h1 className="text-3xl font-extrabold text-blue-900 mb-3 leading-tight">
                 {property.listingType === 'Cho thuê' ? 'Thuê căn hộ' : 'Bán căn hộ'} {property.loaiCan || property.type} tòa {property.toaNha || property.building}
               </h1>
-              <div className="text-3xl font-bold text-[#a07d46] mb-6">
+              <div className="text-3xl font-bold text-orange-600 mb-6">
                 {property.price} <span className="text-lg font-medium text-gray-600">{property.listingType === 'Chuyển nhượng' ? 'Tỷ' : 'triệu/tháng'}</span>
               </div>
             </div>
@@ -119,16 +123,16 @@ export default function PropertyDetail() {
                 { label: 'Hiện trạng nội thất', val: property.noiThat || 'Đang cập nhật', icon: '🛋️' },
                 { label: 'Phí dịch vụ', val: serviceFee, icon: '🛡️' }
               ].map((spec, i) => (
-                <div key={i} className="bg-gray-50 rounded-xl p-4 border border-gray-100">
+                <div key={i} className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
                   <p className="text-[10px] text-gray-500 uppercase tracking-widest mb-1">{spec.label}</p>
-                  <p className="font-bold text-gray-800 text-sm flex items-center gap-1.5"><span className="text-gray-400">{spec.icon}</span>{spec.val}</p>
+                  <p className="font-bold text-gray-800 text-sm flex items-center gap-1.5"><span className="text-orange-500">{spec.icon}</span>{spec.val}</p>
                 </div>
               ))}
             </div>
 
             {/* Bảng Thông tin căn */}
             <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm mb-8">
-              <h3 className="font-bold text-gray-900 mb-5">Thông tin tổng quan</h3>
+              <h3 className="font-bold text-blue-900 mb-5">Thông tin tổng quan</h3>
               <div className="space-y-4 text-sm">
                 <div className="flex border-b border-gray-100 pb-3"><span className="w-1/3 text-gray-500 font-medium">Mã căn</span><span className="w-2/3 font-semibold text-gray-800">{displayId}</span></div>
                 <div className="flex border-b border-gray-100 pb-3"><span className="w-1/3 text-gray-500 font-medium">🏢 Tòa nhà</span><span className="w-2/3 font-semibold text-gray-800">Tòa {property.toaNha || property.building} · {property.khoangTang}</span></div>
@@ -141,7 +145,7 @@ export default function PropertyDetail() {
 
             {/* Khối Mô tả */}
             <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm mb-8">
-              <h3 className="font-bold text-gray-900 mb-5">Mô tả</h3>
+              <h3 className="font-bold text-blue-900 mb-5">Mô tả</h3>
               <div className="text-sm text-gray-700 leading-relaxed space-y-2 whitespace-pre-wrap">
                 {property.listingType === 'Cho thuê' ? (
                   <>
@@ -165,25 +169,24 @@ export default function PropertyDetail() {
 
           </div>
 
-          {/* CỘT PHẢI: STICKY BOX LIÊN HỆ - Thêm class self-start để sticky */}
           <aside className="w-full lg:w-[320px] flex-shrink-0 self-start sticky top-24">
             <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-6">
-              <p className="text-[10px] font-bold text-[#c5a47e] uppercase tracking-widest mb-1">Liên hệ tư vấn</p>
-              <h3 className="text-xl font-extrabold text-gray-900 mb-2">Vinhomes Lifestyle</h3>
+              <p className="text-[10px] font-bold text-orange-500 uppercase tracking-widest mb-1">Liên hệ tư vấn</p>
+              <h3 className="text-xl font-extrabold text-blue-900 mb-2">Quỹ Căn Smart City</h3>
               <p className="text-sm text-gray-500 mb-6 font-light">Hotline {CONTACT_PHONE} - hỗ trợ xem nhà & chốt căn nhanh.</p>
               
               <div className="space-y-3">
-                <a href={`tel:${CONTACT_PHONE}`} className="flex items-center justify-center gap-2 w-full bg-[#a07d46] text-white py-3 rounded-lg font-bold hover:bg-[#8b6a38] transition shadow">📞 Gọi {CONTACT_PHONE.replace(/(\d{4})(\d{3})(\d{3})/, '$1 $2 $3')}</a>
-                <a href={`https://zalo.me/${CONTACT_PHONE}?text=${encodeURIComponent(`Xin chào, tôi quan tâm căn Mã ${displayId} (${property.listingType} ${property.loaiCan} tòa ${property.toaNha}) trên web.`)}`} target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 w-full bg-white border border-gray-300 text-gray-800 py-3 rounded-lg font-bold hover:bg-gray-50 transition">💬 Nhắn Zalo</a>
+                <a href={`tel:${CONTACT_PHONE}`} className="flex items-center justify-center gap-2 w-full bg-orange-500 text-white py-3 rounded-lg font-bold hover:bg-orange-600 transition shadow">📞 Gọi {CONTACT_PHONE.replace(/(\d{4})(\d{3})(\d{3})/, '$1 $2 $3')}</a>
+                <a href={`https://zalo.me/${CONTACT_PHONE}?text=${encodeURIComponent(`Xin chào, tôi quan tâm căn Mã ${displayId} (${property.listingType} ${property.loaiCan} tòa ${property.toaNha}) trên web.`)}`} target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 w-full bg-blue-600 text-white py-3 rounded-lg font-bold hover:bg-blue-700 transition shadow">💬 Nhắn Zalo</a>
               </div>
 
               <div className="mt-6 bg-gray-50 p-4 rounded-xl border border-gray-100 text-center">
                 <div className="w-32 h-32 mx-auto bg-white border border-gray-200 p-2 rounded-lg shadow-sm mb-3 flex items-center justify-center">
-                   <svg viewBox="0 0 100 100" className="w-full h-full text-gray-800 opacity-80"><path fill="currentColor" d="M10 10h30v30H10V10zm5 5v20h20V15H15zm45-5h30v30H60V10zm5 5v20h20V15H65zm-55 45h30v30H10V60zm5 5v20h20V65H15zm45-5h10v10H60V60zm15 0h15v10H75V60zm-15 15h30v15H60V75zm5 5v5h20v-5H65zM35 35h10v10H35V35zm35 0h10v10H70V35zm-20 20h10v10H50V55z"></path></svg>
+                   <svg viewBox="0 0 100 100" className="w-full h-full text-blue-900 opacity-80"><path fill="currentColor" d="M10 10h30v30H10V10zm5 5v20h20V15H15zm45-5h30v30H60V10zm5 5v20h20V15H65zm-55 45h30v30H10V60zm5 5v20h20V65H15zm45-5h10v10H60V60zm15 0h15v10H75V60zm-15 15h30v15H60V75zm5 5v5h20v-5H65zM35 35h10v10H35V35zm35 0h10v10H70V35zm-20 20h10v10H50V55z"></path></svg>
                 </div>
                 <p className="text-xs text-gray-500 font-medium">Quét QR Zalo - <span className="font-bold text-gray-800">{CONTACT_PHONE}</span></p>
               </div>
-              <div className="mt-4 bg-[#f8f1e7] py-2 px-4 rounded text-center text-[11px] font-medium text-[#c5a47e]">
+              <div className="mt-4 bg-orange-50 py-2 px-4 rounded text-center text-[11px] font-bold text-orange-600 border border-orange-100">
                  Mã căn: {displayId} - Đang còn hàng
               </div>
             </div>
@@ -195,15 +198,20 @@ export default function PropertyDetail() {
         <div className="max-w-[1400px] mx-auto flex flex-col md:flex-row justify-between gap-8 text-sm text-gray-500">
            <div className="max-w-md">
              <div className="flex items-center gap-2 mb-4">
-               <div className="w-8 h-8 border border-[#c5a47e] text-[#c5a47e] flex items-center justify-center font-serif font-medium text-lg">V</div>
-               <span className="font-bold text-gray-800 tracking-widest uppercase text-xs">VINHOMES LIFESTYLE</span>
+               <div className="w-8 h-8 flex items-center justify-center">
+                 <svg viewBox="0 0 24 24" className="w-full h-full">
+                   <path fill="#1e3a8a" d="M12 2L1 12h3v9h16v-9h3L12 2z"/>
+                   <path fill="#f97316" d="M10.5 16.5l-3-3 1.41-1.41 1.59 1.59 4.59-4.59L16.5 10.5l-6 6z"/>
+                 </svg>
+               </div>
+               <span className="font-bold text-blue-900 tracking-widest uppercase text-xs">QUỸ CĂN SMART CITY</span>
              </div>
              <p className="text-xs leading-relaxed font-light">Cổng thông tin dữ liệu về căn hộ chuyển nhượng, cho thuê và đời sống cư dân. Không phải website của chủ đầu tư.</p>
            </div>
            <div>
-             <p className="font-bold text-gray-800 mb-3 text-xs uppercase tracking-wider">Liên hệ</p>
-             <p className="mb-1.5 font-light">Hotline: <a href={`tel:${CONTACT_PHONE}`} className="text-gray-600 font-medium hover:text-[#c5a47e]">{CONTACT_PHONE.replace(/(\d{4})(\d{3})(\d{3})/, '$1 $2 $3')}</a></p>
-             <p className="mb-1.5 font-light">Zalo: <a href={`https://zalo.me/${CONTACT_PHONE}`} className="text-gray-600 font-medium hover:text-[#c5a47e]">{CONTACT_PHONE.replace(/(\d{4})(\d{3})(\d{3})/, '$1 $2 $3')}</a></p>
+             <p className="font-bold text-blue-900 mb-3 text-xs uppercase tracking-wider">Liên hệ</p>
+             <p className="mb-1.5 font-light">Hotline: <a href={`tel:${CONTACT_PHONE}`} className="text-gray-600 font-medium hover:text-orange-500">{CONTACT_PHONE.replace(/(\d{4})(\d{3})(\d{3})/, '$1 $2 $3')}</a></p>
+             <p className="mb-1.5 font-light">Zalo: <a href={`https://zalo.me/${CONTACT_PHONE}`} className="text-gray-600 font-medium hover:text-orange-500">{CONTACT_PHONE.replace(/(\d{4})(\d{3})(\d{3})/, '$1 $2 $3')}</a></p>
              <p className="font-light">Đại lộ Thăng Long, Nam Từ Liêm, Hà Nội</p>
            </div>
         </div>
