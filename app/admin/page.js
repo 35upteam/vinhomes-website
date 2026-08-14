@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { db } from '../../firebase';
 import { collection, addDoc, getDocs, doc, getDoc, setDoc, deleteDoc, updateDoc, serverTimestamp, query, orderBy } from 'firebase/firestore';
+import Link from 'next/link'; // Thêm Link để mở tab mới
 
 export default function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -36,7 +37,6 @@ export default function AdminPage() {
   const [editingId, setEditingId] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   
-  // Bộ lọc và Phân trang Admin
   const [filterType, setFilterType] = useState('Tất cả');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
@@ -204,7 +204,11 @@ export default function AdminPage() {
     );
   }
 
-  // Logic Lọc và Phân trang Quỹ căn
+  // TÍNH TOÁN SỐ LƯỢNG CHO BỘ LỌC
+  const countAll = properties.length;
+  const countThu = properties.filter(p => p.listingType === 'Cho thuê').length;
+  const countBan = properties.filter(p => p.listingType === 'Chuyển nhượng').length;
+
   const filteredProperties = properties.filter(item => {
     const matchSearch = item.maCan?.toLowerCase().includes(searchTerm.toLowerCase()) || 
                         item.toaNha?.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -318,10 +322,9 @@ export default function AdminPage() {
               </div>
             )}
 
-            {/* GHI CHÚ NỘI BỘ */}
             <div>
-              <label className="block text-xs font-bold mb-1.5 text-gray-500 uppercase">Ghi chú (Chỉ lưu nội bộ, không hiện trên web)</label>
-              <textarea name="moTa" value={formData.moTa || ''} onChange={handleInputChange} rows="2" placeholder="Nhập pass cửa, thông tin chủ nhà, thỏa thuận..." className="w-full p-3 border border-gray-200 rounded-md focus:border-blue-500 outline-none text-sm"></textarea>
+              <label className="block text-xs font-bold mb-1.5 text-gray-500 uppercase">Ghi chú mật (Chỉ lưu nội bộ)</label>
+              <textarea name="moTa" value={formData.moTa || ''} onChange={handleInputChange} rows="2" placeholder="VD: Pass cửa, thông tin chủ nhà, % hoa hồng..." className="w-full p-3 border border-gray-200 rounded-md focus:border-blue-500 outline-none text-sm"></textarea>
             </div>
 
             <div className="border-2 border-dashed border-gray-300 p-4 text-center rounded-lg bg-gray-50 hover:bg-gray-100 transition">
@@ -371,11 +374,10 @@ export default function AdminPage() {
                       <th className="px-4 py-3 rounded-l-md">
                         <div className="flex flex-col gap-1 items-start">
                           <span>Mã căn</span>
-                          {/* BỘ LỌC NGAY TẠI TIÊU ĐỀ THEO YÊU CẦU */}
-                          <select value={filterType} onChange={(e) => {setFilterType(e.target.value); setCurrentPage(1);}} className="text-[10px] p-0.5 rounded border border-gray-300 font-normal outline-none focus:border-blue-500 bg-white">
-                            <option value="Tất cả">Tất cả</option>
-                            <option value="Cho thuê">Cho thuê</option>
-                            <option value="Chuyển nhượng">Chuyển nhượng</option>
+                          <select value={filterType} onChange={(e) => {setFilterType(e.target.value); setCurrentPage(1);}} className="text-[10px] p-0.5 rounded border border-gray-300 font-bold outline-none focus:border-blue-500 bg-white cursor-pointer">
+                            <option value="Tất cả">Tất cả ({countAll})</option>
+                            <option value="Cho thuê">Cho thuê ({countThu})</option>
+                            <option value="Chuyển nhượng">Chuyển nhượng ({countBan})</option>
                           </select>
                         </div>
                       </th>
@@ -389,7 +391,10 @@ export default function AdminPage() {
                     {paginatedProperties.map(item => (
                       <tr key={item.id} className="hover:bg-gray-50/50 transition group">
                         <td className="px-4 py-4">
-                          <span className="font-bold text-blue-900 tracking-wide text-sm block">{item.maCan}</span>
+                          {/* MÃ CĂN CLICK ĐƯỢC */}
+                          <Link href={`/property/${item.id}`} target="_blank" className="font-bold text-blue-900 hover:text-blue-600 hover:underline tracking-wide text-sm block" title="Mở sang tab mới để xem">
+                            {item.maCan} <svg className="w-3 h-3 inline-block opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+                          </Link>
                           <span className="text-[10px] text-gray-500 font-medium">{item.listingType}</span>
                         </td>
                         <td className="px-4 py-4"><span className="font-bold text-gray-800 block">Tòa {item.toaNha || item.building}</span><span className="text-[11px] text-gray-500">{item.phanKhu}</span></td>
@@ -397,7 +402,6 @@ export default function AdminPage() {
                            <span className="font-medium text-gray-700 block text-xs">{item.loaiCan || item.type}</span>
                            <span className="font-bold text-blue-700 text-sm">{item.price} {item.listingType === 'Chuyển nhượng' ? 'Tỷ' : 'Tr'}</span>
                         </td>
-                        {/* CỘT GHI CHÚ MẬT */}
                         <td className="px-4 py-4 max-w-[150px]">
                            <p className="text-[11px] text-gray-600 line-clamp-2" title={item.moTa}>{item.moTa || <span className="text-gray-300 italic">Trống</span>}</p>
                         </td>
@@ -419,13 +423,12 @@ export default function AdminPage() {
                 {totalPages > 1 && (
                   <div className="flex justify-end items-center gap-2 mt-4 pt-4 border-t border-gray-100">
                     <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="px-2 py-1 text-xs border rounded hover:bg-gray-50 disabled:opacity-50">Trước</button>
-                    <span className="text-xs text-gray-500">Trang {currentPage} / {totalPages}</span>
+                    <span className="text-xs text-gray-500 font-bold">Trang {currentPage} / {totalPages}</span>
                     <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="px-2 py-1 text-xs border rounded hover:bg-gray-50 disabled:opacity-50">Sau</button>
                   </div>
                 )}
               </>
             ) : (
-              // BẢNG KÝ GỬI
               <table className="w-full text-sm text-left">
                 <thead className="bg-gray-50 text-gray-500 uppercase text-[10px] font-bold tracking-wider">
                   <tr>
@@ -464,12 +467,8 @@ export default function AdminPage() {
                                setAdminTab('quy-can');
                                setFormData({ ...initialForm, listingType: item.nhuCau, toaNha: item.toaNha, loaiCan: item.loaiCan, area: item.dienTich, price: item.gia.replace(/[^0-9.]/g, ''), noiThat: item.noiThat, ngayNhanNha: item.ngayVaoO || '', moTa: `Khách ký gửi: SĐT ${item.soDienThoai}. Ghi chú khách: ${item.ghiChu}` });
                                window.scrollTo({ top: 0, behavior: 'smooth' });
-                             }} className="text-blue-600 hover:bg-blue-50 p-1.5 rounded transition" title="Lên bài ngay">
-                              Lên bài
-                            </button>
-                            <button onClick={() => handleDeleteKyGui(item.id)} className="text-red-500 hover:bg-red-50 p-1.5 rounded transition" title="Xóa">
-                              Xóa
-                            </button>
+                             }} className="text-blue-600 hover:bg-blue-50 p-1.5 rounded transition" title="Lên bài ngay">Lên bài</button>
+                            <button onClick={() => handleDeleteKyGui(item.id)} className="text-red-500 hover:bg-red-50 p-1.5 rounded transition" title="Xóa">Xóa</button>
                           </div>
                         </td>
                       </tr>
@@ -490,9 +489,7 @@ export default function AdminPage() {
                 <h2 className="text-xl font-bold text-blue-900">Bảng Phí Dịch Vụ</h2>
                 <p className="text-sm text-gray-500 mt-1">Sửa đổi dưới đây chỉ áp dụng khi bạn bấm Lưu.</p>
               </div>
-              <button onClick={() => setIsFeeModalOpen(false)} className="text-gray-400 hover:text-red-500 transition">
-                X
-              </button>
+              <button onClick={() => setIsFeeModalOpen(false)} className="text-gray-400 hover:text-red-500 transition">X</button>
             </div>
             
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
@@ -503,7 +500,6 @@ export default function AdminPage() {
                 </div>
               ))}
             </div>
-            
             <div className="flex justify-end gap-3 border-t border-gray-100 pt-4">
               <button onClick={() => setIsFeeModalOpen(false)} className="px-5 py-2 rounded-md text-gray-600 font-bold hover:bg-gray-100 transition">Hủy</button>
               <button onClick={handleSaveFees} disabled={isSavingFees} className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md font-bold shadow-md disabled:opacity-50 transition">

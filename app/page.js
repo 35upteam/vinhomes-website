@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { db } from '../firebase'; // Đã sửa đường dẫn
+import { db } from '../firebase';
 import { collection, query, orderBy, getDocs } from 'firebase/firestore';
 import Link from 'next/link';
 
@@ -53,8 +53,9 @@ const PropertyCard = ({ item, contactPhone }) => {
         </div>
 
         <div className="mt-auto">
+          {/* THÊM TIỀN TỐ GIÁ BÁN / GIÁ THUÊ */}
           <div className="text-xl font-bold text-blue-700 mb-4">
-            {item.price} <span className="text-xs font-medium text-gray-500">{item.listingType === 'Chuyển nhượng' ? 'Tỷ' : 'triệu/tháng'}</span>
+            {item.listingType === 'Chuyển nhượng' ? 'Giá bán: ' : 'Giá thuê: '} {item.price} <span className="text-xs font-medium text-gray-500">{item.listingType === 'Chuyển nhượng' ? 'Tỷ' : 'triệu/tháng'}</span>
           </div>
           <div className="flex gap-2">
             <object className="flex-1"><a href={`tel:${contactPhone}`} className="block w-full bg-white border border-blue-600 text-blue-600 hover:bg-blue-50 text-center py-2.5 rounded-md text-sm font-semibold transition flex justify-center items-center gap-1.5">Liên hệ</a></object>
@@ -253,10 +254,11 @@ export default function Home() {
                   <h4 className="text-xl font-bold text-blue-900 mb-2">Không cần tự lướt hết quỹ căn</h4>
                   <p className="text-sm text-gray-600">Gửi nhu cầu của bạn, chúng tôi sẽ chọn 3-5 căn phù hợp nhất để gửi lại bạn nhanh nhất.</p>
                 </div>
-                <Link href="/ky-gui" className="bg-blue-800 hover:bg-blue-900 text-white px-8 py-3 rounded-md font-bold whitespace-nowrap transition shadow flex items-center gap-2 w-full md:w-auto justify-center">
+                {/* TRỎ VỀ ZALO NHƯ YÊU CẦU */}
+                <a href={`https://zalo.me/${CONTACT_PHONE}?text=${encodeURIComponent(`Xin chào, tôi muốn nhờ tìm giúp một căn hộ ${activeTab} tại Vinhomes Smart City.`)}`} target="_blank" rel="noreferrer" className="bg-blue-800 hover:bg-blue-900 text-white px-8 py-3 rounded-md font-bold whitespace-nowrap transition shadow flex items-center gap-2 w-full md:w-auto justify-center">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                   Nhờ tìm căn phù hợp
-                </Link>
+                </a>
               </div>
 
               {totalPages > 1 && (
@@ -288,17 +290,13 @@ export default function Home() {
            <div className="md:pl-10 md:border-l border-gray-100">
              <h3 className="font-extrabold text-blue-900 mb-5 text-lg uppercase tracking-wider">Liên hệ tư vấn</h3>
              <div className="space-y-4 font-light text-[15px]">
-               <p className="flex items-center gap-3">
-                 <span className="text-gray-400">👤</span> <strong className="text-gray-800">Nguyễn An Ninh</strong>
-               </p>
+               <p className="flex items-center gap-3"><span className="text-gray-400">👤</span> <strong className="text-gray-800">Nguyễn An Ninh</strong></p>
                <p className="flex items-center gap-3">
                  <span className="text-gray-400">📞</span> 
                  <a href={`tel:${CONTACT_PHONE}`} className="font-bold text-blue-600 hover:text-blue-800 transition text-lg">{CONTACT_PHONE.replace(/(\d{4})(\d{3})(\d{3})/, '$1 $2 $3')}</a> 
                  <span className="text-gray-400 text-xs ml-1">(SĐT / Zalo)</span>
                </p>
-               <p className="flex items-center gap-3">
-                 <span className="text-gray-400">📍</span> Vinhomes Smart City, Tây Mỗ, Nam Từ Liêm, Hà Nội
-               </p>
+               <p className="flex items-center gap-3"><span className="text-gray-400">📍</span> Vinhomes Smart City, Tây Mỗ, Nam Từ Liêm, Hà Nội</p>
              </div>
            </div>
         </div>

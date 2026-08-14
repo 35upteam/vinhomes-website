@@ -28,10 +28,9 @@ export default function KyGuiPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    // Validate Phone Number
     const phoneRegex = /^0\d{9}$/;
     if (!phoneRegex.test(formData.soDienThoai)) {
-      setPhoneError("Số điện thoại không hợp lệ! Vui lòng nhập đủ 10 số và bắt đầu bằng số 0.");
+      setPhoneError("Số điện thoại không hợp lệ!");
       return;
     }
 
@@ -57,8 +56,6 @@ export default function KyGuiPage() {
       </header>
 
       <main className="max-w-[1200px] mx-auto px-4 md:px-8 py-12 flex flex-col lg:flex-row gap-12 w-full flex-grow">
-        
-        {/* CỘT TRÁI: GIỚI THIỆU */}
         <div className="w-full lg:w-5/12 self-start sticky top-28">
           <span className="inline-block bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-bold mb-4 border border-green-200">
             ● Đang có khách hỏi mua/thuê mỗi ngày
@@ -72,7 +69,6 @@ export default function KyGuiPage() {
           </ul>
         </div>
 
-        {/* CỘT PHẢI: FORM */}
         <div className="w-full lg:w-7/12">
           {isSubmitted ? (
             <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-10 md:p-14 text-center h-full flex flex-col justify-center items-center">
@@ -106,7 +102,7 @@ export default function KyGuiPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <label className="block text-sm font-bold text-gray-700 mb-2">Tòa nhà *</label>
-                    <input type="text" name="toaNha" value={formData.toaNha} onChange={handleInputChange} placeholder="VD: S101" className="w-full p-3.5 border border-gray-300 rounded-lg focus:border-blue-600 outline-none" required />
+                    <input type="text" name="toaNha" value={formData.toaNha} onChange={handleInputChange} placeholder="VD: S1.01" className="w-full p-3.5 border border-gray-300 rounded-lg focus:border-blue-600 outline-none" required />
                   </div>
                   <div>
                     <label className="block text-sm font-bold text-gray-700 mb-2">Số căn *</label>
@@ -140,7 +136,7 @@ export default function KyGuiPage() {
                   )}
                   <div className="md:col-span-2">
                     <label className="block text-sm font-bold text-gray-700 mb-2">Ghi chú thêm</label>
-                    <textarea name="ghiChu" value={formData.ghiChu} onChange={handleInputChange} rows="3" placeholder="VD: Nhà đầy đủ nội thất, ưu tiên khách ở gia đình, căn có vay không, có hỗ trợ khách mua vay không đối với các căn chuyển nhượng..." className="w-full p-3.5 border border-gray-300 rounded-lg focus:border-blue-600 outline-none"></textarea>
+                    <textarea name="ghiChu" value={formData.ghiChu} onChange={handleInputChange} rows="3" placeholder="VD: Nhà đầy đủ nội thất, bao phí quản lý, ưu tiên khách ở gia đình, có hỗ trợ khách mua vay ngân hàng..." className="w-full p-3.5 border border-gray-300 rounded-lg focus:border-blue-600 outline-none"></textarea>
                   </div>
                 </div>
 

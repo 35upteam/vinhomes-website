@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { db } from '../../../firebase';
 import { doc, getDoc, collection, query, orderBy, getDocs } from 'firebase/firestore';
 import Link from 'next/link';
@@ -22,7 +22,7 @@ const MiniPropertyCard = ({ item }) => {
         <p className="text-[9px] text-gray-400 font-semibold mb-1 uppercase">MÃ: {item.maCan}</p>
         <h4 className="font-bold text-blue-900 text-sm truncate">{item.phanKhu} - Tòa {item.toaNha || item.building}</h4>
         <div className="text-base font-bold text-blue-700 mt-2">
-          {item.price} <span className="text-[10px] font-medium text-gray-500">{item.listingType === 'Chuyển nhượng' ? 'Tỷ' : 'Tr/tháng'}</span>
+          {item.listingType === 'Chuyển nhượng' ? 'Giá bán: ' : 'Giá thuê: '} {item.price} <span className="text-[10px] font-medium text-gray-500">{item.listingType === 'Chuyển nhượng' ? 'Tỷ' : 'Tr/tháng'}</span>
         </div>
       </div>
     </Link>
@@ -31,6 +31,7 @@ const MiniPropertyCard = ({ item }) => {
 
 export default function PropertyDetail() {
   const { id } = useParams();
+  const scrollRef = useRef(null);
   const [property, setProperty] = useState(null);
   const [similarProps, setSimilarProps] = useState([]);
   const [serviceFee, setServiceFee] = useState('Đang cập nhật');
@@ -55,11 +56,11 @@ export default function PropertyDetail() {
             setServiceFee(`${feeSnap.data()[propData.phanKhu]} VNĐ/m²`);
           }
 
-          // Fetch các căn tương tự
+          // Lọc các căn cùng loại (Cho thuê hoặc Bán) để luôn đảm bảo có kết quả hiển thị
           const q = query(collection(db, 'properties'), orderBy('createdAt', 'desc'));
           const allPropsSnap = await getDocs(q);
           const allProps = allPropsSnap.docs.map(d => ({id: d.id, ...d.data()}));
-          const sims = allProps.filter(p => p.id !== docSnap.id && p.listingType === propData.listingType && p.loaiCan === propData.loaiCan).slice(0, 6);
+          const sims = allProps.filter(p => p.id !== docSnap.id && p.listingType === propData.listingType).slice(0, 6);
           setSimilarProps(sims);
         }
       } catch (error) {
@@ -69,6 +70,24 @@ export default function PropertyDetail() {
     };
     fetchData();
   }, [id]);
+
+  const handleShare = async () => {
+    const url = window.location.href;
+    if (navigator.share) {
+      try { await navigator.share({ title: 'Căn hộ Smart City', url: url }); } catch (err) {}
+    } else {
+      navigator.clipboard.writeText(url);
+      alert('Đã copy link thành công!');
+    }
+  };
+
+  const scrollSimilar = (direction) => {
+    if (scrollRef.current) {
+      const { current } = scrollRef;
+      if (direction === 'left') current.scrollBy({ left: -300, behavior: 'smooth' });
+      else current.scrollBy({ left: 300, behavior: 'smooth' });
+    }
+  };
 
   if (loading) return <div className="flex justify-center items-center h-screen bg-gray-50"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-900"></div></div>;
   if (!property) return <div className="text-center py-20">Không tìm thấy căn hộ!</div>;
@@ -107,7 +126,7 @@ export default function PropertyDetail() {
 
         <div className="flex flex-col lg:flex-row gap-8 items-start">
           <div className="flex-1 w-full min-w-0">
-            {/* THƯ VIỆN ẢNH */}
+            {/* ẢNH */}
             <div className="bg-white rounded-xl overflow-hidden shadow-sm border border-gray-200 mb-8">
               <div className="relative h-[400px] md:h-[500px] bg-gray-200">
                 {images.length > 0 ? (
@@ -122,7 +141,7 @@ export default function PropertyDetail() {
                 )}
               </div>
               {images.length > 1 && (
-                <div className="flex gap-2 p-2 overflow-x-auto">
+                <div className="flex gap-2 p-2 overflow-x-auto" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
                   {images.map((img, idx) => (
                     <div key={idx} onClick={() => setCurrentImg(idx)} className={`flex-shrink-0 w-24 h-16 rounded cursor-pointer overflow-hidden border-2 transition ${currentImg === idx ? 'border-blue-600' : 'border-transparent opacity-60 hover:opacity-100'}`}>
                       <img src={img} className="w-full h-full object-cover" />
@@ -132,15 +151,20 @@ export default function PropertyDetail() {
               )}
             </div>
 
-            {/* TIÊU ĐỀ VÀ GIÁ (MỚI) */}
+            {/* TIÊU ĐỀ VÀ GIÁ (MỚI CÓ NÚT CHIA SẺ) */}
             <div className="mb-8">
               <h1 className="text-2xl md:text-3xl font-bold text-blue-900 mb-3 leading-tight">{titleString}</h1>
-              <div className="text-3xl font-extrabold text-blue-700 bg-blue-50 inline-block px-4 py-2 rounded-lg border border-blue-100">
-                {property.listingType === 'Cho thuê' ? 'Giá thuê: ' : 'Giá bán: '} {property.price} <span className="text-xl font-bold text-gray-600">{property.listingType === 'Chuyển nhượng' ? 'Tỷ' : 'Triệu/tháng'}</span>
+              <div className="flex flex-wrap items-center gap-4 mt-4">
+                 <div className="text-3xl font-extrabold text-blue-700 bg-blue-50 inline-block px-4 py-2 rounded-lg border border-blue-100">
+                    {property.listingType === 'Chuyển nhượng' ? 'Giá bán: ' : 'Giá thuê: '} {property.price} <span className="text-xl font-bold text-gray-600">{property.listingType === 'Chuyển nhượng' ? 'Tỷ' : 'Triệu/tháng'}</span>
+                 </div>
+                 <button onClick={handleShare} className="flex items-center gap-2 px-4 py-2 bg-white hover:bg-gray-50 text-blue-900 rounded-lg font-bold transition border border-gray-200 shadow-sm">
+                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path></svg>
+                   Chia sẻ
+                 </button>
               </div>
             </div>
 
-            {/* LƯỚI ICON */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
               {[
                 { label: 'Loại căn', val: property.loaiCan || property.type, icon: '🛏️' },
@@ -169,26 +193,29 @@ export default function PropertyDetail() {
               </ul>
             </div>
 
-            {/* CÁC CĂN TƯƠNG TỰ */}
+            {/* CÁC CĂN TƯƠNG TỰ BẰNG NÚT BẤM KÉO NGANG */}
             {similarProps.length > 0 && (
-              <div className="mb-8">
-                <h3 className="font-bold text-blue-900 mb-4 text-lg">Các căn {property.loaiCan} {property.listingType} tương tự</h3>
-                <div className="flex gap-4 overflow-x-auto pb-4 snap-x hide-scrollbar">
+              <div className="mb-8 relative group">
+                <h3 className="font-bold text-blue-900 mb-4 text-lg">Các căn {property.listingType} tương tự</h3>
+                <button onClick={() => scrollSimilar('left')} className="absolute -left-4 top-1/2 w-10 h-10 bg-white border border-gray-200 rounded-full shadow-lg flex items-center justify-center z-10 hidden md:flex text-blue-900 hover:bg-blue-50 font-bold text-xl">‹</button>
+                <div ref={scrollRef} className="flex gap-4 overflow-x-auto pb-4 snap-x relative scroll-smooth" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
                   {similarProps.map(item => <MiniPropertyCard key={item.id} item={item} />)}
                 </div>
+                <button onClick={() => scrollSimilar('right')} className="absolute -right-4 top-1/2 w-10 h-10 bg-white border border-gray-200 rounded-full shadow-lg flex items-center justify-center z-10 hidden md:flex text-blue-900 hover:bg-blue-50 font-bold text-xl">›</button>
               </div>
+            </div>
             )}
 
             {/* KHỐI NHỜ TÌM CĂN */}
-            <div className="bg-white border border-gray-200 rounded-xl p-6 md:p-8 flex flex-col md:flex-row justify-between items-center gap-6 shadow-sm mb-10 w-full">
+            <div className="bg-white border border-gray-200 rounded-xl p-6 md:p-8 flex flex-col md:flex-row justify-between items-center gap-6 shadow-sm mb-10 w-full mt-8">
               <div>
                 <h4 className="text-xl font-bold text-blue-900 mb-2">Không cần tự lướt hết quỹ căn</h4>
                 <p className="text-sm text-gray-600">Gửi nhu cầu của bạn, chúng tôi sẽ chọn 3-5 căn phù hợp nhất để gửi lại bạn nhanh nhất.</p>
               </div>
-              <Link href="/ky-gui" className="bg-blue-800 hover:bg-blue-900 text-white px-8 py-3 rounded-md font-bold whitespace-nowrap transition shadow flex items-center gap-2 w-full md:w-auto justify-center">
+              <a href={`https://zalo.me/${CONTACT_PHONE}?text=${encodeURIComponent(`Xin chào, tôi muốn nhờ tìm giúp một căn hộ ${property.listingType} tại Vinhomes Smart City.`)}`} target="_blank" rel="noreferrer" className="bg-blue-800 hover:bg-blue-900 text-white px-8 py-3 rounded-md font-bold whitespace-nowrap transition shadow flex items-center gap-2 w-full md:w-auto justify-center">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                 Nhờ tìm căn phù hợp
-              </Link>
+              </a>
             </div>
 
           </div>
