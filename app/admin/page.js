@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { db } from '../../firebase'; // Đã sửa đường dẫn
+import { db } from '../../firebase';
 import { collection, addDoc, getDocs, doc, getDoc, setDoc, deleteDoc, updateDoc, serverTimestamp, query, orderBy } from 'firebase/firestore';
 
 export default function AdminPage() {
@@ -35,6 +35,11 @@ export default function AdminPage() {
   const [kyGuiList, setKyGuiList] = useState([]);
   const [editingId, setEditingId] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  
+  // Bộ lọc và Phân trang Admin
+  const [filterType, setFilterType] = useState('Tất cả');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -199,6 +204,18 @@ export default function AdminPage() {
     );
   }
 
+  // Logic Lọc và Phân trang Quỹ căn
+  const filteredProperties = properties.filter(item => {
+    const matchSearch = item.maCan?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                        item.toaNha?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                        item.phanKhu?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchType = filterType === 'Tất cả' || item.listingType === filterType;
+    return matchSearch && matchType;
+  });
+
+  const totalPages = Math.ceil(filteredProperties.length / itemsPerPage);
+  const paginatedProperties = filteredProperties.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
   const unreadKyGuiCount = kyGuiList.filter(k => k.status === 'Chưa xử lý').length;
 
   return (
@@ -222,7 +239,7 @@ export default function AdminPage() {
       </nav>
 
       <div className="max-w-[1400px] mx-auto px-4 md:px-8 mt-8 flex flex-col xl:flex-row gap-8 items-start">
-        <div className="w-full xl:w-[40%] flex-shrink-0 bg-white p-6 md:p-8 rounded-xl shadow-sm border border-gray-200">
+        <div className="w-full xl:w-[35%] flex-shrink-0 bg-white p-6 rounded-xl shadow-sm border border-gray-200">
           <div className="flex justify-between items-center mb-6 pb-4 border-b border-gray-100">
              <div>
                <h2 className="text-xl font-bold text-blue-900 tracking-tight">
@@ -235,62 +252,62 @@ export default function AdminPage() {
              )}
           </div>
           
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div className="flex bg-gray-100 p-1 rounded-lg">
               <label className="flex-1 cursor-pointer">
                 <input type="radio" name="listingType" value="Cho thuê" checked={formData.listingType === 'Cho thuê'} onChange={handleInputChange} className="hidden peer" />
-                <div className="text-center py-2.5 rounded-md peer-checked:bg-white peer-checked:text-blue-600 peer-checked:shadow-sm font-bold text-gray-500 transition">Cho Thuê</div>
+                <div className="text-center py-2 rounded-md peer-checked:bg-white peer-checked:text-blue-600 peer-checked:shadow-sm font-bold text-gray-500 transition text-sm">Cho Thuê</div>
               </label>
               <label className="flex-1 cursor-pointer">
                 <input type="radio" name="listingType" value="Chuyển nhượng" checked={formData.listingType === 'Chuyển nhượng'} onChange={handleInputChange} className="hidden peer" />
-                <div className="text-center py-2.5 rounded-md peer-checked:bg-white peer-checked:text-blue-600 peer-checked:shadow-sm font-bold text-gray-500 transition">Chuyển Nhượng</div>
+                <div className="text-center py-2 rounded-md peer-checked:bg-white peer-checked:text-blue-600 peer-checked:shadow-sm font-bold text-gray-500 transition text-sm">Chuyển Nhượng</div>
               </label>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-bold mb-1.5 text-gray-500 uppercase">Phân khu</label>
-                <select name="phanKhu" value={formData.phanKhu} onChange={handleInputChange} className="w-full p-2 border border-gray-200 rounded-md focus:border-blue-500 outline-none text-sm">
+                <label className="block text-xs font-bold mb-1 text-gray-500 uppercase">Phân khu</label>
+                <select name="phanKhu" value={formData.phanKhu} onChange={handleInputChange} className="w-full p-2.5 border border-gray-200 rounded-md focus:border-blue-500 outline-none text-sm">
                   {phanKhuList.map(opt => <option key={opt}>{opt}</option>)}
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-bold mb-1.5 text-gray-500 uppercase">Tòa nhà (VD: S1.02)</label>
-                <input name="toaNha" value={formData.toaNha} onChange={handleInputChange} placeholder="Nhập tên tòa..." className="w-full p-2 border border-gray-200 rounded-md focus:border-blue-500 outline-none text-sm" required />
+                <label className="block text-xs font-bold mb-1 text-gray-500 uppercase">Tòa nhà (VD: S1.02)</label>
+                <input name="toaNha" value={formData.toaNha} onChange={handleInputChange} placeholder="Nhập tên tòa..." className="w-full p-2.5 border border-gray-200 rounded-md focus:border-blue-500 outline-none text-sm" required />
               </div>
               <div>
-                <label className="block text-xs font-bold mb-1.5 text-gray-500 uppercase">Loại căn</label>
-                <select name="loaiCan" value={formData.loaiCan} onChange={handleInputChange} className="w-full p-2 border border-gray-200 rounded-md focus:border-blue-500 outline-none text-sm">
+                <label className="block text-xs font-bold mb-1 text-gray-500 uppercase">Loại căn</label>
+                <select name="loaiCan" value={formData.loaiCan} onChange={handleInputChange} className="w-full p-2.5 border border-gray-200 rounded-md focus:border-blue-500 outline-none text-sm">
                   {['Studio', '1N', '1N+', '2N1WC', '2N2WC', '2N+', '3N', '4N'].map(opt => <option key={opt}>{opt}</option>)}
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-bold mb-1.5 text-gray-500 uppercase">Khoảng tầng</label>
-                <select name="khoangTang" value={formData.khoangTang} onChange={handleInputChange} className="w-full p-2 border border-gray-200 rounded-md focus:border-blue-500 outline-none text-sm">
+                <label className="block text-xs font-bold mb-1 text-gray-500 uppercase">Khoảng tầng</label>
+                <select name="khoangTang" value={formData.khoangTang} onChange={handleInputChange} className="w-full p-2.5 border border-gray-200 rounded-md focus:border-blue-500 outline-none text-sm">
                   {['Tầng thấp', 'Tầng trung', 'Tầng cao'].map(opt => <option key={opt}>{opt}</option>)}
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-bold mb-1.5 text-gray-500 uppercase">Hướng</label>
-                <select name="huongBanCong" value={formData.huongBanCong} onChange={handleInputChange} className="w-full p-2 border border-gray-200 rounded-md focus:border-blue-500 outline-none text-sm">
+                <label className="block text-xs font-bold mb-1 text-gray-500 uppercase">Hướng</label>
+                <select name="huongBanCong" value={formData.huongBanCong} onChange={handleInputChange} className="w-full p-2.5 border border-gray-200 rounded-md focus:border-blue-500 outline-none text-sm">
                   {['Đông', 'Tây', 'Nam', 'Bắc', 'Đông Nam', 'Đông Bắc', 'Tây Nam', 'Tây Bắc'].map(opt => <option key={opt}>{opt}</option>)}
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-bold mb-1.5 text-gray-500 uppercase">Nội thất</label>
-                <select name="noiThat" value={formData.noiThat} onChange={handleInputChange} className="w-full p-2 border border-gray-200 rounded-md focus:border-blue-500 outline-none text-sm">
+                <label className="block text-xs font-bold mb-1 text-gray-500 uppercase">Nội thất</label>
+                <select name="noiThat" value={formData.noiThat} onChange={handleInputChange} className="w-full p-2.5 border border-gray-200 rounded-md focus:border-blue-500 outline-none text-sm">
                   {['Nguyên bản CĐT', 'Đồ cơ bản', 'Đầy đủ nội thất'].map(opt => <option key={opt}>{opt}</option>)}
                 </select>
               </div>
                <div>
-                  <label className="block text-xs font-bold mb-1.5 text-gray-500 uppercase">Diện tích (m²)</label>
-                  <input name="area" value={formData.area} onChange={handleInputChange} type="number" step="0.1" placeholder="Nhập số" className="w-full p-2 border border-gray-200 rounded-md focus:border-blue-500 outline-none text-sm" required />
+                  <label className="block text-xs font-bold mb-1 text-gray-500 uppercase">Diện tích (m²)</label>
+                  <input name="area" value={formData.area} onChange={handleInputChange} type="number" step="0.1" placeholder="Nhập số" className="w-full p-2.5 border border-gray-200 rounded-md focus:border-blue-500 outline-none text-sm" required />
                </div>
                <div>
-                  <label className="block text-xs font-bold mb-1.5 text-gray-500 uppercase">
+                  <label className="block text-xs font-bold mb-1 text-gray-500 uppercase">
                     {formData.listingType === 'Cho thuê' ? 'Giá thuê (Triệu)' : 'Giá bán (Tỷ)'}
                   </label>
-                  <input name="price" value={formData.price} onChange={handleInputChange} type="number" step="0.01" placeholder="VD: 15.5" className="w-full p-2 border border-gray-200 rounded-md focus:border-blue-500 outline-none text-sm" required />
+                  <input name="price" value={formData.price} onChange={handleInputChange} type="number" step="0.01" placeholder="VD: 15.5" className="w-full p-2.5 border border-gray-200 rounded-md focus:border-blue-500 outline-none text-sm" required />
                </div>
             </div>
 
@@ -301,25 +318,25 @@ export default function AdminPage() {
               </div>
             )}
 
+            {/* GHI CHÚ NỘI BỘ */}
             <div>
-              <label className="block text-xs font-bold mb-1.5 text-gray-500 uppercase">Ghi chú thêm</label>
-              <textarea name="moTa" value={formData.moTa || ''} onChange={handleInputChange} rows="3" placeholder="Nhập các ghi chú đặc biệt..." className="w-full p-3 border border-gray-200 rounded-md focus:border-blue-500 outline-none text-sm"></textarea>
+              <label className="block text-xs font-bold mb-1.5 text-gray-500 uppercase">Ghi chú (Chỉ lưu nội bộ, không hiện trên web)</label>
+              <textarea name="moTa" value={formData.moTa || ''} onChange={handleInputChange} rows="2" placeholder="Nhập pass cửa, thông tin chủ nhà, thỏa thuận..." className="w-full p-3 border border-gray-200 rounded-md focus:border-blue-500 outline-none text-sm"></textarea>
             </div>
 
-            <div className="border-2 border-dashed border-gray-300 p-5 text-center rounded-xl bg-gray-50 hover:bg-gray-100 transition">
-              <label className="block font-bold mb-2 cursor-pointer text-blue-900 text-sm">Tải lên Ảnh căn hộ</label>
-              <input type="file" multiple accept="image/*" onChange={handleImageChange} className="w-full text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-xs file:font-bold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200 cursor-pointer" />
-              <p className="text-[10px] text-gray-400 mt-2">Bỏ trống nếu giữ ảnh cũ</p>
+            <div className="border-2 border-dashed border-gray-300 p-4 text-center rounded-lg bg-gray-50 hover:bg-gray-100 transition">
+              <label className="block font-bold mb-1 cursor-pointer text-blue-900 text-sm">Tải lên Ảnh căn hộ</label>
+              <input type="file" multiple accept="image/*" onChange={handleImageChange} className="w-full text-xs text-gray-500 file:mr-4 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-bold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200 cursor-pointer" />
               {images.length > 0 && <p className="text-sm text-blue-600 mt-2 font-bold">Đã chọn {images.length} ảnh mới</p>}
             </div>
 
-            <button type="submit" disabled={isUploading} className="w-full bg-blue-600 hover:bg-blue-700 text-white p-3.5 rounded-md font-bold text-lg transition shadow-md disabled:bg-gray-400">
+            <button type="submit" disabled={isUploading} className="w-full bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-md font-bold text-base transition shadow-sm disabled:bg-gray-400">
                {isUploading ? 'Đang tải dữ liệu...' : (editingId ? 'CẬP NHẬT THÔNG TIN' : `ĐĂNG CĂN ${formData.listingType.toUpperCase()}`)}
             </button>
           </form>
         </div>
 
-        <div className="flex-1 w-full bg-white p-6 md:p-8 rounded-xl shadow-sm border border-gray-200">
+        <div className="flex-1 w-full bg-white p-6 md:p-8 rounded-xl shadow-sm border border-gray-200 overflow-hidden">
           <div className="flex gap-6 mb-6 border-b border-gray-100">
             <button onClick={() => setAdminTab('quy-can')} className={`font-bold pb-3 border-b-2 transition ${adminTab === 'quy-can' ? 'border-blue-900 text-blue-900' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
               Quỹ căn đang đăng ({properties.length})
@@ -338,7 +355,7 @@ export default function AdminPage() {
                 type="text" 
                 placeholder={adminTab === 'quy-can' ? "Tìm mã căn, tòa nhà..." : "Tìm SĐT, tòa nhà khách gửi..."}
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) => {setSearchTerm(e.target.value); setCurrentPage(1);}}
                 className="w-full pl-10 pr-4 py-2 bg-gray-100 border-transparent rounded-md text-sm focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition"
               />
               <svg className="w-4 h-4 text-gray-500 absolute left-3.5 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
@@ -347,37 +364,68 @@ export default function AdminPage() {
 
           <div className="overflow-x-auto">
             {adminTab === 'quy-can' ? (
-              <table className="w-full text-sm text-left">
-                <thead className="bg-gray-50 text-gray-500 uppercase text-[10px] font-bold tracking-wider">
-                  <tr>
-                    <th className="px-4 py-3 rounded-l-md">Mã căn</th>
-                    <th className="px-4 py-3">Tòa / Phân khu</th>
-                    <th className="px-4 py-3">Loại căn</th>
-                    <th className="px-4 py-3 text-right">Giá</th>
-                    <th className="px-4 py-3 text-right rounded-r-md">Thao tác</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {properties.filter(item => item.maCan?.toLowerCase().includes(searchTerm.toLowerCase()) || item.toaNha?.toLowerCase().includes(searchTerm.toLowerCase()) || item.phanKhu?.toLowerCase().includes(searchTerm.toLowerCase())).map(item => (
-                    <tr key={item.id} className="hover:bg-gray-50/50 transition group">
-                      <td className="px-4 py-4">
-                        <span className="font-bold text-blue-900 tracking-wide text-sm block">{item.maCan}</span>
-                        <span className="text-[10px] text-gray-500 font-medium">{item.listingType}</span>
-                      </td>
-                      <td className="px-4 py-4"><span className="font-bold text-gray-800 block">Tòa {item.toaNha || item.building}</span><span className="text-xs text-gray-500">{item.phanKhu}</span></td>
-                      <td className="px-4 py-4 font-medium text-gray-700">{item.loaiCan || item.type}</td>
-                      <td className="px-4 py-4 text-right font-bold text-blue-700 text-base">{item.price} <span className="text-xs font-medium text-gray-500">{item.listingType === 'Chuyển nhượng' ? 'Tỷ' : 'Tr'}</span></td>
-                      <td className="px-4 py-4 text-right">
-                        <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button onClick={() => handleEdit(item)} className="text-blue-600 hover:bg-blue-50 p-1.5 rounded transition">Sửa</button>
-                          <button onClick={() => handleDelete(item.id)} className="text-red-500 hover:bg-red-50 p-1.5 rounded transition">Xóa</button>
+              <>
+                <table className="w-full text-sm text-left">
+                  <thead className="bg-gray-50 text-gray-500 uppercase text-[10px] font-bold tracking-wider">
+                    <tr>
+                      <th className="px-4 py-3 rounded-l-md">
+                        <div className="flex flex-col gap-1 items-start">
+                          <span>Mã căn</span>
+                          {/* BỘ LỌC NGAY TẠI TIÊU ĐỀ THEO YÊU CẦU */}
+                          <select value={filterType} onChange={(e) => {setFilterType(e.target.value); setCurrentPage(1);}} className="text-[10px] p-0.5 rounded border border-gray-300 font-normal outline-none focus:border-blue-500 bg-white">
+                            <option value="Tất cả">Tất cả</option>
+                            <option value="Cho thuê">Cho thuê</option>
+                            <option value="Chuyển nhượng">Chuyển nhượng</option>
+                          </select>
                         </div>
-                      </td>
+                      </th>
+                      <th className="px-4 py-3">Tòa / Phân khu</th>
+                      <th className="px-4 py-3">Loại / Giá</th>
+                      <th className="px-4 py-3">Ghi chú mật</th>
+                      <th className="px-4 py-3 text-right rounded-r-md">Thao tác</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {paginatedProperties.map(item => (
+                      <tr key={item.id} className="hover:bg-gray-50/50 transition group">
+                        <td className="px-4 py-4">
+                          <span className="font-bold text-blue-900 tracking-wide text-sm block">{item.maCan}</span>
+                          <span className="text-[10px] text-gray-500 font-medium">{item.listingType}</span>
+                        </td>
+                        <td className="px-4 py-4"><span className="font-bold text-gray-800 block">Tòa {item.toaNha || item.building}</span><span className="text-[11px] text-gray-500">{item.phanKhu}</span></td>
+                        <td className="px-4 py-4">
+                           <span className="font-medium text-gray-700 block text-xs">{item.loaiCan || item.type}</span>
+                           <span className="font-bold text-blue-700 text-sm">{item.price} {item.listingType === 'Chuyển nhượng' ? 'Tỷ' : 'Tr'}</span>
+                        </td>
+                        {/* CỘT GHI CHÚ MẬT */}
+                        <td className="px-4 py-4 max-w-[150px]">
+                           <p className="text-[11px] text-gray-600 line-clamp-2" title={item.moTa}>{item.moTa || <span className="text-gray-300 italic">Trống</span>}</p>
+                        </td>
+                        <td className="px-4 py-4 text-right">
+                          <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button onClick={() => handleEdit(item)} className="text-blue-600 hover:bg-blue-50 p-1.5 rounded transition">Sửa</button>
+                            <button onClick={() => handleDelete(item.id)} className="text-red-500 hover:bg-red-50 p-1.5 rounded transition">Xóa</button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                    {paginatedProperties.length === 0 && (
+                      <tr><td colSpan="5" className="px-4 py-10 text-center text-gray-400 font-medium">Không tìm thấy dữ liệu.</td></tr>
+                    )}
+                  </tbody>
+                </table>
+
+                {/* PHÂN TRANG */}
+                {totalPages > 1 && (
+                  <div className="flex justify-end items-center gap-2 mt-4 pt-4 border-t border-gray-100">
+                    <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="px-2 py-1 text-xs border rounded hover:bg-gray-50 disabled:opacity-50">Trước</button>
+                    <span className="text-xs text-gray-500">Trang {currentPage} / {totalPages}</span>
+                    <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="px-2 py-1 text-xs border rounded hover:bg-gray-50 disabled:opacity-50">Sau</button>
+                  </div>
+                )}
+              </>
             ) : (
+              // BẢNG KÝ GỬI
               <table className="w-full text-sm text-left">
                 <thead className="bg-gray-50 text-gray-500 uppercase text-[10px] font-bold tracking-wider">
                   <tr>
@@ -414,13 +462,13 @@ export default function AdminPage() {
                           <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                             <button onClick={() => {
                                setAdminTab('quy-can');
-                               setFormData({ ...initialForm, listingType: item.nhuCau, toaNha: item.toaNha, loaiCan: item.loaiCan, area: item.dienTich, price: item.gia.replace(/[^0-9.]/g, ''), noiThat: item.noiThat, ngayNhanNha: item.ngayVaoO || '', moTa: item.ghiChu });
+                               setFormData({ ...initialForm, listingType: item.nhuCau, toaNha: item.toaNha, loaiCan: item.loaiCan, area: item.dienTich, price: item.gia.replace(/[^0-9.]/g, ''), noiThat: item.noiThat, ngayNhanNha: item.ngayVaoO || '', moTa: `Khách ký gửi: SĐT ${item.soDienThoai}. Ghi chú khách: ${item.ghiChu}` });
                                window.scrollTo({ top: 0, behavior: 'smooth' });
                              }} className="text-blue-600 hover:bg-blue-50 p-1.5 rounded transition" title="Lên bài ngay">
-                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                              Lên bài
                             </button>
                             <button onClick={() => handleDeleteKyGui(item.id)} className="text-red-500 hover:bg-red-50 p-1.5 rounded transition" title="Xóa">
-                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                              Xóa
                             </button>
                           </div>
                         </td>
@@ -443,7 +491,7 @@ export default function AdminPage() {
                 <p className="text-sm text-gray-500 mt-1">Sửa đổi dưới đây chỉ áp dụng khi bạn bấm Lưu.</p>
               </div>
               <button onClick={() => setIsFeeModalOpen(false)} className="text-gray-400 hover:text-red-500 transition">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                X
               </button>
             </div>
             
@@ -476,7 +524,7 @@ export default function AdminPage() {
                 <input type="password" value={pwdData.old} onChange={e => setPwdData({...pwdData, old: e.target.value})} className="w-full p-2 border rounded outline-none focus:border-blue-500" />
               </div>
               <div>
-                <label className="block text-xs font-bold text-gray-600 mb-1">Mật khẩu mới (Tối thiểu 6 ký tự)</label>
+                <label className="block text-xs font-bold text-gray-600 mb-1">Mật khẩu mới</label>
                 <input type="password" value={pwdData.new} onChange={e => setPwdData({...pwdData, new: e.target.value})} className="w-full p-2 border rounded outline-none focus:border-blue-500" />
               </div>
               <div>

@@ -1,13 +1,38 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { db } from '../../../firebase'; // Đã sửa đường dẫn
-import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../../../firebase';
+import { doc, getDoc, collection, query, orderBy, getDocs } from 'firebase/firestore';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
+
+// Thẻ Mini dùng cho phần Căn hộ tương tự
+const MiniPropertyCard = ({ item }) => {
+  const images = item.images && item.images.length > 0 ? item.images : [];
+  return (
+    <Link href={`/property/${item.id}`} className="block bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition min-w-[260px] md:min-w-[280px] snap-start flex-shrink-0">
+      <div className="h-40 bg-gray-200 relative">
+        {images.length > 0 ? (
+          <img src={images[0]} alt="Căn hộ" className="w-full h-full object-cover" />
+        ) : <div className="flex items-center justify-center h-full text-gray-400 text-xs">Chưa có ảnh</div>}
+        <div className="absolute top-2 left-2 bg-white/90 px-2 py-1 rounded text-[9px] font-bold text-blue-900 uppercase">
+          {item.loaiCan || item.type}
+        </div>
+      </div>
+      <div className="p-3">
+        <p className="text-[9px] text-gray-400 font-semibold mb-1 uppercase">MÃ: {item.maCan}</p>
+        <h4 className="font-bold text-blue-900 text-sm truncate">{item.phanKhu} - Tòa {item.toaNha || item.building}</h4>
+        <div className="text-base font-bold text-blue-700 mt-2">
+          {item.price} <span className="text-[10px] font-medium text-gray-500">{item.listingType === 'Chuyển nhượng' ? 'Tỷ' : 'Tr/tháng'}</span>
+        </div>
+      </div>
+    </Link>
+  );
+};
 
 export default function PropertyDetail() {
   const { id } = useParams();
   const [property, setProperty] = useState(null);
+  const [similarProps, setSimilarProps] = useState([]);
   const [serviceFee, setServiceFee] = useState('Đang cập nhật');
   const [loading, setLoading] = useState(true);
   const [currentImg, setCurrentImg] = useState(0);
@@ -29,9 +54,16 @@ export default function PropertyDetail() {
           if (feeSnap.exists() && feeSnap.data()[propData.phanKhu]) {
             setServiceFee(`${feeSnap.data()[propData.phanKhu]} VNĐ/m²`);
           }
+
+          // Fetch các căn tương tự
+          const q = query(collection(db, 'properties'), orderBy('createdAt', 'desc'));
+          const allPropsSnap = await getDocs(q);
+          const allProps = allPropsSnap.docs.map(d => ({id: d.id, ...d.data()}));
+          const sims = allProps.filter(p => p.id !== docSnap.id && p.listingType === propData.listingType && p.loaiCan === propData.loaiCan).slice(0, 6);
+          setSimilarProps(sims);
         }
       } catch (error) {
-        console.error("Lỗi lấy dữ liệu chi tiết:", error);
+        console.error("Lỗi lấy dữ liệu:", error);
       }
       setLoading(false);
     };
@@ -42,7 +74,6 @@ export default function PropertyDetail() {
   if (!property) return <div className="text-center py-20">Không tìm thấy căn hộ!</div>;
 
   const images = property.images || [];
-  
   let formattedDate = 'Đang cập nhật';
   if (property.ngayNhanNha) {
     const d = new Date(property.ngayNhanNha);
@@ -50,6 +81,7 @@ export default function PropertyDetail() {
   }
 
   const displayId = property.maCan || property.id.substring(0, 5).toUpperCase();
+  const titleString = `${property.listingType === 'Cho thuê' ? 'Cho thuê' : 'Bán'} căn hộ ${property.loaiCan || property.type}, tòa ${property.toaNha || property.building}, phân khu ${property.phanKhu}`;
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-800 font-sans flex flex-col">
@@ -74,7 +106,8 @@ export default function PropertyDetail() {
         </Link>
 
         <div className="flex flex-col lg:flex-row gap-8 items-start">
-          <div className="flex-1 w-full">
+          <div className="flex-1 w-full min-w-0">
+            {/* THƯ VIỆN ẢNH */}
             <div className="bg-white rounded-xl overflow-hidden shadow-sm border border-gray-200 mb-8">
               <div className="relative h-[400px] md:h-[500px] bg-gray-200">
                 {images.length > 0 ? (
@@ -99,25 +132,21 @@ export default function PropertyDetail() {
               )}
             </div>
 
+            {/* TIÊU ĐỀ VÀ GIÁ (MỚI) */}
             <div className="mb-8">
-              <span className="inline-block bg-blue-50 text-blue-700 px-3 py-1 rounded text-[10px] font-bold uppercase tracking-widest mb-3">
-                {property.listingType || 'Cho thuê'}
-              </span>
-              <h1 className="text-3xl font-bold text-blue-900 mb-3 leading-tight">
-                {property.listingType === 'Cho thuê' ? 'Thuê căn hộ' : 'Bán căn hộ'} {property.loaiCan || property.type} tòa {property.toaNha || property.building}
-              </h1>
-              <div className="text-3xl font-bold text-blue-700 mb-6">
-                {property.price} <span className="text-lg font-medium text-gray-600">{property.listingType === 'Chuyển nhượng' ? 'Tỷ' : 'triệu/tháng'}</span>
+              <h1 className="text-2xl md:text-3xl font-bold text-blue-900 mb-3 leading-tight">{titleString}</h1>
+              <div className="text-3xl font-extrabold text-blue-700 bg-blue-50 inline-block px-4 py-2 rounded-lg border border-blue-100">
+                {property.listingType === 'Cho thuê' ? 'Giá thuê: ' : 'Giá bán: '} {property.price} <span className="text-xl font-bold text-gray-600">{property.listingType === 'Chuyển nhượng' ? 'Tỷ' : 'Triệu/tháng'}</span>
               </div>
             </div>
 
+            {/* LƯỚI ICON */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
               {[
                 { label: 'Loại căn', val: property.loaiCan || property.type, icon: '🛏️' },
                 { label: 'Diện tích', val: `${property.area} m²`, icon: '📐' },
                 { label: 'Hướng ban công', val: property.huongBanCong || 'Đang cập nhật', icon: '🧭' },
-                { label: 'Hiện trạng nội thất', val: property.noiThat || 'Đang cập nhật', icon: '🛋️' },
-                { label: 'Phí dịch vụ', val: serviceFee, icon: '🛡️' }
+                { label: 'Hiện trạng nội thất', val: property.noiThat || 'Đang cập nhật', icon: '🛋️' }
               ].map((spec, i) => (
                 <div key={i} className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
                   <p className="text-[10px] text-gray-500 uppercase tracking-widest mb-1">{spec.label}</p>
@@ -126,40 +155,42 @@ export default function PropertyDetail() {
               ))}
             </div>
 
+            {/* THÔNG TIN CHI TIẾT */}
             <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm mb-8">
-              <h3 className="font-bold text-blue-900 mb-5">Thông tin tổng quan</h3>
-              <div className="space-y-4 text-sm">
-                <div className="flex border-b border-gray-100 pb-3"><span className="w-1/3 text-gray-500 font-medium">Mã căn</span><span className="w-2/3 font-semibold text-gray-800">{displayId}</span></div>
-                <div className="flex border-b border-gray-100 pb-3"><span className="w-1/3 text-gray-500 font-medium">🏢 Tòa nhà</span><span className="w-2/3 font-semibold text-gray-800">Tòa {property.toaNha || property.building} · {property.khoangTang}</span></div>
-                <div className="flex border-b border-gray-100 pb-3"><span className="w-1/3 text-gray-500 font-medium">📍 Phân khu</span><span className="w-2/3 font-semibold text-gray-800">{property.phanKhu}</span></div>
+              <h3 className="font-bold text-blue-900 mb-5 text-lg">Thông tin chi tiết</h3>
+              <ul className="space-y-4 text-sm">
+                <li className="flex border-b border-gray-100 pb-3"><span className="w-1/3 text-gray-500 font-medium">Mã căn</span><span className="w-2/3 font-semibold text-gray-800">{displayId}</span></li>
+                <li className="flex border-b border-gray-100 pb-3"><span className="w-1/3 text-gray-500 font-medium">Tòa nhà</span><span className="w-2/3 font-semibold text-gray-800">Tòa {property.toaNha || property.building} · Khoảng {property.khoangTang}</span></li>
+                <li className="flex border-b border-gray-100 pb-3"><span className="w-1/3 text-gray-500 font-medium">Phân khu</span><span className="w-2/3 font-semibold text-gray-800">{property.phanKhu}</span></li>
+                <li className="flex border-b border-gray-100 pb-3"><span className="w-1/3 text-gray-500 font-medium">Phí dịch vụ</span><span className="w-2/3 font-semibold text-gray-800">{serviceFee}</span></li>
                 {property.listingType === 'Cho thuê' && (
-                  <div className="flex border-b border-gray-100 pb-3"><span className="w-1/3 text-gray-500 font-medium">📅 Ngày nhận nhà</span><span className="w-2/3 font-semibold text-gray-800">{formattedDate}</span></div>
+                  <li className="flex border-b border-gray-100 pb-3"><span className="w-1/3 text-gray-500 font-medium">Ngày nhận nhà</span><span className="w-2/3 font-semibold text-gray-800">{formattedDate}</span></li>
                 )}
-              </div>
+              </ul>
             </div>
 
-            <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm mb-8">
-              <h3 className="font-bold text-blue-900 mb-5">Mô tả</h3>
-              <div className="text-sm text-gray-700 leading-relaxed space-y-2 whitespace-pre-wrap">
-                {property.listingType === 'Cho thuê' ? (
-                  <>
-                    <p>Hợp đồng 12 tháng, đóng 3 cọc 1.</p>
-                    <p>Ngày vào: {formattedDate}</p>
-                    <p>Nội thất: {property.noiThat}</p>
-                    <p>Giá thuê: {property.price} triệu/tháng</p>
-                    {property.moTa && <p className="mt-4 pt-4 border-t border-gray-100">Ghi chú khác: <br/>{property.moTa}</p>}
-                  </>
-                ) : (
-                  <>
-                    <p>- Căn hộ: {property.loaiCan || property.type}, diện tích {property.area}m², Tòa: {property.toaNha || property.building}</p>
-                    <p>- Ban công: {property.huongBanCong}</p>
-                    <p>- Nội thất: {property.noiThat}</p>
-                    <p className="font-bold text-gray-900">- Giá bán: {property.price} Tỷ</p>
-                    {property.moTa && <p className="mt-4 pt-4 border-t border-gray-100">{property.moTa}</p>}
-                  </>
-                )}
+            {/* CÁC CĂN TƯƠNG TỰ */}
+            {similarProps.length > 0 && (
+              <div className="mb-8">
+                <h3 className="font-bold text-blue-900 mb-4 text-lg">Các căn {property.loaiCan} {property.listingType} tương tự</h3>
+                <div className="flex gap-4 overflow-x-auto pb-4 snap-x hide-scrollbar">
+                  {similarProps.map(item => <MiniPropertyCard key={item.id} item={item} />)}
+                </div>
               </div>
+            )}
+
+            {/* KHỐI NHỜ TÌM CĂN */}
+            <div className="bg-white border border-gray-200 rounded-xl p-6 md:p-8 flex flex-col md:flex-row justify-between items-center gap-6 shadow-sm mb-10 w-full">
+              <div>
+                <h4 className="text-xl font-bold text-blue-900 mb-2">Không cần tự lướt hết quỹ căn</h4>
+                <p className="text-sm text-gray-600">Gửi nhu cầu của bạn, chúng tôi sẽ chọn 3-5 căn phù hợp nhất để gửi lại bạn nhanh nhất.</p>
+              </div>
+              <Link href="/ky-gui" className="bg-blue-800 hover:bg-blue-900 text-white px-8 py-3 rounded-md font-bold whitespace-nowrap transition shadow flex items-center gap-2 w-full md:w-auto justify-center">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                Nhờ tìm căn phù hợp
+              </Link>
             </div>
+
           </div>
 
           <aside className="w-full lg:w-[320px] flex-shrink-0 self-start sticky top-24">
@@ -198,7 +229,7 @@ export default function PropertyDetail() {
            </div>
            
            <div className="md:pl-10 md:border-l border-gray-100">
-             <p className="font-bold text-blue-900 mb-5 text-xs uppercase tracking-wider">Liên hệ tư vấn</p>
+             <h3 className="font-extrabold text-blue-900 mb-5 text-lg uppercase tracking-wider">Liên hệ tư vấn</h3>
              <div className="space-y-4 font-light text-[15px]">
                <p className="flex items-center gap-3"><span className="text-gray-400">👤</span> <strong className="text-gray-800">Nguyễn An Ninh</strong></p>
                <p className="flex items-center gap-3">
