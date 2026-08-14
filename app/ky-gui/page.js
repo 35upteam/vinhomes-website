@@ -12,10 +12,15 @@ export default function KyGuiPage() {
 
   const handleInputChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
-  // HÀM GỬI THÔNG BÁO QUA TELEGRAM (Đã tích hợp API của bạn)
+  // HÀM GỬI THÔNG BÁO QUA TELEGRAM (Đã sử dụng file bảo mật .env)
   const sendTelegramMessage = async (data) => {
-    const BOT_TOKEN = "8975441150:AAGenhx-AvTBdgP2DUF6wT0SMoJszJGeGzU"; 
-    const CHAT_ID = "5200264454";
+    const BOT_TOKEN = process.env.NEXT_PUBLIC_TELEGRAM_BOT_TOKEN; 
+    const CHAT_ID = process.env.NEXT_PUBLIC_TELEGRAM_CHAT_ID;
+
+    if (!BOT_TOKEN || !CHAT_ID) {
+      console.warn("Chưa cấu hình API Telegram trên Vercel hoặc file .env.local");
+      return;
+    }
 
     const message = `🚨 <b>CÓ KHÁCH KÝ GỬI MỚI!</b>\n\n`
                   + `👤 <b>Nhu cầu:</b> ${data.nhuCau}\n`
