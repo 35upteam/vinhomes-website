@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { db } from '../firebaseConfig';
 import { collection, query, orderBy, getDocs } from 'firebase/firestore';
 
-// Component Thẻ Căn Hộ đã được tinh chỉnh theo yêu cầu mới
+// Component Thẻ Căn Hộ
 const PropertyCard = ({ item, contactPhone }) => {
   const [currentImg, setCurrentImg] = useState(0);
   const images = item.images && item.images.length > 0 ? item.images : [];
@@ -13,7 +13,6 @@ const PropertyCard = ({ item, contactPhone }) => {
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition flex flex-col">
-      {/* Khối Ảnh */}
       <div className="relative h-56 bg-gray-200 group overflow-hidden">
         {images.length > 0 ? (
           <img src={images[currentImg]} alt="Căn hộ" className="w-full h-full object-cover transition-transform duration-300" />
@@ -32,27 +31,17 @@ const PropertyCard = ({ item, contactPhone }) => {
             </div>
           </>
         )}
-
-        {/* Badges Loại Căn */}
         <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-sm px-2.5 py-1 rounded-md text-[10px] font-bold text-gray-800 uppercase shadow-sm">
           {item.loaiCan || item.type}
         </div>
       </div>
 
-      {/* Khối Thông tin MỚI (Bỏ Mã căn, Bỏ Tiêu đề) */}
       <div className="p-4 flex flex-col flex-grow">
-        
-        {/* Nhấn mạnh Phân khu + Tòa nhà */}
         <div className="mb-4 pb-3 border-b border-gray-100">
-           <h3 className="font-extrabold text-[#a07d46] text-lg uppercase tracking-tight">
-             {item.phanKhu}
-           </h3>
-           <p className="text-sm text-gray-700 font-bold mt-1">
-             Tòa {item.toaNha || item.building}
-           </p>
+           <h3 className="font-extrabold text-[#a07d46] text-lg uppercase tracking-tight">{item.phanKhu}</h3>
+           <p className="text-sm text-gray-700 font-bold mt-1">Tòa {item.toaNha || item.building}</p>
         </div>
         
-        {/* Lưới thông số (Cập nhật lấy từ Database thật) */}
         <div className="grid grid-cols-2 gap-y-2.5 gap-x-2 text-[11px] text-gray-600 mb-5">
           <div className="flex items-center gap-1.5"><span className="text-gray-400">🏢</span> {item.khoangTang || 'Đang cập nhật'}</div>
           <div className="flex items-center gap-1.5"><span className="text-gray-400">📐</span> {item.area} m²</div>
@@ -60,7 +49,6 @@ const PropertyCard = ({ item, contactPhone }) => {
           <div className="flex items-center gap-1.5"><span className="text-gray-400">🛋️</span> {item.noiThat || 'Đang cập nhật'}</div>
         </div>
 
-        {/* Giá và Nút */}
         <div className="mt-auto">
           <div className="text-xl font-extrabold text-gray-900 mb-4">
             {item.price} <span className="text-xs font-medium text-gray-500">{item.listingType === 'Chuyển nhượng' ? 'Tỷ' : 'triệu/tháng'}</span>
@@ -84,8 +72,9 @@ export default function Home() {
   const [properties, setProperties] = useState([]);
   const [loading, setLoading] = useState(true);
   
-  // State Bộ lọc
-  const [activeTab, setActiveTab] = useState('Cho thuê'); // Cho thuê / Chuyển nhượng
+  const [activeTab, setActiveTab] = useState('Cho thuê');
+  const [sortBy, setSortBy] = useState('newest'); // Trạng thái sắp xếp
+
   const [filters, setFilters] = useState({
     phanKhu: 'Tất cả phân khu',
     loaiCan: 'Tất cả loại căn',
@@ -111,34 +100,36 @@ export default function Home() {
     fetchProperties();
   }, []);
 
-  const handleFilterChange = (e) => {
-    setFilters({ ...filters, [e.target.name]: e.target.value });
-  };
+  const handleFilterChange = (e) => { setFilters({ ...filters, [e.target.name]: e.target.value }); };
+  const handleLoaiCanClick = (type) => { setFilters({ ...filters, loaiCan: filters.loaiCan === type ? 'Tất cả loại căn' : type }); };
 
-  const handleLoaiCanClick = (type) => {
-    setFilters({ ...filters, loaiCan: filters.loaiCan === type ? 'Tất cả loại căn' : type });
-  };
-
-  // Logic Lọc Dữ Liệu
+  // 1. Lọc dữ liệu
   const filteredProperties = properties.filter(item => {
-    // Luôn lọc theo Tab hiện tại (Cho thuê / Bán)
-    const matchTab = item.listingType === activeTab || (!item.listingType && activeTab === 'Cho thuê'); // Cú pháp dự phòng cho dữ liệu cũ
-    
+    const matchTab = item.listingType === activeTab || (!item.listingType && activeTab === 'Cho thuê');
     const matchPhanKhu = filters.phanKhu === 'Tất cả phân khu' || item.phanKhu === filters.phanKhu;
     const matchLoaiCan = filters.loaiCan === 'Tất cả loại căn' || item.loaiCan === filters.loaiCan || item.type === filters.loaiCan;
     const matchKhoangTang = filters.khoangTang === 'Tất cả tầng' || item.khoangTang === filters.khoangTang;
     const matchHuong = filters.huongBanCong === 'Tất cả hướng' || item.huongBanCong === filters.huongBanCong;
     const matchNoiThat = filters.noiThat === 'Tất cả nội thất' || item.noiThat === filters.noiThat;
-
     return matchTab && matchPhanKhu && matchLoaiCan && matchKhoangTang && matchHuong && matchNoiThat;
+  });
+
+  // 2. Sắp xếp dữ liệu sau khi lọc
+  const sortedProperties = [...filteredProperties].sort((a, b) => {
+    if (sortBy === 'priceAsc') {
+      return a.price - b.price; // Giá từ thấp đến cao
+    } else {
+      // Cập nhật mới nhất (so sánh timestamp)
+      const timeA = a.createdAt?.seconds || 0;
+      const timeB = b.createdAt?.seconds || 0;
+      return timeB - timeA;
+    }
   });
 
   if (loading) return <div className="flex justify-center items-center h-screen bg-[#fbfaf7]"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#c5a47e]"></div></div>;
 
   return (
     <div className="min-h-screen bg-[#fbfaf7] text-gray-800 font-sans">
-      
-      {/* HEADER & HERO BANNER (Giữ nguyên giao diện đẹp đã chốt) */}
       <header className="bg-white sticky top-0 z-50 px-4 md:px-8 py-4 flex justify-between items-center shadow-sm">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 border border-[#c5a47e] text-[#c5a47e] flex items-center justify-center font-serif font-medium text-lg">V</div>
@@ -164,7 +155,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* TABS ĐIỀU HƯỚNG */}
       <div className="max-w-[1400px] mx-auto px-4 md:px-8 mt-6">
         <div className="flex gap-2 border-b border-gray-200">
            <button onClick={() => {setActiveTab('Cho thuê'); setFilters({...filters, loaiCan: 'Tất cả loại căn'})}} className={`py-3 px-6 text-sm font-semibold transition relative ${activeTab === 'Cho thuê' ? 'text-[#c5a47e]' : 'text-gray-500 hover:text-gray-800'}`}>
@@ -178,16 +168,11 @@ export default function Home() {
         </div>
       </div>
 
-      {/* BỘ LỌC VÀ HIỂN THỊ */}
       <main className="max-w-[1400px] mx-auto px-4 md:px-8 py-8 flex flex-col lg:flex-row gap-8 items-start">
         
-        {/* SIDEBAR BỘ LỌC */}
         <aside className="w-full lg:w-[280px] flex-shrink-0 bg-white p-5 rounded-xl shadow-sm border border-gray-100 sticky top-24">
           <h3 className="font-bold text-lg mb-6 text-gray-900">Bộ lọc chi tiết</h3>
-          
           <div className="space-y-6">
-            
-            {/* Phân khu */}
             <div>
               <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-2 block">Phân khu</label>
               <select name="phanKhu" value={filters.phanKhu} onChange={handleFilterChange} className="w-full p-2 border border-gray-200 rounded-md text-sm text-gray-600 focus:border-[#c5a47e] outline-none">
@@ -195,8 +180,6 @@ export default function Home() {
                 {['Sapphire', 'Miami', 'Sakura', 'Victoria', 'Imperia', 'Sola Park', 'Tonkin', 'Canopy', 'Masteri West Height', 'Lumiere Evergreen'].map(opt => <option key={opt}>{opt}</option>)}
               </select>
             </div>
-
-            {/* Grid Nút Loại Căn */}
             <div>
               <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-2 block">Loại căn</label>
               <div className="grid grid-cols-2 gap-2">
@@ -207,8 +190,6 @@ export default function Home() {
                  ))}
               </div>
             </div>
-
-            {/* Khoảng tầng */}
             <div>
               <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-2 block">Khoảng tầng</label>
               <select name="khoangTang" value={filters.khoangTang} onChange={handleFilterChange} className="w-full p-2 border border-gray-200 rounded-md text-sm text-gray-600 focus:border-[#c5a47e] outline-none">
@@ -216,8 +197,6 @@ export default function Home() {
                 {['Tầng thấp', 'Tầng trung', 'Tầng cao'].map(opt => <option key={opt}>{opt}</option>)}
               </select>
             </div>
-
-            {/* Hướng ban công */}
             <div>
               <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-2 block">Hướng ban công</label>
               <select name="huongBanCong" value={filters.huongBanCong} onChange={handleFilterChange} className="w-full p-2 border border-gray-200 rounded-md text-sm text-gray-600 focus:border-[#c5a47e] outline-none">
@@ -225,8 +204,6 @@ export default function Home() {
                 {['Đông', 'Tây', 'Nam', 'Bắc', 'Đông Nam', 'Đông Bắc', 'Tây Nam', 'Tây Bắc'].map(opt => <option key={opt}>{opt}</option>)}
               </select>
             </div>
-
-            {/* Hiện trạng nội thất */}
             <div>
               <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-2 block">Hiện trạng nội thất</label>
               <select name="noiThat" value={filters.noiThat} onChange={handleFilterChange} className="w-full p-2 border border-gray-200 rounded-md text-sm text-gray-600 focus:border-[#c5a47e] outline-none">
@@ -234,26 +211,33 @@ export default function Home() {
                 {['Nguyên bản CĐT', 'Đồ cơ bản', 'Đầy đủ nội thất'].map(opt => <option key={opt}>{opt}</option>)}
               </select>
             </div>
-
           </div>
         </aside>
 
-        {/* DANH SÁCH SẢN PHẨM */}
         <section className="flex-1 w-full">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+          {/* TIÊU ĐỀ VÀ BỘ LỌC SẮP XẾP */}
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4 border-b pb-4 sm:border-0 sm:pb-0 border-gray-200">
              <div>
                <h3 className="text-xl font-bold text-gray-900 inline-block mr-2">{activeTab}</h3>
-               <span className="text-[13px] font-normal text-gray-500 inline-block mt-1 sm:mt-0">Tìm thấy {filteredProperties.length} căn hộ phù hợp</span>
+               <span className="text-[13px] font-normal text-gray-500 inline-block mt-1 sm:mt-0">Tìm thấy {sortedProperties.length} căn hộ phù hợp</span>
+             </div>
+             
+             <div className="flex items-center gap-2 w-full sm:w-auto bg-gray-50 sm:bg-transparent p-2 sm:p-0 rounded-lg">
+                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider hidden sm:block">Sắp xếp:</span>
+                <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="w-full sm:w-auto text-sm border-gray-200 rounded-md border py-2 px-3 text-gray-700 focus:outline-none focus:border-[#c5a47e] bg-white cursor-pointer shadow-sm">
+                  <option value="newest">⏳ Cập nhật mới nhất</option>
+                  <option value="priceAsc">📈 Giá từ thấp đến cao</option>
+                </select>
              </div>
           </div>
 
-          {filteredProperties.length === 0 ? (
+          {sortedProperties.length === 0 ? (
              <div className="bg-white rounded-xl p-10 text-center border border-gray-100 shadow-sm">
                 <p className="text-gray-500">Chưa có quỹ căn phù hợp với bộ lọc của bạn.</p>
              </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
-              {filteredProperties.map(item => (
+              {sortedProperties.map(item => (
                 <PropertyCard key={item.id} item={item} contactPhone={CONTACT_PHONE} />
               ))}
             </div>
