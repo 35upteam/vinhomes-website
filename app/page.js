@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { db } from '../firebaseConfig';
+import { db } from '../firebase'; // Đã sửa đường dẫn
 import { collection, query, orderBy, getDocs } from 'firebase/firestore';
 import Link from 'next/link';
 
@@ -253,10 +253,10 @@ export default function Home() {
                   <h4 className="text-xl font-bold text-blue-900 mb-2">Không cần tự lướt hết quỹ căn</h4>
                   <p className="text-sm text-gray-600">Gửi nhu cầu của bạn, chúng tôi sẽ chọn 3-5 căn phù hợp nhất để gửi lại bạn nhanh nhất.</p>
                 </div>
-                <a href={`https://zalo.me/${CONTACT_PHONE}?text=${encodeURIComponent(`Xin chào, tôi muốn nhờ tìm giúp một căn hộ ${activeTab} tại Vinhomes Smart City.`)}`} target="_blank" rel="noreferrer" className="bg-blue-800 hover:bg-blue-900 text-white px-8 py-3 rounded-md font-bold whitespace-nowrap transition shadow flex items-center gap-2 w-full md:w-auto justify-center">
+                <Link href="/ky-gui" className="bg-blue-800 hover:bg-blue-900 text-white px-8 py-3 rounded-md font-bold whitespace-nowrap transition shadow flex items-center gap-2 w-full md:w-auto justify-center">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                   Nhờ tìm căn phù hợp
-                </a>
+                </Link>
               </div>
 
               {totalPages > 1 && (
@@ -286,31 +286,21 @@ export default function Home() {
            </div>
            
            <div className="md:pl-10 md:border-l border-gray-100">
-             <p className="font-bold text-blue-900 mb-5 text-xs uppercase tracking-wider">Liên hệ tư vấn</p>
+             <h3 className="font-extrabold text-blue-900 mb-5 text-lg uppercase tracking-wider">Liên hệ tư vấn</h3>
              <div className="space-y-4 font-light text-[15px]">
                <p className="flex items-center gap-3">
                  <span className="text-gray-400">👤</span> <strong className="text-gray-800">Nguyễn An Ninh</strong>
                </p>
                <p className="flex items-center gap-3">
                  <span className="text-gray-400">📞</span> 
-                 <a href={`tel:${CONTACT_PHONE}`} className="font-bold text-blue-600 hover:text-blue-800 transition">{CONTACT_PHONE.replace(/(\d{4})(\d{3})(\d{3})/, '$1 $2 $3')}</a> 
+                 <a href={`tel:${CONTACT_PHONE}`} className="font-bold text-blue-600 hover:text-blue-800 transition text-lg">{CONTACT_PHONE.replace(/(\d{4})(\d{3})(\d{3})/, '$1 $2 $3')}</a> 
                  <span className="text-gray-400 text-xs ml-1">(SĐT / Zalo)</span>
                </p>
                <p className="flex items-center gap-3">
                  <span className="text-gray-400">📍</span> Vinhomes Smart City, Tây Mỗ, Nam Từ Liêm, Hà Nội
                </p>
              </div>
-             
-             <div className="flex items-center gap-4 mt-6">
-                <a href="https://www.facebook.com/AnNinhNAN/" target="_blank" rel="noreferrer" className="w-10 h-10 rounded-full bg-[#1877F2]/10 text-[#1877F2] flex items-center justify-center hover:bg-[#1877F2] hover:text-white transition">
-                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
-                </a>
-                <a href="#" target="_blank" rel="noreferrer" className="w-10 h-10 rounded-full bg-black/10 text-black flex items-center justify-center hover:bg-black hover:text-white transition">
-                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.34 2.88 2.88 0 0 1 2.31-4.53 2.66 2.66 0 0 1 1.61.53V9.5a6.33 6.33 0 0 0-3.92-1.34 6.33 6.33 0 1 0 6.33 6.33V8.67a8.4 8.4 0 0 0 6.09 2.36V7.61a5 5 0 0 1-1-.92z"/></svg>
-                </a>
-             </div>
            </div>
-
         </div>
       </footer>
     </div>

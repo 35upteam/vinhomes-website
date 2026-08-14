@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import Link from 'next/link';
-import { db } from '../../firebaseConfig';
+import { db } from '../../firebase'; // Đã sửa đường dẫn
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
 export default function KyGuiPage() {
@@ -12,7 +12,6 @@ export default function KyGuiPage() {
 
   const handleInputChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
-  // HÀM GỬI THÔNG BÁO QUA TELEGRAM (Đã sử dụng file bảo mật .env)
   const sendTelegramMessage = async (data) => {
     const BOT_TOKEN = process.env.NEXT_PUBLIC_TELEGRAM_BOT_TOKEN; 
     const CHAT_ID = process.env.NEXT_PUBLIC_TELEGRAM_CHAT_ID;
