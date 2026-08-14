@@ -4,7 +4,6 @@ import { db } from '../firebaseConfig';
 import { collection, query, orderBy, getDocs } from 'firebase/firestore';
 import Link from 'next/link';
 
-// Component Thẻ Căn Hộ (Đã thêm hiệu ứng Hover và Link Click)
 const PropertyCard = ({ item, contactPhone }) => {
   const [currentImg, setCurrentImg] = useState(0);
   const images = item.images && item.images.length > 0 ? item.images : [];
@@ -14,8 +13,6 @@ const PropertyCard = ({ item, contactPhone }) => {
 
   return (
     <Link href={`/property/${item.id}`} className="block bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 cursor-pointer group flex flex-col">
-      
-      {/* Khối Ảnh */}
       <div className="relative h-56 bg-gray-200 overflow-hidden">
         {images.length > 0 ? (
           <img src={images[currentImg]} alt="Căn hộ" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
@@ -39,11 +36,15 @@ const PropertyCard = ({ item, contactPhone }) => {
         </div>
       </div>
 
-      {/* Khối Thông tin */}
       <div className="p-4 flex flex-col flex-grow">
+        {/* MÃ CĂN NGAY DƯỚI ẢNH */}
+        <p className="text-[10px] text-gray-400 font-semibold mb-1 uppercase tracking-wider">MÃ CĂN: {item.maCan || 'ĐANG CẬP NHẬT'}</p>
+        
+        {/* PHÂN KHU - TÒA NHÀ GỘP CHUNG */}
         <div className="mb-4 pb-3 border-b border-gray-100">
-           <h3 className="font-extrabold text-[#a07d46] text-lg uppercase tracking-tight group-hover:text-[#b08d66] transition-colors">{item.phanKhu}</h3>
-           <p className="text-sm text-gray-700 font-bold mt-1">Tòa {item.toaNha || item.building}</p>
+           <h3 className="font-extrabold text-[#a07d46] text-lg uppercase tracking-tight group-hover:text-[#b08d66] transition-colors">
+             {item.phanKhu} - Tòa {item.toaNha || item.building}
+           </h3>
         </div>
         
         <div className="grid grid-cols-2 gap-y-2.5 gap-x-2 text-[11px] text-gray-600 mb-5">
@@ -102,7 +103,6 @@ export default function Home() {
   const handleFilterChange = (e) => { setFilters({ ...filters, [e.target.name]: e.target.value }); };
   const handleLoaiCanClick = (type) => { setFilters({ ...filters, loaiCan: filters.loaiCan === type ? 'Tất cả loại căn' : type }); };
 
-  // 1. Lọc dữ liệu
   const filteredProperties = properties.filter(item => {
     const matchTab = item.listingType === activeTab || (!item.listingType && activeTab === 'Cho thuê');
     const matchPhanKhu = filters.phanKhu === 'Tất cả phân khu' || item.phanKhu === filters.phanKhu;
@@ -113,7 +113,6 @@ export default function Home() {
     return matchTab && matchPhanKhu && matchLoaiCan && matchKhoangTang && matchHuong && matchNoiThat;
   });
 
-  // 2. Sắp xếp dữ liệu sau khi lọc
   const sortedProperties = [...filteredProperties].sort((a, b) => {
     if (sortBy === 'priceAsc') {
       return a.price - b.price;
@@ -166,10 +165,8 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Main Content sẽ tự giãn để đẩy Footer xuống đáy nếu ít bài */}
       <main className="max-w-[1400px] mx-auto px-4 md:px-8 py-8 flex flex-col lg:flex-row gap-8 items-start flex-grow w-full">
-        
-        <aside className="w-full lg:w-[280px] flex-shrink-0 bg-white p-5 rounded-xl shadow-sm border border-gray-100 sticky top-24">
+        <aside className="w-full lg:w-[280px] flex-shrink-0 bg-white p-5 rounded-xl shadow-sm border border-gray-100 sticky top-24 self-start">
           <h3 className="font-bold text-lg mb-6 text-gray-900">Bộ lọc chi tiết</h3>
           <div className="space-y-6">
             <div>

@@ -7,12 +7,10 @@ export default function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState('');
 
-  // 1. Quản lý Phí Dịch Vụ
   const phanKhuList = ['Sapphire', 'Miami', 'Sakura', 'Victoria', 'Imperia', 'Sola Park', 'Tonkin', 'Canopy', 'Masteri West Height', 'Lumiere Evergreen'];
   const [serviceFees, setServiceFees] = useState({});
   const [isSavingFees, setIsSavingFees] = useState(false);
 
-  // 2. Quản lý Form Căn hộ
   const initialForm = { listingType: 'Cho thuê', phanKhu: 'Sapphire', loaiCan: 'Studio', toaNha: '', khoangTang: 'Tầng trung', huongBanCong: 'Đông Nam', noiThat: 'Đầy đủ nội thất', area: '', price: '', ngayNhanNha: '', moTa: '' };
   const [formData, setFormData] = useState(initialForm);
   const [images, setImages] = useState([]);
@@ -22,7 +20,6 @@ export default function AdminPage() {
   const [editingId, setEditingId] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Tải dữ liệu ban đầu
   useEffect(() => {
     if (isAuthenticated) {
       fetchProperties();
@@ -74,6 +71,17 @@ export default function AdminPage() {
     window.scrollTo(0, 0);
   };
 
+  // Hàm tự tạo mã căn
+  const generateMaCan = (type) => {
+    const prefix = type === 'Cho thuê' ? 'CT' : 'CN';
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let result = '';
+    for (let i = 0; i < 5; i++) {
+      result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return prefix + result;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (images.length === 0 && !editingId) return alert('Vui lòng chọn ít nhất 1 ảnh!');
@@ -96,8 +104,12 @@ export default function AdminPage() {
         }
       }
 
+      // Giữ nguyên mã căn cũ nếu đang sửa, hoặc tạo mới nếu đăng mới
+      const finalMaCan = editingId ? formData.maCan : generateMaCan(formData.listingType);
+
       const dataToSave = {
         ...formData,
+        maCan: finalMaCan,
         price: Number(formData.price),
         area: Number(formData.area),
         images: imageUrls,
@@ -108,7 +120,7 @@ export default function AdminPage() {
         alert('Cập nhật thông tin thành công!');
       } else {
         await addDoc(collection(db, 'properties'), { ...dataToSave, createdAt: serverTimestamp() });
-        alert(`Đã đăng thành công căn ${formData.listingType}!`);
+        alert(`Đã đăng thành công căn ${formData.listingType} với Mã: ${finalMaCan}`);
       }
 
       setFormData(initialForm);
@@ -164,7 +176,7 @@ export default function AdminPage() {
         <div className="bg-white p-6 md:p-8 rounded-lg shadow-md border-t-4 border-blue-600">
           <div className="flex justify-between items-center mb-6 border-b pb-4">
              <h1 className="text-2xl font-bold text-gray-800 uppercase tracking-wide">
-               {editingId ? 'Sửa thông tin căn hộ' : 'Đăng tin Bất động sản'}
+               {editingId ? `Sửa thông tin: ${formData.maCan}` : 'Đăng tin Bất động sản'}
              </h1>
              {editingId && (
                <button onClick={() => {setEditingId(null); setFormData(initialForm);}} className="text-sm bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded-md font-semibold transition">Hủy sửa / Tạo mới</button>
@@ -257,7 +269,7 @@ export default function AdminPage() {
           </form>
         </div>
 
-        {/* KHỐI 3: DANH SÁCH CĂN ĐANG ĐĂNG CÓ TÌM KIẾM */}
+        {/* KHỐI 3: DANH SÁCH CĂN ĐANG ĐĂNG CÓ TÌM KIẾM THEO MÃ CĂN */}
         <div className="bg-white p-6 md:p-8 rounded-lg shadow-md">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 border-b pb-4 gap-4">
             <h2 className="text-xl font-bold text-gray-800">Danh sách hiển thị ({properties.length})</h2>
@@ -265,7 +277,7 @@ export default function AdminPage() {
             <div className="relative w-full sm:w-72">
               <input 
                 type="text" 
-                placeholder="Tìm mã căn, tòa nhà..." 
+                placeholder="Tìm mã căn (VD: CT123), tòa nhà..." 
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -278,7 +290,7 @@ export default function AdminPage() {
             <table className="w-full text-sm text-left border-collapse">
               <thead className="bg-gray-100 text-gray-700">
                 <tr>
-                  <th className="p-3 border-b">Loại tin</th>
+                  <th className="p-3 border-b">Mã căn</th>
                   <th className="p-3 border-b">Tòa</th>
                   <th className="p-3 border-b">Loại căn</th>
                   <th className="p-3 border-b">Giá</th>
@@ -288,16 +300,15 @@ export default function AdminPage() {
               <tbody>
                 {properties
                   .filter(item => 
+                    item.maCan?.toLowerCase().includes(searchTerm.toLowerCase()) || 
                     item.toaNha?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                    item.phanKhu?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                    item.id.toLowerCase().includes(searchTerm.toLowerCase())
+                    item.phanKhu?.toLowerCase().includes(searchTerm.toLowerCase())
                   )
                   .map(item => (
                   <tr key={item.id} className="border-b hover:bg-gray-50 transition">
                     <td className="p-3">
-                      <span className={`px-2 py-1 rounded text-xs font-bold ${item.listingType === 'Cho thuê' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'}`}>
-                        {item.listingType || 'Cho thuê'}
-                      </span>
+                      <span className="font-bold text-blue-800 tracking-wide">{item.maCan}</span>
+                      <span className="text-[10px] text-gray-500 block uppercase mt-0.5">{item.listingType}</span>
                     </td>
                     <td className="p-3 font-semibold text-gray-800">{item.toaNha || item.building} <span className="text-xs font-normal text-gray-500 block">{item.phanKhu}</span></td>
                     <td className="p-3">{item.loaiCan || item.type}</td>

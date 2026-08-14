@@ -17,7 +17,6 @@ export default function PropertyDetail() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Lấy thông tin căn hộ
         const docRef = doc(db, 'properties', id);
         const docSnap = await getDoc(docRef);
         
@@ -25,7 +24,6 @@ export default function PropertyDetail() {
           const propData = { id: docSnap.id, ...docSnap.data() };
           setProperty(propData);
           
-          // Lấy thông tin phí dịch vụ của phân khu đó
           const feeRef = doc(db, 'settings', 'serviceFees');
           const feeSnap = await getDoc(feeRef);
           if (feeSnap.exists() && feeSnap.data()[propData.phanKhu]) {
@@ -45,18 +43,17 @@ export default function PropertyDetail() {
 
   const images = property.images || [];
   
-  // Format Ngày nhận nhà
   let formattedDate = 'Đang cập nhật';
   if (property.ngayNhanNha) {
     const d = new Date(property.ngayNhanNha);
     formattedDate = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
   }
 
-  // Tạo Mã căn ảo để khách hàng đọc cho Môi giới dễ hình dung (Dùng 4 số cuối của ID database)
-  const displayId = property.id.substring(0, 5).toUpperCase();
+  // Sử dụng Mã căn thật sinh ra từ form Admin
+  const displayId = property.maCan || property.id.substring(0, 5).toUpperCase();
 
   return (
-    <div className="min-h-screen bg-[#fbfaf7] text-gray-800 font-sans">
+    <div className="min-h-screen bg-[#fbfaf7] text-gray-800 font-sans flex flex-col">
       <header className="bg-white sticky top-0 z-50 px-4 md:px-8 py-4 flex justify-between items-center shadow-sm">
         <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition">
           <div className="w-9 h-9 border border-[#c5a47e] text-[#c5a47e] flex items-center justify-center font-serif font-medium text-lg">V</div>
@@ -68,7 +65,7 @@ export default function PropertyDetail() {
         <a href={`tel:${CONTACT_PHONE}`} className="bg-[#c5a47e] text-white px-6 py-2 rounded-md font-semibold hover:bg-[#b08d66] transition text-sm shadow-md">Liên hệ</a>
       </header>
 
-      <main className="max-w-[1200px] mx-auto px-4 md:px-8 py-8">
+      <main className="max-w-[1200px] mx-auto px-4 md:px-8 py-8 flex-grow w-full">
         <Link href="/" className="inline-flex items-center text-sm font-medium text-gray-500 hover:text-gray-900 mb-6 transition">
           <span className="mr-2">←</span> Quay lại danh sách
         </Link>
@@ -133,7 +130,7 @@ export default function PropertyDetail() {
             <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm mb-8">
               <h3 className="font-bold text-gray-900 mb-5">Thông tin tổng quan</h3>
               <div className="space-y-4 text-sm">
-                <div className="flex border-b border-gray-100 pb-3"><span className="w-1/3 text-gray-500 font-medium">Mã căn</span><span className="w-2/3 font-semibold text-gray-800">CV{displayId}</span></div>
+                <div className="flex border-b border-gray-100 pb-3"><span className="w-1/3 text-gray-500 font-medium">Mã căn</span><span className="w-2/3 font-semibold text-gray-800">{displayId}</span></div>
                 <div className="flex border-b border-gray-100 pb-3"><span className="w-1/3 text-gray-500 font-medium">🏢 Tòa nhà</span><span className="w-2/3 font-semibold text-gray-800">Tòa {property.toaNha || property.building} · {property.khoangTang}</span></div>
                 <div className="flex border-b border-gray-100 pb-3"><span className="w-1/3 text-gray-500 font-medium">📍 Phân khu</span><span className="w-2/3 font-semibold text-gray-800">{property.phanKhu}</span></div>
                 {property.listingType === 'Cho thuê' && (
@@ -142,7 +139,7 @@ export default function PropertyDetail() {
               </div>
             </div>
 
-            {/* Khối Mô tả theo Template tự động */}
+            {/* Khối Mô tả */}
             <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm mb-8">
               <h3 className="font-bold text-gray-900 mb-5">Mô tả</h3>
               <div className="text-sm text-gray-700 leading-relaxed space-y-2 whitespace-pre-wrap">
@@ -168,15 +165,16 @@ export default function PropertyDetail() {
 
           </div>
 
-          <aside className="w-full lg:w-[320px] flex-shrink-0">
-            <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-6 sticky top-24">
+          {/* CỘT PHẢI: STICKY BOX LIÊN HỆ - Thêm class self-start để sticky */}
+          <aside className="w-full lg:w-[320px] flex-shrink-0 self-start sticky top-24">
+            <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-6">
               <p className="text-[10px] font-bold text-[#c5a47e] uppercase tracking-widest mb-1">Liên hệ tư vấn</p>
               <h3 className="text-xl font-extrabold text-gray-900 mb-2">Vinhomes Lifestyle</h3>
               <p className="text-sm text-gray-500 mb-6 font-light">Hotline {CONTACT_PHONE} - hỗ trợ xem nhà & chốt căn nhanh.</p>
               
               <div className="space-y-3">
                 <a href={`tel:${CONTACT_PHONE}`} className="flex items-center justify-center gap-2 w-full bg-[#a07d46] text-white py-3 rounded-lg font-bold hover:bg-[#8b6a38] transition shadow">📞 Gọi {CONTACT_PHONE.replace(/(\d{4})(\d{3})(\d{3})/, '$1 $2 $3')}</a>
-                <a href={`https://zalo.me/${CONTACT_PHONE}?text=${encodeURIComponent(`Xin chào, tôi quan tâm căn CV${displayId} (${property.listingType} ${property.loaiCan} tòa ${property.toaNha}) trên web.`)}`} target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 w-full bg-white border border-gray-300 text-gray-800 py-3 rounded-lg font-bold hover:bg-gray-50 transition">💬 Nhắn Zalo</a>
+                <a href={`https://zalo.me/${CONTACT_PHONE}?text=${encodeURIComponent(`Xin chào, tôi quan tâm căn Mã ${displayId} (${property.listingType} ${property.loaiCan} tòa ${property.toaNha}) trên web.`)}`} target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 w-full bg-white border border-gray-300 text-gray-800 py-3 rounded-lg font-bold hover:bg-gray-50 transition">💬 Nhắn Zalo</a>
               </div>
 
               <div className="mt-6 bg-gray-50 p-4 rounded-xl border border-gray-100 text-center">
@@ -186,14 +184,14 @@ export default function PropertyDetail() {
                 <p className="text-xs text-gray-500 font-medium">Quét QR Zalo - <span className="font-bold text-gray-800">{CONTACT_PHONE}</span></p>
               </div>
               <div className="mt-4 bg-[#f8f1e7] py-2 px-4 rounded text-center text-[11px] font-medium text-[#c5a47e]">
-                 Mã căn: CV{displayId} - Đang còn hàng
+                 Mã căn: {displayId} - Đang còn hàng
               </div>
             </div>
           </aside>
         </div>
       </main>
 
-      <footer className="bg-white border-t border-gray-200 mt-12 py-10 px-4 md:px-12">
+      <footer className="bg-white border-t border-gray-200 mt-12 py-10 px-4 md:px-12 w-full">
         <div className="max-w-[1400px] mx-auto flex flex-col md:flex-row justify-between gap-8 text-sm text-gray-500">
            <div className="max-w-md">
              <div className="flex items-center gap-2 mb-4">
