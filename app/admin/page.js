@@ -174,17 +174,17 @@ export default function AdminPage() {
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-900 relative">
+      <div className="min-h-screen flex items-center justify-center font-sans relative" style={{ backgroundColor: '#111827' }}>
         <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?q=80&w=2000&auto=format&fit=crop')] bg-cover bg-center opacity-40"></div>
-        <div className="absolute inset-0 backdrop-blur-md bg-blue-900/30"></div>
+        <div className="absolute inset-0 backdrop-blur-md bg-blue-900/40"></div>
         
-        <div className="relative z-10 bg-white/95 backdrop-blur-xl p-10 rounded-3xl shadow-2xl text-center max-w-md w-full mx-4 border border-white/20">
-          <img src="/logo.png" alt="Logo Quỹ Căn Smart City" className="h-16 mx-auto mb-4 object-contain" />
-          <h2 className="text-xl font-black mb-1 text-blue-900 uppercase tracking-widest">Hệ thống Quản trị</h2>
+        <div className="relative z-10 bg-white/95 backdrop-blur-xl p-10 rounded-[24px] shadow-2xl text-center max-w-[400px] w-full mx-4 border border-white/40">
+          <img src="/logo.png" alt="Logo Quỹ Căn Smart City" className="h-14 mx-auto mb-5 object-contain" />
+          <h2 className="text-[22px] font-bold mb-1 text-blue-900 uppercase tracking-widest">Hệ thống Quản trị</h2>
           <p className="text-sm text-gray-500 mb-8 font-medium">Bảng điều khiển nội bộ</p>
           
           <input type="password" value={password} onChange={e => setPassword(e.target.value)} onKeyDown={(e) => {if(e.key === 'Enter') document.getElementById('btnLogin').click()}} className="w-full p-4 border border-gray-300 rounded-xl mb-6 text-center text-2xl tracking-[0.3em] focus:border-blue-600 focus:ring-4 focus:ring-blue-100 outline-none transition font-black text-blue-900 bg-white/50" placeholder="••••••••" />
-          <button id="btnLogin" onClick={() => { if(password === dbPassword) setIsAuthenticated(true); else alert('Sai mật khẩu!'); }} className="w-full bg-gradient-to-r from-blue-700 to-blue-900 hover:from-blue-800 hover:to-blue-950 text-white p-4 rounded-xl font-bold text-lg transition shadow-xl shadow-blue-900/30">Đăng Nhập Dashboard</button>
+          <button id="btnLogin" onClick={() => { if(password === dbPassword) setIsAuthenticated(true); else alert('Sai mật khẩu!'); }} className="w-full bg-blue-700 hover:bg-blue-800 text-white p-4 rounded-xl font-bold text-lg transition shadow-xl shadow-blue-700/30">Đăng Nhập Dashboard</button>
         </div>
       </div>
     );
@@ -349,13 +349,22 @@ export default function AdminPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
-                    {paginatedProperties.map(item => (
+                    {paginatedProperties.map(item => {
+                      // XỬ LÝ NGÀY ĐĂNG
+                      let dateStr = 'Đang cập nhật';
+                      if (item.createdAt?.seconds) {
+                        const d = new Date(item.createdAt.seconds * 1000);
+                        dateStr = `Ngày đăng: ${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+                      }
+
+                      return (
                       <tr key={item.id} className="hover:bg-blue-50/30 transition group">
                         <td className="px-4 py-4">
                           <Link href={`/property/${item.id}`} target="_blank" className="font-extrabold text-blue-900 hover:text-blue-600 hover:underline tracking-wide text-sm block" title="Mở sang tab mới để xem">
                             {item.maCan} <svg className="w-3 h-3 inline-block opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
                           </Link>
-                          <span className="text-[10px] text-gray-500 font-semibold">{item.listingType}</span>
+                          {/* ĐỔI LOẠI CĂN THÀNH NGÀY ĐĂNG NHƯ YÊU CẦU */}
+                          <span className="text-[10px] text-gray-500 font-semibold">{dateStr}</span>
                         </td>
                         <td className="px-4 py-4"><span className="font-bold text-gray-800 block">Tòa {item.toaNha || item.building}</span><span className="text-[11px] text-gray-500 font-medium">{item.phanKhu}</span></td>
                         <td className="px-4 py-4">
@@ -372,7 +381,7 @@ export default function AdminPage() {
                           </div>
                         </td>
                       </tr>
-                    ))}
+                    )})}
                     {paginatedProperties.length === 0 && <tr><td colSpan="5" className="px-4 py-10 text-center text-gray-400 font-medium">Không tìm thấy dữ liệu.</td></tr>}
                   </tbody>
                 </table>
