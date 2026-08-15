@@ -21,7 +21,7 @@ export default function KyGuiPage() {
     const CHAT_ID = process.env.NEXT_PUBLIC_TELEGRAM_CHAT_ID;
     if (!BOT_TOKEN || !CHAT_ID) return;
 
-    const message = `🚨 <b>CÓ KHÁCH KÝ GỬI MỚI!</b>\n\n👤 <b>Nhu cầu:</b> ${data.nhuCau}\n🏢 <b>Tòa/Căn:</b> ${data.toaNha} - Căn ${data.soCan}\n🛏 <b>Loại căn:</b> ${data.loaiCan} (${data.dienTich}m2)\n🛋 <b>Nội thất:</b> ${data.noiThat}\n💰 <b>Giá:</b> ${data.gia}\n📞 <b>SĐT Khách:</b> <code>${data.soDienThoai}</code>\n${data.ghiChu ? `📝 <b>Ghi chú:</b> ${data.ghiChu}` : ''}`;
+    const message = `🚨 <b>TỪ TRANG KÝ GỬI</b>\n\n👤 <b>Nhu cầu:</b> ${data.nhuCau}\n🏢 <b>Tòa/Căn:</b> ${data.toaNha} - Căn ${data.soCan}\n🛏 <b>Loại căn:</b> ${data.loaiCan} (${data.dienTich}m2)\n🛋 <b>Nội thất:</b> ${data.noiThat}\n💰 <b>Giá:</b> ${data.gia}\n📞 <b>SĐT Khách:</b> <code>${data.soDienThoai}</code>\n${data.ghiChu ? `📝 <b>Ghi chú:</b> ${data.ghiChu}` : ''}`;
     const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
     try { await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: CHAT_ID, text: message, parse_mode: 'HTML' }) }); } catch (err) {}
   };

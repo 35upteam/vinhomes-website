@@ -19,13 +19,16 @@ export default function AdminPage() {
 
   const [isPwdModalOpen, setIsPwdModalOpen] = useState(false);
   const [pwdData, setPwdData] = useState({ old: '', new: '', confirm: '' });
-  const [isFeeModalOpen, setIsFeeModalOpen] = useState(false);
+  
+  // MODAL CẤU HÌNH PHÂN KHU (GỘP PHÍ DỊCH VỤ + TỔNG QUAN + ƯU ĐIỂM)
+  const [isPhanKhuModalOpen, setIsPhanKhuModalOpen] = useState(false);
   const phanKhuList = ['Sapphire', 'Miami', 'Sakura', 'Victoria', 'Imperia', 'Sola Park', 'Tonkin', 'Canopy', 'Masteri West Height', 'Lumiere Evergreen'];
-  const [serviceFees, setServiceFees] = useState({});
-  const [tempServiceFees, setTempServiceFees] = useState({});
-  const [isSavingFees, setIsSavingFees] = useState(false);
+  const [phanKhuData, setPhanKhuData] = useState({});
+  const [selectedPK, setSelectedPK] = useState('Sapphire');
+  const [tempPKData, setTempPKData] = useState({ phi: '', tongQuan: '', uuDiem: '' });
+  const [isSavingPK, setIsSavingPK] = useState(false);
 
-  const initialForm = { listingType: 'Cho thuê', phanKhu: 'Sapphire', loaiCan: 'Studio', toaNha: '', khoangTang: 'Tầng trung', huongBanCong: 'Đông Nam', noiThat: 'Đầy đủ nội thất', area: '', price: '', ngayNhanNha: '', moTa: '' };
+  const initialForm = { listingType: 'Cho thuê', phanKhu: 'Sapphire', loaiCan: 'Studio', toaNha: '', khoangTang: 'Tầng trung', huongBanCong: 'Đông Nam', noiThat: 'Đầy đủ nội thất', area: '', price: '', ngayNhanNha: '', moTa: '', nhanDan: 'Không có' };
   const [formData, setFormData] = useState(initialForm);
   const [images, setImages] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
@@ -43,7 +46,7 @@ export default function AdminPage() {
   useEffect(() => {
     if (isAuthenticated) {
       fetchProperties();
-      fetchServiceFees();
+      fetchPhanKhu();
       fetchKyGui();
     }
   }, [isAuthenticated]);
@@ -60,25 +63,32 @@ export default function AdminPage() {
     setKyGuiList(querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
   };
 
-  const fetchServiceFees = async () => {
-    const feeDoc = await getDoc(doc(db, 'settings', 'serviceFees'));
-    if (feeDoc.exists()) setServiceFees(feeDoc.data());
-    else {
-      const defaultFees = phanKhuList.reduce((acc, curr) => ({ ...acc, [curr]: '8.800' }), {});
-      setServiceFees(defaultFees);
-    }
+  const fetchPhanKhu = async () => {
+    const pkDoc = await getDoc(doc(db, 'settings', 'phanKhuConfig'));
+    if (pkDoc.exists()) setPhanKhuData(pkDoc.data());
+    else setPhanKhuData({});
   };
 
-  const openFeeModal = () => { setTempServiceFees(serviceFees); setIsFeeModalOpen(true); };
-  const handleSaveFees = async () => {
-    setIsSavingFees(true);
+  const openPhanKhuModal = () => { 
+    setTempPKData(phanKhuData[selectedPK] || { phi: '', tongQuan: '', uuDiem: '' }); 
+    setIsPhanKhuModalOpen(true); 
+  };
+  
+  const handleSelectPKChange = (e) => {
+    const val = e.target.value;
+    setSelectedPK(val);
+    setTempPKData(phanKhuData[val] || { phi: '', tongQuan: '', uuDiem: '' });
+  };
+
+  const handleSavePK = async () => {
+    setIsSavingPK(true);
     try {
-      await setDoc(doc(db, 'settings', 'serviceFees'), tempServiceFees);
-      setServiceFees(tempServiceFees);
-      alert('Đã cập nhật bảng phí dịch vụ thành công!');
-      setIsFeeModalOpen(false);
-    } catch (error) { alert('Lỗi khi lưu phí dịch vụ!'); }
-    setIsSavingFees(false);
+      const updatedData = { ...phanKhuData, [selectedPK]: tempPKData };
+      await setDoc(doc(db, 'settings', 'phanKhuConfig'), updatedData);
+      setPhanKhuData(updatedData);
+      alert('Đã cập nhật thông tin phân khu thành công!');
+    } catch (error) { alert('Lỗi khi lưu thông tin!'); }
+    setIsSavingPK(false);
   };
 
   const handleChangePassword = async () => {
@@ -95,7 +105,50 @@ export default function AdminPage() {
   };
 
   const handleInputChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
-  const handleImageChange = (e) => { if (e.target.files) setImages(Array.from(e.target.files)); };
+  
+  // TỰ ĐỘNG ĐÓNG DẤU CHÌM (WATERMARK) KHI CHỌN ẢNH
+  const handleImageChange = async (e) => {
+    if (e.target.files) {
+      const files = Array.from(e.target.files);
+      const watermarkedFiles = await Promise.all(files.map(addWatermark));
+      setImages(watermarkedFiles);
+    }
+  };
+
+  const addWatermark = (file) => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          canvas.width = img.width;
+          canvas.height = img.height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0);
+
+          // Tùy chỉnh Watermark
+          const fontSize = Math.floor(img.width / 25);
+          ctx.font = `bold ${fontSize}px Arial`;
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.4)'; // Màu trắng mờ
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+
+          // Xoay 45 độ chéo giữa ảnh
+          ctx.translate(canvas.width / 2, canvas.height / 2);
+          ctx.rotate(-Math.PI / 6);
+          ctx.fillText('QUỸ CĂN SMART CITY - 0912.791.925', 0, 0);
+
+          canvas.toBlob((blob) => {
+            const newFile = new File([blob], file.name, { type: 'image/jpeg' });
+            resolve(newFile);
+          }, 'image/jpeg', 0.9);
+        };
+        img.src = event.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  };
 
   const handleDelete = async (id) => {
     if (window.confirm('Cảnh báo: Bạn có chắc chắn muốn xóa căn hộ này khỏi hệ thống?')) {
@@ -212,14 +265,12 @@ export default function AdminPage() {
       <nav className="bg-blue-900 text-white shadow-md sticky top-0 z-40">
         <div className="max-w-[1400px] mx-auto px-4 md:px-8 py-3 flex justify-between items-center">
           <div className="flex items-center gap-4">
-             <Link href="/" className="bg-white rounded-lg p-1.5 h-10 flex items-center justify-center shadow-inner">
-               <img src="/logo.png" alt="Logo" className="h-full object-contain" />
-             </Link>
+             <Link href="/" className="bg-white rounded-lg p-1.5 h-10 flex items-center justify-center shadow-inner"><img src="/logo.png" alt="Logo" className="h-full object-contain" /></Link>
              <h1 className="font-bold text-base tracking-wider hidden sm:block">ADMIN DASHBOARD</h1>
           </div>
           <div className="flex gap-4 items-center">
             <button onClick={() => setIsPwdModalOpen(true)} className="bg-white/10 hover:bg-white/20 border border-white/30 px-4 py-2 rounded-lg text-sm font-medium transition">Đổi mật khẩu</button>
-            <button onClick={openFeeModal} className="bg-blue-600 hover:bg-blue-700 px-5 py-2 rounded-lg text-sm font-bold transition flex items-center gap-2 shadow-md">Phí dịch vụ</button>
+            <button onClick={openPhanKhuModal} className="bg-blue-600 hover:bg-blue-700 px-5 py-2 rounded-lg text-sm font-bold transition flex items-center gap-2 shadow-md">Cấu hình Phân khu</button>
           </div>
         </div>
       </nav>
@@ -281,12 +332,21 @@ export default function AdminPage() {
                </div>
             </div>
 
-            {formData.listingType === 'Cho thuê' && (
-              <div className="bg-blue-50/50 p-4 rounded-xl border border-blue-100">
-                <label className="block text-[11px] font-bold mb-1 text-blue-800 uppercase">Ngày nhận nhà</label>
-                <input type="date" name="ngayNhanNha" value={formData.ngayNhanNha || ''} onChange={handleInputChange} className="w-full p-3 border border-blue-200 rounded-lg focus:border-blue-500 outline-none text-sm font-medium" />
+            <div className="flex gap-4">
+              {formData.listingType === 'Cho thuê' && (
+                <div className="bg-blue-50/50 p-3 rounded-xl border border-blue-100 flex-1">
+                  <label className="block text-[11px] font-bold mb-1 text-blue-800 uppercase">Ngày nhận nhà</label>
+                  <input type="date" name="ngayNhanNha" value={formData.ngayNhanNha || ''} onChange={handleInputChange} className="w-full p-2 border border-blue-200 rounded-lg focus:border-blue-500 outline-none text-sm font-medium" />
+                </div>
+              )}
+              {/* CẤU HÌNH NHÃN DÁN ĐỎ */}
+              <div className="bg-red-50/50 p-3 rounded-xl border border-red-100 flex-1">
+                <label className="block text-[11px] font-bold mb-1 text-red-800 uppercase">Gắn nhãn HOT</label>
+                <select name="nhanDan" value={formData.nhanDan || 'Không có'} onChange={handleInputChange} className="w-full p-2 border border-red-200 rounded-lg focus:border-red-500 outline-none text-sm font-medium text-red-700 bg-white">
+                  {['Không có', 'Giá tốt', 'Độc quyền', 'Cắt lỗ'].map(opt => <option key={opt}>{opt}</option>)}
+                </select>
               </div>
-            )}
+            </div>
 
             <div>
               <label className="block text-[11px] font-bold mb-1.5 text-gray-500 uppercase">Ghi chú mật (Chỉ lưu nội bộ)</label>
@@ -296,7 +356,7 @@ export default function AdminPage() {
             <div className="border-2 border-dashed border-gray-300 p-5 text-center rounded-xl bg-gray-50 hover:bg-gray-100 transition">
               <label className="block font-bold mb-2 cursor-pointer text-blue-900 text-sm">Tải lên Ảnh căn hộ</label>
               <input type="file" multiple accept="image/*" onChange={handleImageChange} className="w-full text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200 cursor-pointer" />
-              {images.length > 0 && <p className="text-sm text-blue-600 mt-3 font-bold">Đã chọn {images.length} ảnh mới</p>}
+              {images.length > 0 && <p className="text-sm text-blue-600 mt-3 font-bold">Đã chọn {images.length} ảnh mới (Có Watermark tự động)</p>}
             </div>
 
             <button type="submit" disabled={isUploading} className="w-full bg-blue-600 hover:bg-blue-700 text-white p-4 rounded-xl font-bold text-base transition shadow-lg shadow-blue-600/30 disabled:bg-gray-400 mt-2">
@@ -350,7 +410,6 @@ export default function AdminPage() {
                   </thead>
                   <tbody className="divide-y divide-gray-100">
                     {paginatedProperties.map(item => {
-                      // XỬ LÝ NGÀY ĐĂNG
                       let dateStr = 'Đang cập nhật';
                       if (item.createdAt?.seconds) {
                         const d = new Date(item.createdAt.seconds * 1000);
@@ -363,8 +422,8 @@ export default function AdminPage() {
                           <Link href={`/property/${item.id}`} target="_blank" className="font-extrabold text-blue-900 hover:text-blue-600 hover:underline tracking-wide text-sm block" title="Mở sang tab mới để xem">
                             {item.maCan} <svg className="w-3 h-3 inline-block opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
                           </Link>
-                          {/* ĐỔI LOẠI CĂN THÀNH NGÀY ĐĂNG NHƯ YÊU CẦU */}
                           <span className="text-[10px] text-gray-500 font-semibold">{dateStr}</span>
+                          {item.nhanDan && item.nhanDan !== 'Không có' && <span className="block text-[9px] text-red-600 font-bold uppercase mt-1">{item.nhanDan}</span>}
                         </td>
                         <td className="px-4 py-4"><span className="font-bold text-gray-800 block">Tòa {item.toaNha || item.building}</span><span className="text-[11px] text-gray-500 font-medium">{item.phanKhu}</span></td>
                         <td className="px-4 py-4">
@@ -431,19 +490,38 @@ export default function AdminPage() {
         </div>
       </div>
       
-      {isFeeModalOpen && (
+      {/* MODAL CẤU HÌNH PHÂN KHU (GỘP PHÍ, TỔNG QUAN, ƯU ĐIỂM) */}
+      {isPhanKhuModalOpen && (
         <div className="fixed inset-0 bg-blue-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl p-6 md:p-8 w-full max-w-2xl transform transition-all">
+          <div className="bg-white rounded-2xl shadow-2xl p-6 md:p-8 w-full max-w-2xl transform transition-all overflow-y-auto max-h-[90vh]">
             <div className="flex justify-between items-center mb-6">
-              <div><h2 className="text-xl font-bold text-blue-900">Bảng Phí Dịch Vụ</h2></div>
-              <button onClick={() => setIsFeeModalOpen(false)} className="text-gray-400 hover:text-red-500">X</button>
+              <div><h2 className="text-xl font-bold text-blue-900">Cấu Hình Phân Khu</h2></div>
+              <button onClick={() => setIsPhanKhuModalOpen(false)} className="text-gray-400 hover:text-red-500">X</button>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
-              {phanKhuList.map(pk => (
-                <div key={pk} className="border border-gray-200 rounded-lg p-2.5 bg-gray-50 focus-within:border-blue-500"><label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">{pk}</label><input type="text" value={tempServiceFees[pk] || ''} onChange={(e) => setTempServiceFees({...tempServiceFees, [pk]: e.target.value})} className="w-full bg-transparent text-sm font-bold text-blue-900 outline-none" /></div>
-              ))}
+            
+            <div className="mb-4">
+              <label className="block text-sm font-bold text-gray-700 mb-2">Chọn phân khu cần cấu hình:</label>
+              <select value={selectedPK} onChange={handleSelectPKChange} className="w-full p-3 border border-blue-200 rounded-lg text-sm font-bold text-blue-900 focus:border-blue-600 outline-none bg-blue-50/50">
+                {phanKhuList.map(pk => <option key={pk} value={pk}>{pk}</option>)}
+              </select>
             </div>
-            <div className="flex justify-end gap-3 border-t border-gray-100 pt-5"><button onClick={() => setIsFeeModalOpen(false)} className="px-6 py-2.5 rounded-lg text-gray-600 font-bold hover:bg-gray-100">Hủy</button><button onClick={handleSaveFees} disabled={isSavingFees} className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-2.5 rounded-lg font-bold shadow-md disabled:opacity-50">Lưu bảng phí</button></div>
+            
+            <div className="space-y-4 mb-8">
+              <div>
+                <label className="block text-xs font-bold text-gray-600 mb-1">Mức Phí Dịch Vụ</label>
+                <input type="text" value={tempPKData.phi || ''} onChange={(e) => setTempPKData({...tempPKData, phi: e.target.value})} className="w-full p-3 border border-gray-300 rounded-lg outline-none focus:border-blue-500" placeholder="VD: 8.800 VNĐ/m2" />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-600 mb-1">Thông tin Tổng quan</label>
+                <textarea rows="3" value={tempPKData.tongQuan || ''} onChange={(e) => setTempPKData({...tempPKData, tongQuan: e.target.value})} className="w-full p-3 border border-gray-300 rounded-lg outline-none focus:border-blue-500" placeholder="Đoạn văn ngắn giới thiệu điểm nhấn của phân khu này..."></textarea>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-600 mb-1">Các Ưu Điểm (Mỗi ưu điểm cách nhau bằng dấu chấm phẩy ; )</label>
+                <textarea rows="3" value={tempPKData.uuDiem || ''} onChange={(e) => setTempPKData({...tempPKData, uuDiem: e.target.value})} className="w-full p-3 border border-gray-300 rounded-lg outline-none focus:border-blue-500" placeholder="Gần nhà xe nổi; Có bể bơi bốn mùa; Nhiều trường mầm non..."></textarea>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 border-t border-gray-100 pt-5"><button onClick={() => setIsPhanKhuModalOpen(false)} className="px-6 py-2.5 rounded-lg text-gray-600 font-bold hover:bg-gray-100">Hủy</button><button onClick={handleSavePK} disabled={isSavingPK} className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-2.5 rounded-lg font-bold shadow-md disabled:opacity-50">Lưu thông tin</button></div>
           </div>
         </div>
       )}
