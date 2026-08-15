@@ -52,20 +52,10 @@ export default function KyGuiPage() {
         <Link href="/" className="flex items-center hover:opacity-80 transition">
           <img src="/logo.png" alt="Quỹ Căn Smart City" className="h-10 md:h-12 w-auto object-contain" />
         </Link>
-        <div className="flex items-center gap-3 md:gap-4">
-           <Link href="/ky-gui" className="hidden md:flex items-center gap-1.5 bg-blue-50 text-blue-800 px-4 py-2 rounded-md font-bold hover:bg-blue-100 transition text-sm border border-blue-100">
-             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
-             Ký gửi căn hộ
-           </Link>
-           <a href={`https://zalo.me/${CONTACT_PHONE}`} target="_blank" rel="noreferrer" className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-800 text-white px-5 py-2 rounded-full font-bold hover:opacity-90 transition shadow-md text-sm">
-             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M20 15.5c-1.2 0-2.4-.2-3.6-.6-.3-.1-.7 0-1 .2l-2.2 2.2c-2.8-1.4-5.1-3.8-6.6-6.6l2.2-2.2c.3-.3.4-.7.2-1-.4-1.2-.6-2.4-.6-3.6 0-.6-.4-1-1-1H4c-.6 0-1 .4-1 1 0 9.4 7.6 17 17 17 .6 0 1-.4 1-1v-3.5c0-.6-.4-1-1-1zM19 12h2a9 9 0 00-9-9v2c3.9 0 7.1 3.2 7.1 7.1zM15 12h2c0-2.8-2.2-5-5-5v2c1.7 0 3 1.3 3 3z"/></svg> Liên hệ tư vấn
-           </a>
-        </div>
+        <Link href="/" className="text-blue-900 font-bold hover:text-blue-600 transition text-sm">Quay về trang chủ</Link>
       </header>
 
       <main className="max-w-[1200px] mx-auto px-4 md:px-8 py-12 flex flex-col lg:flex-row gap-12 w-full flex-grow">
-        
-        {/* NỘI DUNG CỘT TRÁI ĐƯỢC CHỈNH SỬA THEO YÊU CẦU */}
         <div className="w-full lg:w-5/12 self-start sticky top-28">
           <span className="inline-block bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-bold mb-4 border border-green-200">
             ● Đang có khách hỏi mua/thuê mỗi ngày
