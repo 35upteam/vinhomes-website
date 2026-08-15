@@ -36,7 +36,6 @@ export default function AdminPage() {
   const [editingId, setEditingId] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   
-  // Bộ lọc và Phân trang Admin
   const [filterType, setFilterType] = useState('Tất cả');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
@@ -187,7 +186,6 @@ export default function AdminPage() {
     );
   }
 
-  // TÍNH TOÁN SỐ LƯỢNG CHO BỘ LỌC
   const countAll = properties.length;
   const countThu = properties.filter(p => p.listingType === 'Cho thuê').length;
   const countBan = properties.filter(p => p.listingType === 'Chuyển nhượng').length;
@@ -210,7 +208,10 @@ export default function AdminPage() {
       <nav className="bg-blue-900 text-white shadow-md sticky top-0 z-40">
         <div className="max-w-[1400px] mx-auto px-4 md:px-8 py-3 flex justify-between items-center">
           <div className="flex items-center gap-3">
-             <div className="w-8 h-8 flex items-center justify-center bg-white rounded p-1"><svg viewBox="0 0 24 24" className="w-full h-full"><path fill="#1e3a8a" d="M12 2L1 12h3v9h16v-9h3L12 2z"/></svg></div>
+             {/* ĐỔI THÀNH LOGO CHÍNH THỨC */}
+             <Link href="/" className="bg-white rounded p-1.5 h-10 flex items-center justify-center">
+               <img src="/logo.png" alt="Logo" className="h-full object-contain" />
+             </Link>
              <h1 className="font-bold text-lg tracking-wider hidden sm:block">ADMIN DASHBOARD</h1>
           </div>
           <div className="flex gap-4 items-center">
@@ -221,7 +222,6 @@ export default function AdminPage() {
       </nav>
 
       <div className="max-w-[1400px] mx-auto px-4 md:px-8 mt-8 flex flex-col xl:flex-row gap-8 items-start">
-        {/* CỘT FORM */}
         <div className="w-full xl:w-[35%] flex-shrink-0 bg-white p-6 rounded-xl shadow-sm border border-gray-200">
           <div className="flex justify-between items-center mb-6 pb-4 border-b border-gray-100">
              <div>
@@ -302,7 +302,6 @@ export default function AdminPage() {
           </form>
         </div>
 
-        {/* CỘT BẢNG QUẢN LÝ */}
         <div className="flex-1 w-full bg-white p-6 md:p-8 rounded-xl shadow-sm border border-gray-200 overflow-hidden">
           <div className="flex gap-6 mb-6 border-b border-gray-100">
             <button onClick={() => setAdminTab('quy-can')} className={`font-bold pb-3 border-b-2 transition ${adminTab === 'quy-can' ? 'border-blue-900 text-blue-900' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
@@ -350,7 +349,6 @@ export default function AdminPage() {
                     {paginatedProperties.map(item => (
                       <tr key={item.id} className="hover:bg-gray-50/50 transition group">
                         <td className="px-4 py-4">
-                          {/* LINK SANG TAB MỚI */}
                           <Link href={`/property/${item.id}`} target="_blank" className="font-bold text-blue-900 hover:text-blue-600 hover:underline tracking-wide text-sm block" title="Mở sang tab mới để xem">
                             {item.maCan} <svg className="w-3 h-3 inline-block opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
                           </Link>
@@ -375,8 +373,6 @@ export default function AdminPage() {
                     {paginatedProperties.length === 0 && <tr><td colSpan="5" className="px-4 py-10 text-center text-gray-400">Không tìm thấy dữ liệu.</td></tr>}
                   </tbody>
                 </table>
-
-                {/* Phân trang Admin */}
                 {totalPages > 1 && (
                   <div className="flex justify-end items-center gap-2 mt-4 pt-4 border-t border-gray-100">
                     <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="px-2 py-1 text-xs border rounded hover:bg-gray-50 disabled:opacity-50">Trước</button>
@@ -423,7 +419,6 @@ export default function AdminPage() {
         </div>
       </div>
       
-      {/* POPUP FEE & PASSWORD (Giữ nguyên) */}
       {isFeeModalOpen && (
         <div className="fixed inset-0 bg-blue-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-xl shadow-2xl p-6 md:p-8 w-full max-w-2xl transform transition-all">

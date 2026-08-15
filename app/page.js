@@ -52,8 +52,11 @@ const PropertyCard = ({ item, contactPhone }) => {
         </div>
 
         <div className="mt-auto">
-          <div className="text-xl font-bold text-blue-700 mb-4">
-            {item.listingType === 'Chuyển nhượng' ? 'Giá bán: ' : 'Giá thuê: '} {item.price} <span className="text-xs font-medium text-gray-500">{item.listingType === 'Chuyển nhượng' ? 'Tỷ' : 'Triệu/tháng'}</span>
+          {/* TỐI ƯU CỤM HIỂN THỊ GIÁ BÁN/THUÊ */}
+          <div className="mb-4 flex items-baseline gap-1.5">
+            <span className="text-xs font-medium text-gray-500">{item.listingType === 'Chuyển nhượng' ? 'Giá bán:' : 'Giá thuê:'}</span>
+            <span className="text-xl font-extrabold text-blue-700">{item.price}</span>
+            <span className="text-[11px] font-semibold text-blue-700/80">{item.listingType === 'Chuyển nhượng' ? 'Tỷ' : 'Triệu/tháng'}</span>
           </div>
           <div className="flex gap-2">
             <object className="flex-1"><a href={`tel:${contactPhone}`} className="block w-full bg-white border border-blue-600 text-blue-600 hover:bg-blue-50 text-center py-2.5 rounded-md text-sm font-semibold transition flex justify-center items-center gap-1.5">Liên hệ</a></object>
@@ -72,7 +75,9 @@ export default function Home() {
   const [sortBy, setSortBy] = useState('newest');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 9;
-  const [filters, setFilters] = useState({ phanKhu: 'Tất cả phân khu', loaiCan: 'Tất cả loại căn', khoangTang: 'Tất cả tầng', huongBanCong: 'Tất cả hướng', noiThat: 'Tất cả nội thất' });
+  
+  // loaiCan giờ là một Mảng (Array) để chứa nhiều lựa chọn
+  const [filters, setFilters] = useState({ phanKhu: 'Tất cả phân khu', loaiCan: [], khoangTang: 'Tất cả tầng', huongBanCong: 'Tất cả hướng', noiThat: 'Tất cả nội thất' });
   const CONTACT_PHONE = "0912791925";
 
   useEffect(() => {
@@ -89,15 +94,27 @@ export default function Home() {
   }, []);
 
   const handleFilterChange = (e) => { setFilters({ ...filters, [e.target.name]: e.target.value }); setCurrentPage(1); };
-  const handleLoaiCanClick = (type) => { setFilters({ ...filters, loaiCan: filters.loaiCan === type ? 'Tất cả loại căn' : type }); setCurrentPage(1); };
+  
+  // Hàm xử lý Bật/Tắt đa lựa chọn loại căn
+  const handleLoaiCanToggle = (type) => { 
+    setFilters(prev => {
+      const newLoaiCan = prev.loaiCan.includes(type) 
+        ? prev.loaiCan.filter(t => t !== type) 
+        : [...prev.loaiCan, type];
+      return { ...prev, loaiCan: newLoaiCan };
+    });
+    setCurrentPage(1);
+  };
 
   const filteredProperties = properties.filter(item => {
     const matchTab = item.listingType === activeTab || (!item.listingType && activeTab === 'Cho thuê');
     const matchPhanKhu = filters.phanKhu === 'Tất cả phân khu' || item.phanKhu === filters.phanKhu;
-    const matchLoaiCan = filters.loaiCan === 'Tất cả loại căn' || item.loaiCan === filters.loaiCan || item.type === filters.loaiCan;
     const matchKhoangTang = filters.khoangTang === 'Tất cả tầng' || item.khoangTang === filters.khoangTang;
     const matchHuong = filters.huongBanCong === 'Tất cả hướng' || item.huongBanCong === filters.huongBanCong;
     const matchNoiThat = filters.noiThat === 'Tất cả nội thất' || item.noiThat === filters.noiThat;
+    // Logic mới: Nếu không chọn gì (mảng rỗng) thì lấy tất cả, nếu có chọn thì lọc theo mảng
+    const matchLoaiCan = filters.loaiCan.length === 0 || filters.loaiCan.includes(item.loaiCan) || filters.loaiCan.includes(item.type);
+    
     return matchTab && matchPhanKhu && matchLoaiCan && matchKhoangTang && matchHuong && matchNoiThat;
   });
 
@@ -115,13 +132,17 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-800 font-sans flex flex-col">
+      {/* NÂNG CẤP HEADER */}
       <header className="bg-white sticky top-0 z-50 px-4 md:px-8 py-3 flex justify-between items-center shadow-sm">
         <Link href="/" className="flex items-center hover:opacity-80 transition">
           <img src="/logo.png" alt="Quỹ Căn Smart City" className="h-10 md:h-12 w-auto object-contain" />
         </Link>
-        <div className="flex items-center gap-4">
-           <Link href="/ky-gui" className="hidden md:block text-blue-900 font-bold hover:text-blue-600 transition text-sm">Ký gửi căn hộ</Link>
-           <a href={`tel:${CONTACT_PHONE}`} className="flex items-center gap-2 bg-gradient-to-r from-[#d4af37] to-[#b5852a] text-gray-900 px-5 py-2 rounded-full font-bold hover:opacity-90 transition shadow-md text-sm">
+        <div className="flex items-center gap-3 md:gap-4">
+           <Link href="/ky-gui" className="hidden md:flex items-center gap-1.5 bg-blue-50 text-blue-800 px-4 py-2 rounded-md font-bold hover:bg-blue-100 transition text-sm border border-blue-100">
+             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+             Ký gửi căn hộ
+           </Link>
+           <a href={`https://zalo.me/${CONTACT_PHONE}`} target="_blank" rel="noreferrer" className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-800 text-white px-5 py-2 rounded-full font-bold hover:opacity-90 transition shadow-md text-sm">
              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M20 15.5c-1.2 0-2.4-.2-3.6-.6-.3-.1-.7 0-1 .2l-2.2 2.2c-2.8-1.4-5.1-3.8-6.6-6.6l2.2-2.2c.3-.3.4-.7.2-1-.4-1.2-.6-2.4-.6-3.6 0-.6-.4-1-1-1H4c-.6 0-1 .4-1 1 0 9.4 7.6 17 17 17 .6 0 1-.4 1-1v-3.5c0-.6-.4-1-1-1zM19 12h2a9 9 0 00-9-9v2c3.9 0 7.1 3.2 7.1 7.1zM15 12h2c0-2.8-2.2-5-5-5v2c1.7 0 3 1.3 3 3z"/></svg>
              Liên hệ tư vấn
            </a>
@@ -140,11 +161,11 @@ export default function Home() {
 
       <div className="max-w-[1400px] mx-auto px-4 md:px-8 mt-6 w-full">
         <div className="flex gap-2 border-b border-gray-200">
-           <button onClick={() => {setActiveTab('Cho thuê'); setFilters({...filters, loaiCan: 'Tất cả loại căn'}); setCurrentPage(1);}} className={`py-3 px-6 text-sm font-bold transition relative ${activeTab === 'Cho thuê' ? 'text-blue-900' : 'text-gray-500 hover:text-gray-800'}`}>
+           <button onClick={() => {setActiveTab('Cho thuê'); setFilters({...filters, loaiCan: []}); setCurrentPage(1);}} className={`py-3 px-6 text-sm font-bold transition relative ${activeTab === 'Cho thuê' ? 'text-blue-900' : 'text-gray-500 hover:text-gray-800'}`}>
              Cho thuê
              {activeTab === 'Cho thuê' && <div className="absolute bottom-[-1px] left-0 w-full h-1 bg-blue-600 rounded-t"></div>}
            </button>
-           <button onClick={() => {setActiveTab('Chuyển nhượng'); setFilters({...filters, loaiCan: 'Tất cả loại căn'}); setCurrentPage(1);}} className={`py-3 px-6 text-sm font-bold transition relative ${activeTab === 'Chuyển nhượng' ? 'text-blue-900' : 'text-gray-500 hover:text-gray-800'}`}>
+           <button onClick={() => {setActiveTab('Chuyển nhượng'); setFilters({...filters, loaiCan: []}); setCurrentPage(1);}} className={`py-3 px-6 text-sm font-bold transition relative ${activeTab === 'Chuyển nhượng' ? 'text-blue-900' : 'text-gray-500 hover:text-gray-800'}`}>
              Chuyển nhượng (Bán)
              {activeTab === 'Chuyển nhượng' && <div className="absolute bottom-[-1px] left-0 w-full h-1 bg-blue-600 rounded-t"></div>}
            </button>
@@ -162,16 +183,26 @@ export default function Home() {
                 {['Sapphire', 'Miami', 'Sakura', 'Victoria', 'Imperia', 'Sola Park', 'Tonkin', 'Canopy', 'Masteri West Height', 'Lumiere Evergreen'].map(opt => <option key={opt}>{opt}</option>)}
               </select>
             </div>
+            
+            {/* LỌC LOẠI CĂN CHỌN NHIỀU */}
             <div>
-              <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-2 block">Loại căn</label>
+              <div className="flex justify-between items-end mb-2">
+                 <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider block">Loại căn</label>
+                 {filters.loaiCan.length > 0 && <span className="text-[9px] text-blue-600 font-bold cursor-pointer" onClick={()=>setFilters({...filters, loaiCan:[]})}>Xóa lọc</span>}
+              </div>
               <div className="grid grid-cols-2 gap-2">
-                 {['Studio', '1N', '1N+', '2N1WC', '2N2WC', '2N+', '3N', '4N'].map(type => (
-                   <button key={type} onClick={() => handleLoaiCanClick(type)} className={`border py-1.5 rounded-md text-[11px] font-medium transition ${filters.loaiCan === type ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-gray-200 bg-gray-50/50 text-gray-600 hover:border-blue-400'}`}>
-                     {type}
-                   </button>
-                 ))}
+                 {['Studio', '1N', '1N+', '2N1WC', '2N2WC', '2N+', '3N', '4N'].map(type => {
+                   const isSelected = filters.loaiCan.includes(type);
+                   return (
+                     <button key={type} onClick={() => handleLoaiCanToggle(type)} className={`border py-1.5 px-2 rounded-md text-[11px] font-medium transition flex items-center justify-center gap-1 ${isSelected ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-gray-200 bg-gray-50/50 text-gray-600 hover:border-blue-400'}`}>
+                       {isSelected && <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>}
+                       {type}
+                     </button>
+                   );
+                 })}
               </div>
             </div>
+
             <div>
               <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-2 block">Khoảng tầng</label>
               <select name="khoangTang" value={filters.khoangTang} onChange={handleFilterChange} className="w-full p-2 border border-gray-200 rounded-md text-sm text-gray-600 focus:border-blue-600 outline-none">

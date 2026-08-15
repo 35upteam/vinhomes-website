@@ -18,8 +18,10 @@ const MiniPropertyCard = ({ item }) => {
       <div className="p-3">
         <p className="text-[9px] text-gray-400 font-semibold mb-1 uppercase">MÃ: {item.maCan}</p>
         <h4 className="font-bold text-blue-900 text-sm truncate">{item.phanKhu} - Tòa {item.toaNha || item.building}</h4>
-        <div className="text-base font-bold text-blue-700 mt-2">
-          {item.listingType === 'Chuyển nhượng' ? 'Giá bán: ' : 'Giá thuê: '} {item.price} <span className="text-[10px] font-medium text-gray-500">{item.listingType === 'Chuyển nhượng' ? 'Tỷ' : 'Tr/tháng'}</span>
+        <div className="mt-2 flex items-baseline gap-1">
+          <span className="text-[10px] text-gray-500 font-medium">{item.listingType === 'Chuyển nhượng' ? 'Giá bán:' : 'Giá thuê:'}</span>
+          <span className="text-base font-bold text-blue-700">{item.price}</span>
+          <span className="text-[9px] font-semibold text-blue-700/80">{item.listingType === 'Chuyển nhượng' ? 'Tỷ' : 'Tr/tháng'}</span>
         </div>
       </div>
     </Link>
@@ -33,7 +35,11 @@ export default function PropertyDetail() {
   const [similarProps, setSimilarProps] = useState([]);
   const [serviceFee, setServiceFee] = useState('Đang cập nhật');
   const [loading, setLoading] = useState(true);
+  
+  // State quản lý ảnh
   const [currentImg, setCurrentImg] = useState(0);
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+  const [lightboxImg, setLightboxImg] = useState(0);
 
   const CONTACT_PHONE = "0912791925";
 
@@ -53,7 +59,6 @@ export default function PropertyDetail() {
             setServiceFee(`${feeSnap.data()[propData.phanKhu]} VNĐ/m²`);
           }
 
-          // Fetch các căn tương tự
           const q = query(collection(db, 'properties'), orderBy('createdAt', 'desc'));
           const allPropsSnap = await getDocs(q);
           const allProps = allPropsSnap.docs.map(d => ({id: d.id, ...d.data()}));
@@ -72,7 +77,7 @@ export default function PropertyDetail() {
       try { await navigator.share({ title: 'Căn hộ Smart City', url: url }); } catch (err) {}
     } else {
       navigator.clipboard.writeText(url);
-      alert('Đã copy link thành công!');
+      alert('Đã copy link thông tin căn hộ!');
     }
   };
 
@@ -103,13 +108,27 @@ export default function PropertyDetail() {
         <Link href="/" className="flex items-center hover:opacity-80 transition">
           <img src="/logo.png" alt="Quỹ Căn Smart City" className="h-10 md:h-12 w-auto object-contain" />
         </Link>
-        <div className="flex items-center gap-4">
-           <Link href="/ky-gui" className="hidden md:block text-blue-900 font-bold hover:text-blue-600 transition text-sm">Ký gửi căn hộ</Link>
-           <a href={`tel:${CONTACT_PHONE}`} className="flex items-center gap-2 bg-gradient-to-r from-[#d4af37] to-[#b5852a] text-gray-900 px-5 py-2 rounded-full font-bold hover:opacity-90 transition shadow-md text-sm">
+        <div className="flex items-center gap-3 md:gap-4">
+           <Link href="/ky-gui" className="hidden md:flex items-center gap-1.5 bg-blue-50 text-blue-800 px-4 py-2 rounded-md font-bold hover:bg-blue-100 transition text-sm border border-blue-100">
+             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+             Ký gửi căn hộ
+           </Link>
+           <a href={`tel:${CONTACT_PHONE}`} className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-800 text-white px-5 py-2 rounded-full font-bold hover:opacity-90 transition shadow-md text-sm">
              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M20 15.5c-1.2 0-2.4-.2-3.6-.6-.3-.1-.7 0-1 .2l-2.2 2.2c-2.8-1.4-5.1-3.8-6.6-6.6l2.2-2.2c.3-.3.4-.7.2-1-.4-1.2-.6-2.4-.6-3.6 0-.6-.4-1-1-1H4c-.6 0-1 .4-1 1 0 9.4 7.6 17 17 17 .6 0 1-.4 1-1v-3.5c0-.6-.4-1-1-1zM19 12h2a9 9 0 00-9-9v2c3.9 0 7.1 3.2 7.1 7.1zM15 12h2c0-2.8-2.2-5-5-5v2c1.7 0 3 1.3 3 3z"/></svg> Liên hệ tư vấn
            </a>
         </div>
       </header>
+
+      {/* LIGHTBOX FULL MÀN HÌNH */}
+      {isLightboxOpen && (
+        <div className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center">
+           <button onClick={() => setIsLightboxOpen(false)} className="absolute top-6 right-6 text-white hover:text-gray-300 p-2 z-10"><svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+           <button onClick={() => setLightboxImg(p => p > 0 ? p - 1 : images.length - 1)} className="absolute left-4 top-1/2 -translate-y-1/2 text-white p-4 hover:bg-white/10 rounded-full z-10"><svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path></svg></button>
+           <img src={images[lightboxImg]} alt="Full" className="max-w-full max-h-screen object-contain" />
+           <button onClick={() => setLightboxImg(p => p < images.length - 1 ? p + 1 : 0)} className="absolute right-4 top-1/2 -translate-y-1/2 text-white p-4 hover:bg-white/10 rounded-full z-10"><svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg></button>
+           <div className="absolute bottom-6 text-white text-sm font-medium">{lightboxImg + 1} / {images.length}</div>
+        </div>
+      )}
 
       <main className="max-w-[1200px] mx-auto px-4 md:px-8 py-8 flex-grow w-full">
         <Link href="/" className="inline-flex items-center text-sm font-bold text-blue-900 hover:text-blue-700 mb-6 transition"><span className="mr-2">←</span> Quay lại danh sách</Link>
@@ -117,14 +136,20 @@ export default function PropertyDetail() {
         <div className="flex flex-col lg:flex-row gap-8 items-start">
           <div className="flex-1 w-full min-w-0">
             <div className="bg-white rounded-xl overflow-hidden shadow-sm border border-gray-200 mb-8">
-              <div className="relative h-[400px] md:h-[500px] bg-gray-200">
+              <div className="relative h-[400px] md:h-[500px] bg-gray-200 group cursor-zoom-in" onClick={() => { setLightboxImg(currentImg); setIsLightboxOpen(true); }}>
                 {images.length > 0 ? (
-                  <img src={images[currentImg]} alt="Căn hộ" className="w-full h-full object-cover" />
+                  <>
+                    <img src={images[currentImg]} alt="Căn hộ" className="w-full h-full object-cover" />
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition flex items-center justify-center">
+                       <svg className="w-12 h-12 text-white opacity-0 group-hover:opacity-100 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"></path></svg>
+                    </div>
+                  </>
                 ) : <div className="flex items-center justify-center h-full text-gray-400">Chưa có ảnh</div>}
+                
                 {images.length > 1 && (
                   <>
-                    <button onClick={() => setCurrentImg(prev => prev > 0 ? prev - 1 : prev)} className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white text-blue-900 w-10 h-10 rounded-full shadow flex items-center justify-center transition">‹</button>
-                    <button onClick={() => setCurrentImg(prev => prev < images.length - 1 ? prev + 1 : prev)} className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white text-blue-900 w-10 h-10 rounded-full shadow flex items-center justify-center transition">›</button>
+                    <button onClick={(e) => {e.stopPropagation(); setCurrentImg(prev => prev > 0 ? prev - 1 : prev)}} className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white text-blue-900 w-10 h-10 rounded-full shadow flex items-center justify-center transition">‹</button>
+                    <button onClick={(e) => {e.stopPropagation(); setCurrentImg(prev => prev < images.length - 1 ? prev + 1 : prev)}} className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white text-blue-900 w-10 h-10 rounded-full shadow flex items-center justify-center transition">›</button>
                     <div className="absolute top-4 right-4 bg-black/60 text-white px-3 py-1 rounded-full text-xs font-medium tracking-widest">{currentImg + 1} / {images.length}</div>
                   </>
                 )}
@@ -142,11 +167,14 @@ export default function PropertyDetail() {
 
             <div className="mb-8">
               <h1 className="text-2xl md:text-3xl font-bold text-blue-900 mb-3 leading-tight">{titleString}</h1>
-              <div className="flex flex-wrap items-center gap-4 mt-4">
-                 <div className="text-3xl font-extrabold text-blue-700 bg-blue-50 inline-block px-4 py-2 rounded-lg border border-blue-100">
-                    {property.listingType === 'Chuyển nhượng' ? 'Giá bán: ' : 'Giá thuê: '} {property.price} <span className="text-xl font-bold text-gray-600">{property.listingType === 'Chuyển nhượng' ? 'Tỷ' : 'Triệu/tháng'}</span>
+              {/* TỐI ƯU CỤM GIÁ VÀ NÚT CHIA SẺ TRẢI NGANG */}
+              <div className="flex flex-col md:flex-row md:justify-between md:items-end gap-4 mt-4">
+                 <div className="flex items-baseline gap-2 bg-blue-50 px-5 py-3 rounded-xl border border-blue-100">
+                    <span className="text-sm font-semibold text-gray-500 uppercase tracking-wide">{property.listingType === 'Chuyển nhượng' ? 'Giá bán:' : 'Giá thuê:'}</span>
+                    <span className="text-3xl font-extrabold text-blue-700">{property.price}</span>
+                    <span className="text-base font-bold text-blue-700/80">{property.listingType === 'Chuyển nhượng' ? 'Tỷ' : 'Triệu/tháng'}</span>
                  </div>
-                 <button onClick={handleShare} className="flex items-center gap-2 px-4 py-2 bg-white hover:bg-gray-50 text-blue-900 rounded-lg font-bold transition border border-gray-200 shadow-sm">
+                 <button onClick={handleShare} className="flex items-center justify-center gap-2 px-6 py-3 bg-white hover:bg-gray-50 text-blue-900 rounded-xl font-bold transition border border-gray-200 shadow-sm w-full md:w-auto">
                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path></svg>
                    Chia sẻ
                  </button>
@@ -174,7 +202,7 @@ export default function PropertyDetail() {
               <div className="mb-8 relative group">
                 <h3 className="font-bold text-blue-900 mb-4 text-lg">Các căn {property.listingType} tương tự</h3>
                 <button onClick={() => scrollSimilar('left')} className="absolute -left-4 top-1/2 w-10 h-10 bg-white border border-gray-200 rounded-full shadow-lg flex items-center justify-center z-10 hidden md:flex text-blue-900 hover:bg-blue-50 font-bold text-xl">‹</button>
-                <div ref={scrollRef} className="flex gap-4 overflow-x-auto pb-4 snap-x relative scroll-smooth hide-scrollbar">
+                <div ref={scrollRef} className="flex gap-4 overflow-x-auto pb-4 snap-x relative scroll-smooth hide-scrollbar" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
                   {similarProps.map(item => <MiniPropertyCard key={item.id} item={item} />)}
                 </div>
                 <button onClick={() => scrollSimilar('right')} className="absolute -right-4 top-1/2 w-10 h-10 bg-white border border-gray-200 rounded-full shadow-lg flex items-center justify-center z-10 hidden md:flex text-blue-900 hover:bg-blue-50 font-bold text-xl">›</button>
@@ -201,6 +229,11 @@ export default function PropertyDetail() {
               <div className="space-y-3">
                 <a href={`tel:${CONTACT_PHONE}`} className="flex items-center justify-center gap-2 w-full bg-blue-600 text-white py-3 rounded-md font-bold hover:bg-blue-700 transition shadow">📞 Gọi {CONTACT_PHONE.replace(/(\d{4})(\d{3})(\d{3})/, '$1 $2 $3')}</a>
                 <a href={`https://zalo.me/${CONTACT_PHONE}?text=${encodeURIComponent(`Xin chào, tôi quan tâm căn Mã ${displayId} (${property.listingType} ${property.loaiCan} tòa ${property.toaNha}) trên web.`)}`} target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 w-full bg-white border border-gray-300 text-blue-900 py-3 rounded-md font-bold hover:bg-gray-50 transition">💬 Nhắn Zalo</a>
+                
+                {/* THÊM NÚT CHIA SẺ VÀO MENU DƯỚI ZALO */}
+                <button onClick={handleShare} className="flex items-center justify-center gap-2 w-full bg-white border border-gray-300 text-blue-600 py-3 rounded-md font-bold hover:bg-blue-50 transition mt-2">
+                  🔗 Chia sẻ thông tin căn
+                </button>
               </div>
               <div className="mt-6 bg-gray-50 p-4 rounded-xl border border-gray-100 text-center">
                 <div className="w-32 h-32 mx-auto bg-white border border-gray-200 p-2 rounded-lg shadow-sm mb-3 flex items-center justify-center"><img src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://zalo.me/${CONTACT_PHONE}`} alt="QR Code Zalo" className="w-full h-full object-cover rounded" /></div>
