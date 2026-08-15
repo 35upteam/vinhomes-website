@@ -136,7 +136,7 @@ export default function KyGuiPage() {
                   )}
                   <div className="md:col-span-2">
                     <label className="block text-sm font-bold text-gray-700 mb-2">Ghi chú thêm</label>
-                    <textarea name="ghiChu" value={formData.ghiChu} onChange={handleInputChange} rows="3" placeholder="VD: Nhà đầy đủ nội thất, bao phí quản lý, ưu tiên khách ở gia đình, có hỗ trợ khách mua vay ngân hàng..." className="w-full p-3.5 border border-gray-300 rounded-lg focus:border-blue-600 outline-none"></textarea>
+                    <textarea name="ghiChu" value={formData.ghiChu} onChange={handleInputChange} rows="3" placeholder="VD: Nhà đầy đủ nội thất, ưu tiên khách ở gia đình, căn có vay không, có hỗ trợ khách mua vay không đối với các căn chuyển nhượng..." className="w-full p-3.5 border border-gray-300 rounded-lg focus:border-blue-600 outline-none"></textarea>
                   </div>
                 </div>
 
