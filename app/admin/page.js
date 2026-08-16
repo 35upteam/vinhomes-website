@@ -9,6 +9,60 @@ export default function AdminPage() {
   const [password, setPassword] = useState('');
   const [dbPassword, setDbPassword] = useState('0912791925'); 
 
+  // DỮ LIỆU CẨM NANG PHÂN KHU ĐÃ ĐƯỢC TỔNG HỢP CHI TIẾT VÀ CHUẨN XÁC NHẤT
+  const defaultPkConfig = {
+    "Sapphire": { 
+      phi: "8.800 VNĐ/m2", 
+      tongQuan: "Phân khu Sapphire là tâm điểm nhịp sống năng động của toàn dự án, mang đến không gian sống hiện đại, tiện nghi với mức giá dễ tiếp cận nhất. Nơi đây quy tụ cộng đồng cư dân trẻ, trí thức và các gia đình đa thế hệ mong muốn tận hưởng hệ sinh thái tiện ích toàn diện của Vinhomes.", 
+      uuDiem: "Nằm kề cận công viên thể thao Sportia Park với hàng ngàn máy tập; Hệ thống Shophouse khối đế sầm uất bậc nhất đáp ứng mọi nhu cầu mua sắm; Gần cụm trường học Vinschool và bãi đỗ xe nổi; Giao thông thuận tiện với các tuyến xe buýt Vinbus hoạt động liên tục." 
+    },
+    "Miami": { 
+      phi: "8.800 VNĐ/m2", 
+      tongQuan: "Lấy cảm hứng từ thủ phủ nghỉ dưỡng Miami của nước Mỹ, The Miami mang đến trải nghiệm sống đậm chất nhiệt đới rực rỡ và phóng khoáng. Cư dân được tận hưởng không khí nghỉ dưỡng suốt 365 ngày ngay dưới thềm nhà với chuỗi tiện ích mang phong cách resort năng động.", 
+      uuDiem: "Sở hữu bể bơi ngoài trời phong cách nhiệt đới cực rộng lên tới 1.000m2; Hệ thống liên hoàn 9 sân thể thao (tennis, bóng chuyền, bóng rổ); Cảnh quan đậm chất Mỹ với hàng cọ chà là và điểm nhấn nước nghệ thuật; Tòa nhà có thiết kế layout tối ưu đón gió tự nhiên." 
+    },
+    "Sakura": { 
+      phi: "8.800 VNĐ/m2", 
+      tongQuan: "Là kết tinh từ sự hợp tác chiến lược giữa Vinhomes và tập đoàn bất động sản hàng đầu Nhật Bản - SAMTY. The Sakura kiến tạo nên một không gian sống tĩnh tại, an yên mang đậm triết lý Zen (Thiền), giúp cư dân cân bằng thân - tâm - trí sau những giờ làm việc căng thẳng.", 
+      uuDiem: "Sở hữu Công viên Nhật Bản thu nhỏ ngay nội khu với Vườn thiền, Hồ cá Koi, Cầu Nhật Hoa; Tiện ích độc quyền: Bể bơi 4 mùa mái kính hiện đại The Sakura; Kế cận phân khu trường học và cầu dạo bộ rợp bóng cây; Hành lang căn hộ rộng thoáng, bàn giao có sảnh lễ tân." 
+    },
+    "Victoria": { 
+      phi: "12.000 VNĐ/m2", 
+      tongQuan: "The Victoria được định vị là phân khu mang phong cách sống đa sắc màu, tái hiện một Hồng Kông phồn hoa và rực rỡ ngay giữa lòng đô thị. Đây là không gian sống dành cho những cá nhân yêu thích sự sôi động, thời thượng và giao thương sầm uất.", 
+      uuDiem: "Vị trí giao điểm vàng, gần các trục đường kết nối chính và tuyến Metro huyết mạch tương lai; Cảnh quan nội khu nổi bật với màu sắc rực rỡ, nghệ thuật đường phố; Hệ tiện ích nội khu đa dạng phục vụ lối sống trẻ trung; Mặt ngoài tòa nhà thiết kế ấn tượng." 
+    },
+    "Imperia": { 
+      phi: "11.000 VNĐ/m2", 
+      tongQuan: "Được phát triển bởi MIK Group, Imperia Smart City tự hào sở hữu vị trí lõi trung tâm đẹp nhất dự án. Phân khu mở ra một không gian sống sinh thái, thông minh và an toàn tuyệt đối, là lựa chọn lý tưởng cho giới tinh hoa tìm kiếm sự hoàn mỹ.", 
+      uuDiem: "Vị trí 'trái tim' dự án, chỉ một bước chân là chạm tới Công viên trung tâm 10.2ha và hồ rải cát trắng; Sở hữu bể bơi vô cực ngoài trời tiêu chuẩn resort 5 sao; Tiêu chuẩn bàn giao liền tường cao cấp; Cộng đồng cư dân văn minh, an ninh khép kín." 
+    },
+    "Sola Park": { 
+      phi: "10.000 VNĐ/m2", 
+      tongQuan: "Là mảnh ghép rực rỡ tiếp theo của MIK Group, The Sola Park mang biểu tượng của ánh mặt trời năng lượng. Phân khu tập trung vào giải pháp không gian sống xanh, thông minh, ngập tràn ánh sáng và tối ưu hóa diện tích cho mọi gia đình.", 
+      uuDiem: "Vị trí đắc địa ngay mặt đường huyết mạch hướng ra cổng Lê Trọng Tấn, di chuyển vào trung tâm thành phố cực nhanh; Nằm kề sát nhà đỗ xe nổi (Parking Zone) cực kỳ thuận tiện; Bao quanh bởi hệ thống trường học Vinschool; Thiết kế layout thông minh, các phòng đều đón nắng gió." 
+    },
+    "Tonkin": { 
+      phi: "16.500 VNĐ/m2", 
+      tongQuan: "The Tonkin là bản giao hưởng tuyệt mỹ giữa nét hoài cổ, kiêu sa của phong cách Đông Dương (Indochine) và sự sang trọng, tinh tế của kiến trúc phương Tây. Phân khu thiết lập một chuẩn mực sống boutique luxury giới hạn, dành riêng cho những chủ nhân có gu thẩm mỹ cao.", 
+      uuDiem: "Tiêu chuẩn bàn giao hạng Ruby cao cấp nhất nhì dự án (có điều hòa âm trần, thiết bị vệ sinh nhập khẩu); Cảnh quan mang đậm tính nghệ thuật với Tháp đồng hồ, Bể bơi nhiệt đới Oasis; Mật độ căn hộ thấp, sảnh lounge sang trọng; Kế cận bãi đỗ xe nổi." 
+    },
+    "Canopy": { 
+      phi: "12.000 VNĐ/m2", 
+      tongQuan: "The Canopy Residences là phân khu cao cấp được kiến tạo bởi quỹ đầu tư chính phủ Singapore (GIC). Lấy cảm hứng từ những khu vườn sinh thái ngập tràn sắc xanh của đảo quốc sư tử, Canopy mang đến không gian sống bền vững, thông minh và kết nối cộng đồng mạnh mẽ.", 
+      uuDiem: "Thiết kế cảnh quan đậm chất sinh thái Singapore với nhiều tầng cây xanh, khu vườn dạo bộ trên cao; Hệ thống tiện ích Co-working space (không gian làm việc chung) đẳng cấp ngay trong tòa nhà; Căn hộ thiết kế thông minh, bàn giao nội thất hiện đại." 
+    },
+    "Masteri West Height": { 
+      phi: "18.000 VNĐ/m2", 
+      tongQuan: "Được phát triển bởi Masterise Homes, Masteri West Height sở hữu vị trí độc tôn trực diện Hồ trung tâm 4.8ha. Phân khu mang đến chuẩn mực sống quốc tế khác biệt, thiết kế đương đại đỉnh cao và dịch vụ quản lý vận hành chuyên nghiệp 24/7.", 
+      uuDiem: "Vị trí 'kim cương' mặt tiền hồ trung tâm, tầm view vĩnh cửu không bị che chắn; Mỗi tòa đều sở hữu Bể bơi Panorama vô cực trên tầng thượng; Bộ sưu tập 51 tiện ích đặc quyền (rạp chiếu phim trong nhà, thư viện, sân thiền); Bàn giao full kính Low-E, thiết bị Kohler, Hafele, Daikin." 
+    },
+    "Lumiere Evergreen": { 
+      phi: "18.000 VNĐ/m2", 
+      tongQuan: "Lumière Evergreen là tuyệt tác căn hộ hạng sang tiếp theo từ Masterise Homes, định hình phong cách sống thượng lưu mới tại phía Tây Hà Nội. Phân khu sở hữu bộ sưu tập tiện ích độc bản mang thiết kế vượt thời gian, là bản tuyên ngôn về đẳng cấp của gia chủ.", 
+      uuDiem: "Kiến trúc mặt ngoài đẳng cấp quốc tế, phủ kính Low-E toàn bộ cách âm cách nhiệt hoàn hảo; Hệ thống 60 tiện ích nội khu độc quyền (Bể bơi 4 mùa chuẩn Olympic, phòng Gym 3D hiện đại); Sảnh lễ tân tiêu chuẩn khách sạn 5 sao có quản gia; Nằm tại quỹ đất vàng tâm điểm dự án." 
+    }
+  };
+
   useEffect(() => {
     const fetchAuth = async () => {
       const docSnap = await getDoc(doc(db, 'settings', 'adminAuth'));
@@ -72,8 +126,13 @@ export default function AdminPage() {
 
   const fetchPhanKhu = async () => {
     const pkDoc = await getDoc(doc(db, 'settings', 'phanKhuConfig'));
-    if (pkDoc.exists()) setPhanKhuData(pkDoc.data());
-    else setPhanKhuData({});
+    if (pkDoc.exists() && Object.keys(pkDoc.data()).length > 0) {
+      setPhanKhuData(pkDoc.data());
+    } else {
+      // Bơm dữ liệu mẫu siêu chi tiết vào Firebase nếu chưa có
+      await setDoc(doc(db, 'settings', 'phanKhuConfig'), defaultPkConfig);
+      setPhanKhuData(defaultPkConfig);
+    }
   };
 
   const openPhanKhuModal = () => { 
@@ -129,7 +188,6 @@ export default function AdminPage() {
     }
   };
 
-  // WATERMARK TINH TẾ GÓC PHẢI DƯỚI (Đã Xóa "Hotline:")
   const addWatermark = (file) => {
     return new Promise((resolve) => {
       const reader = new FileReader();
@@ -398,7 +456,7 @@ export default function AdminPage() {
             <div className="border-2 border-dashed border-gray-300 p-5 text-center rounded-xl bg-gray-50 hover:bg-gray-100 transition">
               <label className="block font-bold mb-2 cursor-pointer text-blue-900 text-sm">Tải lên Ảnh căn hộ</label>
               <input type="file" multiple accept="image/*" onChange={handleImageChange} className="w-full text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200 cursor-pointer" />
-              {images.length > 0 && <p className="text-sm text-blue-600 mt-3 font-bold">Đã chọn {images.length} ảnh mới (Có Watermark)</p>}
+              {images.length > 0 && <p className="text-sm text-blue-600 mt-3 font-bold">Đã chọn {images.length} ảnh mới</p>}
             </div>
 
             <button type="submit" disabled={isUploading} className="w-full bg-blue-600 hover:bg-blue-700 text-white p-4 rounded-xl font-bold text-base transition shadow-lg shadow-blue-600/30 disabled:bg-gray-400 mt-2">
@@ -603,11 +661,11 @@ export default function AdminPage() {
               </div>
               <div>
                 <label className="block text-xs font-bold text-gray-600 mb-1">Thông tin Tổng quan</label>
-                <textarea rows="3" value={tempPKData.tongQuan || ''} onChange={(e) => setTempPKData({...tempPKData, tongQuan: e.target.value})} className="w-full p-3 border border-gray-300 rounded-lg outline-none focus:border-blue-500" placeholder="Đoạn văn ngắn giới thiệu điểm nhấn của phân khu này..."></textarea>
+                <textarea rows="4" value={tempPKData.tongQuan || ''} onChange={(e) => setTempPKData({...tempPKData, tongQuan: e.target.value})} className="w-full p-3 border border-gray-300 rounded-lg outline-none focus:border-blue-500" placeholder="Đoạn văn ngắn giới thiệu điểm nhấn của phân khu này..."></textarea>
               </div>
               <div>
                 <label className="block text-xs font-bold text-gray-600 mb-1">Các Ưu Điểm (Mỗi ưu điểm cách nhau bằng dấu chấm phẩy ; )</label>
-                <textarea rows="3" value={tempPKData.uuDiem || ''} onChange={(e) => setTempPKData({...tempPKData, uuDiem: e.target.value})} className="w-full p-3 border border-gray-300 rounded-lg outline-none focus:border-blue-500" placeholder="Gần nhà xe nổi; Có bể bơi bốn mùa; Nhiều trường mầm non..."></textarea>
+                <textarea rows="4" value={tempPKData.uuDiem || ''} onChange={(e) => setTempPKData({...tempPKData, uuDiem: e.target.value})} className="w-full p-3 border border-gray-300 rounded-lg outline-none focus:border-blue-500" placeholder="Gần nhà xe nổi; Có bể bơi bốn mùa; Nhiều trường mầm non..."></textarea>
               </div>
             </div>
 
