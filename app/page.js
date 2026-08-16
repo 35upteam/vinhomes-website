@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { db } from '../firebase';
-import { collection, query, orderBy, getDocs } from 'firebase/firestore';
+import { collection, query, orderBy, getDocs, addDoc, serverTimestamp } from 'firebase/firestore';
 import Link from 'next/link';
 
 const PropertyCard = ({ item, contactPhone }) => {
@@ -42,7 +42,6 @@ const PropertyCard = ({ item, contactPhone }) => {
           {item.loaiCan || item.type}
         </div>
 
-        {/* NHÃN DÁN ĐỎ: CẮT LỖ / ĐỘC QUYỀN / GIÁ TỐT */}
         {item.nhanDan && item.nhanDan !== 'Không có' && (
           <div className="absolute top-3 right-3 bg-red-600 text-white px-3 py-1 rounded-md text-[10px] font-black uppercase shadow-lg z-10 flex items-center gap-1">
             <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><path d="M17.5 12a5.5 5.5 0 11-11 0 5.5 5.5 0 0111 0zM21 12c0-4.97-4.03-9-9-9s-9 4.03-9 9 4.03 9 9 9 9-4.03 9-9zm-9-7.5a7.5 7.5 0 100 15 7.5 7.5 0 000-15zm1 11.5h-2v-2h2v2zm0-3.5h-2v-5h2v5z"></path></svg>
@@ -60,23 +59,24 @@ const PropertyCard = ({ item, contactPhone }) => {
       </div>
 
       <div className="p-5 flex flex-col flex-grow">
-        <h3 className="font-bold text-blue-950 text-lg uppercase tracking-tight group-hover:text-blue-600 transition-colors mb-4 line-clamp-2 leading-snug">
+        {/* CĂN GIỮA TIÊU ĐỀ */}
+        <h3 className="font-bold text-blue-950 text-lg uppercase tracking-tight group-hover:text-blue-600 transition-colors mb-4 line-clamp-2 leading-snug text-center">
           {item.phanKhu} - Tòa {item.toaNha || item.building}
         </h3>
         
         <div className="grid grid-cols-2 gap-2 mb-6">
-          <span className="bg-gray-50 border border-gray-200 text-gray-700 text-xs px-2.5 py-1.5 rounded-md font-medium truncate" title={`Tầng: ${item.khoangTang || 'Đang cập nhật'}`}>🏢 {item.khoangTang || 'Đang cập nhật'}</span>
-          <span className="bg-gray-50 border border-gray-200 text-gray-700 text-xs px-2.5 py-1.5 rounded-md font-medium truncate" title={`Diện tích: ${item.area} m²`}>📐 {item.area} m²</span>
-          <span className="bg-gray-50 border border-gray-200 text-gray-700 text-xs px-2.5 py-1.5 rounded-md font-medium truncate" title={`Hướng: ${item.huongBanCong || 'Đang cập nhật'}`}>🧭 {item.huongBanCong || 'Đang cập nhật'}</span>
-          <span className="bg-gray-50 border border-gray-200 text-gray-700 text-xs px-2.5 py-1.5 rounded-md font-medium truncate" title={`Nội thất: ${item.noiThat || 'Đang cập nhật'}`}>🛋️ {item.noiThat || 'Đang cập nhật'}</span>
+          <span className="bg-gray-50 border border-gray-200 text-gray-700 text-xs px-2.5 py-1.5 rounded-md font-normal truncate" title={`Tầng: ${item.khoangTang || 'Đang cập nhật'}`}>🏢 {item.khoangTang || 'Đang cập nhật'}</span>
+          <span className="bg-gray-50 border border-gray-200 text-gray-700 text-xs px-2.5 py-1.5 rounded-md font-normal truncate" title={`Diện tích: ${item.area} m²`}>📐 {item.area} m²</span>
+          <span className="bg-gray-50 border border-gray-200 text-gray-700 text-xs px-2.5 py-1.5 rounded-md font-normal truncate" title={`Hướng: ${item.huongBanCong || 'Đang cập nhật'}`}>🧭 {item.huongBanCong || 'Đang cập nhật'}</span>
+          <span className="bg-gray-50 border border-gray-200 text-gray-700 text-xs px-2.5 py-1.5 rounded-md font-normal truncate" title={`Nội thất: ${item.noiThat || 'Đang cập nhật'}`}>🛋️ {item.noiThat || 'Đang cập nhật'}</span>
         </div>
 
         <div className="mt-auto border-t border-gray-100 pt-5">
+          {/* CĂN GIỮA GIÁ & BỎ CHỮ GIÁ THUÊ/BÁN */}
           <div className="mb-4 flex flex-col items-center justify-center">
-            <span className="text-[11px] font-semibold text-gray-500 uppercase tracking-widest mb-0.5">{item.listingType === 'Chuyển nhượng' ? 'Giá bán' : 'Giá thuê'}</span>
             <div className="flex items-baseline gap-1">
-              <span className="text-2xl font-black text-blue-700">{item.price}</span>
-              <span className="text-xs font-bold text-blue-700/80">{item.listingType === 'Chuyển nhượng' ? 'Tỷ' : 'Triệu/tháng'}</span>
+              <span className="text-3xl font-black text-blue-700">{item.price}</span>
+              <span className="text-sm font-bold text-blue-700/80">{item.listingType === 'Chuyển nhượng' ? 'Tỷ' : 'Triệu/tháng'}</span>
             </div>
           </div>
           
@@ -103,19 +103,16 @@ export default function Home() {
   const [filters, setFilters] = useState({ phanKhu: 'Tất cả phân khu', loaiCan: [], khoangTang: 'Tất cả tầng', huongBanCong: 'Tất cả hướng', noiThat: 'Tất cả nội thất', mucGia: 'Tất cả mức giá' });
   const CONTACT_PHONE = "0912791925";
 
-  // Danh sách mức giá thay đổi theo Tab
   const rentPrices = ['Tất cả mức giá', 'Dưới 6 triệu', '6 - 8 triệu', '8 - 12 triệu', '12 - 15 triệu', '15 - 20 triệu', 'Trên 20 triệu'];
   const salePrices = ['Tất cả mức giá', 'Dưới 2 tỷ', '2 - 2.5 tỷ', '2.5 - 3 tỷ', '3 - 4 tỷ', '4 - 5 tỷ', 'Trên 5 tỷ'];
 
-  // Modal State cho Khách Nhờ Tìm (Nút chủ động)
   const [isFindModalOpen, setIsFindModalOpen] = useState(false);
   const [isSendingFind, setIsSendingFind] = useState(false);
   const [findPhoneError, setFindPhoneError] = useState('');
-  const [findData, setFindData] = useState({ nhuCau: 'Cho thuê', loaiCan: 'Studio', taiChinh: '', noiThat: 'Đầy đủ nội thất', ngayVaoO: '', soDienThoai: '', ghiChu: '' });
+  const [findData, setFindData] = useState({ nhuCau: 'Cho thuê', loaiCan: 'Studio', taiChinh: '', noiThat: 'Đầy đủ nội thất', ngayVaoO: '', soDienThoai: '', ghiChu: '', ten: '' });
 
-  // Modal State cho Popup 20s (Bắt Lead Tự Động)
   const [isLeadPopupOpen, setIsLeadPopupOpen] = useState(false);
-  const [leadData, setLeadData] = useState({ ten: '', soDienThoai: '' });
+  const [leadData, setLeadData] = useState({ ten: '', soDienThoai: '', nhuCau: 'Mua/Thuê', ghiChu: '' });
   const [isSendingLead, setIsSendingLead] = useState(false);
   const [leadPhoneError, setLeadPhoneError] = useState('');
 
@@ -130,7 +127,6 @@ export default function Home() {
     };
     fetchProperties();
 
-    // Hẹn giờ bật Popup sau 20s (Chỉ bật 1 lần mỗi phiên)
     const timer = setTimeout(() => {
       if(!sessionStorage.getItem('leadPopupShown')) {
         setIsLeadPopupOpen(true);
@@ -193,18 +189,24 @@ export default function Home() {
   const totalPages = Math.ceil(sortedProperties.length / itemsPerPage);
   const currentProperties = sortedProperties.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
-  // Xử lý gửi Form Nút Nhờ Tìm Căn
+  // LƯU CẢ VÀO FIREBASE VÀ TELEGRAM (Khách nhờ tìm)
   const handleFindSubmit = async (e) => {
     e.preventDefault();
     const phoneRegex = /^0\d{9}$/;
     if (!phoneRegex.test(findData.soDienThoai)) { setFindPhoneError("Số điện thoại không hợp lệ!"); return; }
 
     setIsSendingFind(true);
+    
+    // Lưu vào Firebase collection nho_tim_can
+    try {
+      await addDoc(collection(db, 'nho_tim_can'), { ...findData, source: 'Nút Nhờ Tìm', createdAt: serverTimestamp(), status: 'Chưa xử lý' });
+    } catch(err) { console.error("Lỗi Firebase", err); }
+
     const BOT_TOKEN = process.env.NEXT_PUBLIC_TELEGRAM_BOT_TOKEN; 
     const CHAT_ID = process.env.NEXT_PUBLIC_TELEGRAM_CHAT_ID;
     
     if (BOT_TOKEN && CHAT_ID) {
-      const message = `🚨 <b>KHÁCH TÌM CĂN (Nút Nhờ Tìm)</b>\n\n👤 <b>Nhu cầu:</b> ${findData.nhuCau}\n🛏 <b>Loại căn:</b> ${findData.loaiCan}\n💰 <b>Tài chính:</b> ${findData.taiChinh}\n🛋 <b>Nội thất:</b> ${findData.noiThat}\n📅 <b>Vào ở:</b> ${findData.nhuCau === 'Cho thuê' ? findData.ngayVaoO || 'Chưa rõ' : 'N/A'}\n📞 <b>SĐT Khách:</b> <code>${findData.soDienThoai}</code>\n📝 <b>Yêu cầu thêm:</b> ${findData.ghiChu || 'Không có'}`;
+      const message = `🚨 <b>KHÁCH TÌM CĂN (Nút Nhờ Tìm)</b>\n\n👤 <b>Khách hàng:</b> ${findData.ten || 'Chưa nhập'}\n📌 <b>Nhu cầu:</b> ${findData.nhuCau}\n🛏 <b>Loại căn:</b> ${findData.loaiCan}\n💰 <b>Tài chính:</b> ${findData.taiChinh}\n🛋 <b>Nội thất:</b> ${findData.noiThat}\n📅 <b>Vào ở:</b> ${findData.nhuCau === 'Cho thuê' ? findData.ngayVaoO || 'Chưa rõ' : 'N/A'}\n📞 <b>SĐT Khách:</b> <code>${findData.soDienThoai}</code>\n📝 <b>Ghi chú:</b> ${findData.ghiChu || 'Không có'}`;
       try {
         await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -215,21 +217,26 @@ export default function Home() {
     
     setIsSendingFind(false);
     setIsFindModalOpen(false);
-    setFindData({ nhuCau: 'Cho thuê', loaiCan: 'Studio', taiChinh: '', noiThat: 'Đầy đủ nội thất', ngayVaoO: '', soDienThoai: '', ghiChu: '' });
-    alert("Đã gửi yêu cầu thành công! Chuyên viên An Ninh sẽ liên hệ Zalo anh/chị ngay nhé!");
+    setFindData({ nhuCau: 'Cho thuê', loaiCan: 'Studio', taiChinh: '', noiThat: 'Đầy đủ nội thất', ngayVaoO: '', soDienThoai: '', ghiChu: '', ten: '' });
+    alert("Đã gửi yêu cầu thành công! Chuyên viên sẽ liên hệ Zalo anh/chị ngay nhé!");
   };
 
-  // Xử lý gửi Form Popup 20s
+  // Lưu Khách từ Popup 20s
   const handleLeadSubmit = async (e) => {
     e.preventDefault();
     const phoneRegex = /^0\d{9}$/;
     if (!phoneRegex.test(leadData.soDienThoai)) { setLeadPhoneError("Số điện thoại không hợp lệ!"); return; }
 
     setIsSendingLead(true);
+
+    try {
+      await addDoc(collection(db, 'nho_tim_can'), { ...leadData, source: 'Popup 20s', createdAt: serverTimestamp(), status: 'Chưa xử lý' });
+    } catch(err) { console.error("Lỗi Firebase", err); }
+
     const BOT_TOKEN = process.env.NEXT_PUBLIC_TELEGRAM_BOT_TOKEN; 
     const CHAT_ID = process.env.NEXT_PUBLIC_TELEGRAM_CHAT_ID;
     if (BOT_TOKEN && CHAT_ID) {
-      const message = `🚨 <b>TẢI DANH SÁCH (Popup 20s)</b>\n\n👤 <b>Tên khách:</b> ${leadData.ten}\n📞 <b>Số điện thoại:</b> <code>${leadData.soDienThoai}</code>`;
+      const message = `🚨 <b>TẢI DANH SÁCH (Popup 20s)</b>\n\n👤 <b>Tên khách:</b> ${leadData.ten}\n📞 <b>Số điện thoại:</b> <code>${leadData.soDienThoai}</code>\n📌 <b>Nhu cầu:</b> ${leadData.nhuCau}\n📝 <b>Ghi chú:</b> ${leadData.ghiChu || 'Không có'}`;
       try {
         await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -239,7 +246,7 @@ export default function Home() {
     }
     setIsSendingLead(false);
     setIsLeadPopupOpen(false);
-    alert("Đăng ký thành công! Danh sách các căn tốt nhất sẽ được gửi qua Zalo cho anh/chị trong ít phút.");
+    alert("Gửi yêu cầu thành công! Chúng tôi sẽ gửi danh sách qua Zalo cho anh/chị trong ít phút.");
   };
 
   if (loading) return <div className="flex justify-center items-center h-screen bg-gray-50"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-900"></div></div>;
@@ -261,50 +268,53 @@ export default function Home() {
         </div>
       </header>
       
-      <section className="relative bg-blue-900 text-white py-20 px-4 md:px-12 flex items-center overflow-hidden">
-        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?q=80&w=2000&auto=format&fit=crop')] bg-cover bg-center opacity-20"></div>
-        <div className="absolute inset-0 bg-gradient-to-r from-blue-900 via-blue-900/90 to-transparent"></div>
+      {/* BANNER MỚI TUYỆT ĐẸP */}
+      <section className="relative bg-blue-950 text-white py-24 px-4 md:px-12 flex items-center overflow-hidden">
+        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1560518883-ce09059eeffa?q=80&w=2000&auto=format&fit=crop')] bg-cover bg-center opacity-30"></div>
+        <div className="absolute inset-0 bg-gradient-to-r from-blue-950 via-blue-900/90 to-transparent"></div>
         <div className="relative z-10 max-w-5xl mx-auto w-full">
-          <p className="text-xs font-semibold text-blue-200 mb-3 uppercase tracking-[0.2em]">Vinhomes Smart City</p>
-          <h2 className="text-4xl md:text-5xl font-bold mb-5 leading-[1.15] tracking-tight">Quỹ căn chuyển nhượng<br/>& cho thuê</h2>
-          <p className="text-sm md:text-base text-gray-300 max-w-lg font-light leading-relaxed">Bảng hàng cập nhật theo giờ — chọn căn đúng nhu cầu tại Vinhomes Smart City.</p>
+          <p className="text-xs font-bold text-blue-200 mb-4 uppercase tracking-[0.3em] drop-shadow-md">Vinhomes Smart City</p>
+          <h2 className="text-4xl md:text-6xl font-black mb-6 leading-[1.1] tracking-tight drop-shadow-lg">QUỸ CĂN CHUYỂN NHƯỢNG<br/>& CHO THUÊ</h2>
+          <p className="text-base md:text-lg text-blue-100 max-w-xl font-medium leading-relaxed drop-shadow-md">Bảng hàng cập nhật liên tục 24/7, hỗ trợ tìm căn theo yêu cầu.</p>
         </div>
       </section>
 
-      <div className="max-w-[1400px] mx-auto px-4 md:px-8 mt-6 w-full">
-        <div className="flex gap-2 border-b border-gray-200">
-           <button onClick={() => handleTabChange('Cho thuê')} className={`py-3 px-6 text-sm font-bold transition relative ${activeTab === 'Cho thuê' ? 'text-blue-900' : 'text-gray-500 hover:text-gray-800'}`}>Cho thuê {activeTab === 'Cho thuê' && <div className="absolute bottom-[-1px] left-0 w-full h-1 bg-blue-600 rounded-t"></div>}</button>
-           <button onClick={() => handleTabChange('Chuyển nhượng')} className={`py-3 px-6 text-sm font-bold transition relative ${activeTab === 'Chuyển nhượng' ? 'text-blue-900' : 'text-gray-500 hover:text-gray-800'}`}>Chuyển nhượng (Bán) {activeTab === 'Chuyển nhượng' && <div className="absolute bottom-[-1px] left-0 w-full h-1 bg-blue-600 rounded-t"></div>}</button>
+      {/* TABS NÚT BẤM (PILL SHAPE) */}
+      <div className="max-w-[1400px] mx-auto px-4 md:px-8 mt-8 w-full flex justify-center md:justify-start">
+        <div className="flex gap-2 bg-gray-200/60 p-1.5 rounded-full inline-flex">
+           <button onClick={() => handleTabChange('Cho thuê')} className={`py-2.5 px-8 rounded-full text-sm font-bold transition-all ${activeTab === 'Cho thuê' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-600 hover:text-gray-900'}`}>Cho thuê</button>
+           <button onClick={() => handleTabChange('Chuyển nhượng')} className={`py-2.5 px-8 rounded-full text-sm font-bold transition-all ${activeTab === 'Chuyển nhượng' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-600 hover:text-gray-900'}`}>Chuyển nhượng (Bán)</button>
         </div>
       </div>
 
       <main className="max-w-[1400px] mx-auto px-4 md:px-8 py-8 flex flex-col lg:flex-row gap-8 items-start flex-grow w-full">
+        {/* BỘ LỌC CHI TIẾT */}
         <aside className="w-full lg:w-[280px] flex-shrink-0 bg-white p-5 rounded-xl shadow-sm border border-gray-200 sticky top-24 self-start">
-          <h3 className="font-bold text-lg mb-6 text-blue-900">Bộ lọc chi tiết</h3>
+          <h3 className="font-black text-lg mb-6 text-blue-900 uppercase tracking-tight">Bộ lọc chi tiết</h3>
           <div className="space-y-6">
             <div>
-              <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-2 block">Mức giá</label>
-              <select name="mucGia" value={filters.mucGia} onChange={handleFilterChange} className="w-full p-2 border border-gray-200 rounded-md text-sm font-bold text-blue-800 focus:border-blue-600 outline-none bg-blue-50/50">
+              <label className="text-[11px] font-bold text-gray-800 uppercase tracking-wider mb-2 block">Mức giá</label>
+              <select name="mucGia" value={filters.mucGia} onChange={handleFilterChange} className="w-full p-2.5 border border-gray-200 rounded-md text-sm font-normal text-gray-700 focus:border-blue-600 outline-none">
                 {(activeTab === 'Cho thuê' ? rentPrices : salePrices).map(opt => <option key={opt}>{opt}</option>)}
               </select>
             </div>
             <div>
-              <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-2 block">Phân khu</label>
-              <select name="phanKhu" value={filters.phanKhu} onChange={handleFilterChange} className="w-full p-2 border border-gray-200 rounded-md text-sm text-gray-600 focus:border-blue-600 outline-none">
+              <label className="text-[11px] font-bold text-gray-800 uppercase tracking-wider mb-2 block">Phân khu</label>
+              <select name="phanKhu" value={filters.phanKhu} onChange={handleFilterChange} className="w-full p-2.5 border border-gray-200 rounded-md text-sm font-normal text-gray-700 focus:border-blue-600 outline-none">
                 <option>Tất cả phân khu</option>
                 {['Sapphire', 'Miami', 'Sakura', 'Victoria', 'Imperia', 'Sola Park', 'Tonkin', 'Canopy', 'Masteri West Height', 'Lumiere Evergreen'].map(opt => <option key={opt}>{opt}</option>)}
               </select>
             </div>
             <div>
               <div className="flex justify-between items-end mb-2">
-                 <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider block">Loại căn</label>
+                 <label className="text-[11px] font-bold text-gray-800 uppercase tracking-wider block">Loại căn</label>
                  {filters.loaiCan.length > 0 && <span className="text-[9px] text-blue-600 font-bold cursor-pointer hover:underline" onClick={()=>setFilters({...filters, loaiCan:[]})}>Xóa lọc</span>}
               </div>
               <div className="grid grid-cols-2 gap-2">
                  {['Studio', '1N', '1N+', '2N1WC', '2N2WC', '2N+', '3N', '4N'].map(type => {
                    const isSelected = filters.loaiCan.includes(type);
                    return (
-                     <button key={type} onClick={() => handleLoaiCanToggle(type)} className={`border py-1.5 px-2 rounded-md text-[11px] font-medium transition flex items-center justify-center gap-1 ${isSelected ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-gray-200 bg-gray-50/50 text-gray-600 hover:border-blue-400'}`}>
+                     <button key={type} onClick={() => handleLoaiCanToggle(type)} className={`border py-2 px-2 rounded-md text-[11px] font-normal transition flex items-center justify-center gap-1 ${isSelected ? 'border-blue-600 bg-blue-50 text-blue-700 font-bold' : 'border-gray-200 bg-gray-50/50 text-gray-600 hover:border-blue-400'}`}>
                        {isSelected && <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>}
                        {type}
                      </button>
@@ -313,22 +323,22 @@ export default function Home() {
               </div>
             </div>
             <div>
-              <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-2 block">Khoảng tầng</label>
-              <select name="khoangTang" value={filters.khoangTang} onChange={handleFilterChange} className="w-full p-2 border border-gray-200 rounded-md text-sm text-gray-600 focus:border-blue-600 outline-none">
+              <label className="text-[11px] font-bold text-gray-800 uppercase tracking-wider mb-2 block">Khoảng tầng</label>
+              <select name="khoangTang" value={filters.khoangTang} onChange={handleFilterChange} className="w-full p-2.5 border border-gray-200 rounded-md text-sm font-normal text-gray-700 focus:border-blue-600 outline-none">
                 <option>Tất cả tầng</option>
                 {['Tầng thấp', 'Tầng trung', 'Tầng cao'].map(opt => <option key={opt}>{opt}</option>)}
               </select>
             </div>
             <div>
-              <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-2 block">Hướng ban công</label>
-              <select name="huongBanCong" value={filters.huongBanCong} onChange={handleFilterChange} className="w-full p-2 border border-gray-200 rounded-md text-sm text-gray-600 focus:border-blue-600 outline-none">
+              <label className="text-[11px] font-bold text-gray-800 uppercase tracking-wider mb-2 block">Hướng ban công</label>
+              <select name="huongBanCong" value={filters.huongBanCong} onChange={handleFilterChange} className="w-full p-2.5 border border-gray-200 rounded-md text-sm font-normal text-gray-700 focus:border-blue-600 outline-none">
                 <option>Tất cả hướng</option>
                 {['Đông', 'Tây', 'Nam', 'Bắc', 'Đông Nam', 'Đông Bắc', 'Tây Nam', 'Tây Bắc'].map(opt => <option key={opt}>{opt}</option>)}
               </select>
             </div>
             <div>
-              <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-2 block">Hiện trạng nội thất</label>
-              <select name="noiThat" value={filters.noiThat} onChange={handleFilterChange} className="w-full p-2 border border-gray-200 rounded-md text-sm text-gray-600 focus:border-blue-600 outline-none">
+              <label className="text-[11px] font-bold text-gray-800 uppercase tracking-wider mb-2 block">Nội thất</label>
+              <select name="noiThat" value={filters.noiThat} onChange={handleFilterChange} className="w-full p-2.5 border border-gray-200 rounded-md text-sm font-normal text-gray-700 focus:border-blue-600 outline-none">
                 <option>Tất cả nội thất</option>
                 {['Nguyên bản CĐT', 'Đồ cơ bản', 'Đầy đủ nội thất'].map(opt => <option key={opt}>{opt}</option>)}
               </select>
@@ -412,6 +422,10 @@ export default function Home() {
             <div className="p-6">
               <p className="text-sm text-gray-600 mb-6 italic">Anh/chị chỉ cần để lại nhu cầu, chúng em sẽ lọc ra 3-5 căn đẹp nhất, giá tốt nhất và gửi qua Zalo ngay sau 5 phút!</p>
               <form onSubmit={handleFindSubmit} className="space-y-4 text-sm">
+                 <div>
+                   <label className="block font-bold text-gray-700 mb-1">Tên của anh/chị</label>
+                   <input type="text" placeholder="Nhập tên..." value={findData.ten} onChange={(e)=>setFindData({...findData, ten: e.target.value})} className="w-full p-2.5 border border-gray-300 rounded-lg outline-none focus:border-blue-600" />
+                 </div>
                  <div className="flex gap-4">
                    <label className="flex-1 bg-gray-50 border border-gray-200 rounded-lg p-2.5 flex items-center gap-2 cursor-pointer has-[:checked]:border-blue-600 has-[:checked]:bg-blue-50 transition">
                      <input type="radio" name="nhuCau" value="Cho thuê" checked={findData.nhuCau === 'Cho thuê'} onChange={(e)=>setFindData({...findData, nhuCau: e.target.value})} className="w-4 h-4 text-blue-600" />
@@ -465,7 +479,7 @@ export default function Home() {
         </div>
       )}
 
-      {/* POPUP BẮT LEAD THÔNG MINH (20S) */}
+      {/* POPUP BẮT LEAD THÔNG MINH (20S) CÓ GHI CHÚ */}
       {isLeadPopupOpen && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[110] flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-fade-in-up text-center relative border-4 border-blue-100">
@@ -473,20 +487,27 @@ export default function Home() {
             <div className="bg-gradient-to-br from-blue-700 to-blue-900 p-6 text-white">
               <div className="text-4xl mb-2">🎁</div>
               <h3 className="text-2xl font-black uppercase tracking-tight mb-2">KHOAN ĐÃ!</h3>
-              <p className="text-blue-100 font-medium text-sm">Bạn chưa tìm được căn ưng ý?</p>
+              <p className="text-blue-100 font-medium text-sm">Chưa tìm được căn ưng ý? Đừng tốn thời gian lướt nữa!</p>
             </div>
             <div className="p-6">
-              <p className="text-gray-700 font-bold mb-5 text-sm">Tải ngay Danh sách 5 căn CẮT LỖ / GIÁ TỐT NHẤT tuần này do chuyên gia phân tích chọn lọc.</p>
+              <p className="text-gray-700 font-bold mb-5 text-sm">Gửi nhu cầu, chúng tôi sẽ tìm và báo giá các căn CẮT LỖ / GIÁ TỐT NHẤT tuần này cho bạn qua Zalo.</p>
               <form onSubmit={handleLeadSubmit} className="space-y-4">
                  <div>
-                   <input required type="text" placeholder="Tên của bạn..." value={leadData.ten} onChange={(e)=>setLeadData({...leadData, ten: e.target.value})} className="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-blue-600 text-sm font-medium" />
+                   <input required type="text" placeholder="Tên của anh/chị..." value={leadData.ten} onChange={(e)=>setLeadData({...leadData, ten: e.target.value})} className="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-blue-600 text-sm font-medium" />
                  </div>
                  <div>
                    <input required type="tel" placeholder="Số điện thoại / Zalo..." value={leadData.soDienThoai} onChange={(e)=>{setLeadData({...leadData, soDienThoai: e.target.value}); setLeadPhoneError('');}} className={`w-full p-3 bg-gray-50 border rounded-lg outline-none text-sm font-medium transition ${leadPhoneError ? 'border-red-500 bg-red-50' : 'border-gray-200 focus:border-blue-600'}`} />
                    {leadPhoneError && <p className="text-red-500 text-[11px] font-bold mt-1 text-left">{leadPhoneError}</p>}
                  </div>
+                 <div className="flex gap-4">
+                    <label className="flex-1 flex items-center gap-2 cursor-pointer text-sm font-bold text-gray-700"><input type="radio" name="leadNhuCau" value="Mua" checked={leadData.nhuCau === 'Mua'} onChange={(e)=>setLeadData({...leadData, nhuCau: e.target.value})} className="w-4 h-4 text-blue-600" /> Cần Mua</label>
+                    <label className="flex-1 flex items-center gap-2 cursor-pointer text-sm font-bold text-gray-700"><input type="radio" name="leadNhuCau" value="Thuê" checked={leadData.nhuCau === 'Thuê'} onChange={(e)=>setLeadData({...leadData, nhuCau: e.target.value})} className="w-4 h-4 text-blue-600" /> Cần Thuê</label>
+                 </div>
+                 <div>
+                   <textarea rows="2" placeholder="Ghi chú thêm (Tài chính, loại căn, hướng...)" value={leadData.ghiChu} onChange={(e)=>setLeadData({...leadData, ghiChu: e.target.value})} className="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-blue-600 text-sm font-medium"></textarea>
+                 </div>
                  <button type="submit" disabled={isSendingLead} className="w-full bg-blue-600 hover:bg-blue-700 text-white p-3.5 rounded-lg font-black uppercase tracking-wider text-sm transition shadow-lg shadow-blue-600/30 disabled:opacity-50">
-                   {isSendingLead ? 'Đang gửi...' : 'Nhận danh sách qua Zalo ngay'}
+                   {isSendingLead ? 'Đang gửi...' : 'Gửi yêu cầu & Nhận báo giá'}
                  </button>
               </form>
               <p className="text-[10px] text-gray-400 mt-4">Cam kết bảo mật thông tin 100%.</p>

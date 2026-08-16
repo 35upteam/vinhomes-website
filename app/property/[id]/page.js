@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState, useRef } from 'react';
 import { db } from '../../../firebase';
-import { doc, getDoc, collection, query, orderBy, getDocs } from 'firebase/firestore';
+import { doc, getDoc, collection, query, orderBy, getDocs, addDoc, serverTimestamp } from 'firebase/firestore';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 
@@ -18,9 +18,8 @@ const MiniPropertyCard = ({ item }) => {
       </div>
       <div className="p-4">
         <p className="text-[9px] text-gray-400 font-semibold mb-1 uppercase">MÃ: {item.maCan}</p>
-        <h4 className="font-bold text-blue-950 text-sm truncate mb-2">{item.phanKhu} - Tòa {item.toaNha || item.building}</h4>
-        <div className="flex items-baseline gap-1">
-          <span className="text-[10px] font-semibold text-gray-500 uppercase">{item.listingType === 'Chuyển nhượng' ? 'Giá bán:' : 'Giá thuê:'}</span>
+        <h4 className="font-bold text-blue-950 text-sm truncate mb-2 text-center">{item.phanKhu} - Tòa {item.toaNha || item.building}</h4>
+        <div className="flex justify-center items-baseline gap-1">
           <span className="text-lg font-black text-blue-700">{item.price}</span>
           <span className="text-[10px] font-bold text-blue-700/80">{item.listingType === 'Chuyển nhượng' ? 'Tỷ' : 'Tr/tháng'}</span>
         </div>
@@ -35,7 +34,6 @@ export default function PropertyDetail() {
   const [property, setProperty] = useState(null);
   const [similarProps, setSimilarProps] = useState([]);
   
-  // Dữ liệu Phân Khu Cẩm Nang
   const [pkConfig, setPkConfig] = useState({ phi: 'Đang cập nhật', tongQuan: '', uuDiem: '' });
   const [loading, setLoading] = useState(true);
   
@@ -46,7 +44,7 @@ export default function PropertyDetail() {
   const [isFindModalOpen, setIsFindModalOpen] = useState(false);
   const [isSendingFind, setIsSendingFind] = useState(false);
   const [findPhoneError, setFindPhoneError] = useState('');
-  const [findData, setFindData] = useState({ nhuCau: 'Cho thuê', loaiCan: 'Studio', taiChinh: '', noiThat: 'Đầy đủ nội thất', ngayVaoO: '', soDienThoai: '', ghiChu: '' });
+  const [findData, setFindData] = useState({ nhuCau: 'Cho thuê', loaiCan: 'Studio', taiChinh: '', noiThat: 'Đầy đủ nội thất', ngayVaoO: '', soDienThoai: '', ghiChu: '', ten: '' });
 
   const CONTACT_PHONE = "0912791925";
 
@@ -60,7 +58,6 @@ export default function PropertyDetail() {
           const propData = { id: docSnap.id, ...docSnap.data() };
           setProperty(propData);
           
-          // Lấy cấu hình cẩm nang phân khu
           const pkDoc = await getDoc(doc(db, 'settings', 'phanKhuConfig'));
           if (pkDoc.exists() && pkDoc.data()[propData.phanKhu]) {
             setPkConfig(pkDoc.data()[propData.phanKhu]);
@@ -109,15 +106,20 @@ export default function PropertyDetail() {
     const phoneRegex = /^0\d{9}$/;
     if (!phoneRegex.test(findData.soDienThoai)) { setFindPhoneError("Số điện thoại không hợp lệ!"); return; }
     setIsSendingFind(true);
+
+    try {
+      await addDoc(collection(db, 'nho_tim_can'), { ...findData, source: 'Trang Chi Tiết Căn', createdAt: serverTimestamp(), status: 'Chưa xử lý' });
+    } catch(err) {}
+
     const BOT_TOKEN = process.env.NEXT_PUBLIC_TELEGRAM_BOT_TOKEN; 
     const CHAT_ID = process.env.NEXT_PUBLIC_TELEGRAM_CHAT_ID;
     if (BOT_TOKEN && CHAT_ID) {
-      const message = `🚨 <b>KHÁCH TÌM CĂN MỚI!</b>\n\n👤 <b>Nhu cầu:</b> ${findData.nhuCau}\n🛏 <b>Loại căn:</b> ${findData.loaiCan}\n💰 <b>Tài chính:</b> ${findData.taiChinh}\n🛋 <b>Nội thất:</b> ${findData.noiThat}\n📅 <b>Vào ở:</b> ${findData.nhuCau === 'Cho thuê' ? findData.ngayVaoO || 'Chưa rõ' : 'N/A'}\n📞 <b>SĐT Khách:</b> <code>${findData.soDienThoai}</code>\n📝 <b>Yêu cầu thêm:</b> ${findData.ghiChu || 'Không có'}`;
+      const message = `🚨 <b>KHÁCH TÌM CĂN MỚI!</b>\n\n👤 <b>Tên khách:</b> ${findData.ten || 'Chưa nhập'}\n📌 <b>Nhu cầu:</b> ${findData.nhuCau}\n🛏 <b>Loại căn:</b> ${findData.loaiCan}\n💰 <b>Tài chính:</b> ${findData.taiChinh}\n🛋 <b>Nội thất:</b> ${findData.noiThat}\n📅 <b>Vào ở:</b> ${findData.nhuCau === 'Cho thuê' ? findData.ngayVaoO || 'Chưa rõ' : 'N/A'}\n📞 <b>SĐT Khách:</b> <code>${findData.soDienThoai}</code>\n📝 <b>Yêu cầu thêm:</b> ${findData.ghiChu || 'Không có'}`;
       try { await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: CHAT_ID, text: message, parse_mode: 'HTML' }) }); } catch (error) {}
     }
     setIsSendingFind(false);
     setIsFindModalOpen(false);
-    setFindData({ nhuCau: 'Cho thuê', loaiCan: 'Studio', taiChinh: '', noiThat: 'Đầy đủ nội thất', ngayVaoO: '', soDienThoai: '', ghiChu: '' });
+    setFindData({ nhuCau: 'Cho thuê', loaiCan: 'Studio', taiChinh: '', noiThat: 'Đầy đủ nội thất', ngayVaoO: '', soDienThoai: '', ghiChu: '', ten: '' });
     alert("Đã gửi yêu cầu thành công! Chuyên viên An Ninh sẽ liên hệ Zalo anh/chị ngay nhé!");
   };
 
@@ -195,16 +197,17 @@ export default function PropertyDetail() {
               )}
             </div>
 
-            <div className="mb-8">
-              <h1 className="text-2xl md:text-3xl font-bold text-blue-950 mb-4 leading-tight">{titleString}</h1>
+            <div className="mb-8 border-b border-gray-200 pb-6">
+              <h1 className="text-2xl md:text-3xl font-bold text-blue-950 mb-6 leading-tight">{titleString}</h1>
               
-              <div className="flex justify-between items-center border-y border-gray-100 py-4">
+              {/* THẺ GIÁ THIẾT KẾ CỰC SANG TRỌNG & TỐI GIẢN CHUẨN YÊU CẦU */}
+              <div className="flex justify-between items-center bg-white">
                  <div className="flex items-baseline gap-2">
                     <span className="text-sm font-semibold text-gray-500 uppercase tracking-wide">{property.listingType === 'Chuyển nhượng' ? 'Giá bán:' : 'Giá thuê:'}</span>
-                    <span className="text-4xl font-black text-blue-700">{property.price}</span>
-                    <span className="text-base font-bold text-blue-700/80">{property.listingType === 'Chuyển nhượng' ? 'Tỷ' : 'Triệu/tháng'}</span>
+                    <span className="text-4xl md:text-5xl font-black text-blue-700 tracking-tight">{property.price}</span>
+                    <span className="text-lg font-bold text-blue-700/80">{property.listingType === 'Chuyển nhượng' ? 'Tỷ' : 'Triệu/tháng'}</span>
                  </div>
-                 <button onClick={handleShare} className="flex items-center gap-1.5 text-blue-600 hover:text-blue-800 font-semibold text-sm transition bg-blue-50 hover:bg-blue-100 px-3 py-2 rounded-lg">
+                 <button onClick={handleShare} className="flex items-center gap-1.5 text-blue-600 hover:text-blue-800 font-semibold text-sm transition bg-blue-50 hover:bg-blue-100 px-4 py-2 rounded-full shadow-sm">
                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path></svg>
                    Chia sẻ
                  </button>
@@ -228,7 +231,6 @@ export default function PropertyDetail() {
               </ul>
             </div>
 
-            {/* CẨM NANG PHÂN KHU TỪ ADMIN */}
             {(pkConfig.tongQuan || pkConfig.uuDiem) && (
               <div className="bg-blue-50/50 rounded-2xl p-6 md:p-8 border border-blue-100 mb-8">
                 <h3 className="font-bold text-blue-900 text-lg mb-4">Vì sao nên chọn {property.phanKhu}?</h3>
@@ -270,9 +272,10 @@ export default function PropertyDetail() {
 
           <aside className="w-full lg:w-[320px] flex-shrink-0 self-start sticky top-24">
             <div className="bg-white rounded-2xl shadow-xl shadow-gray-200/50 border border-gray-100 p-6">
-              <h2 className="text-2xl font-black text-blue-900 uppercase tracking-tight mb-2">Liên hệ tư vấn</h2>
-              <h3 className="text-base font-bold text-gray-800 mb-2">Quỹ Căn Smart City</h3>
-              <p className="text-[13px] text-gray-500 mb-6 font-medium leading-relaxed">Chuyên viên tư vấn trực tiếp 24/7. Hỗ trợ thông tin pháp lý, xem nhà thực tế và thương lượng mức giá tốt nhất.</p>
+              <h2 className="text-2xl font-black text-blue-900 uppercase tracking-tight mb-2 text-center">Liên hệ tư vấn</h2>
+              <h3 className="text-base font-bold text-gray-800 mb-3 text-center">Quỹ Căn Smart City</h3>
+              {/* CHỈNH LẠI CĂN ĐỀU 2 BÊN NHƯ YÊU CẦU */}
+              <p className="text-[13px] text-gray-500 mb-6 font-medium leading-relaxed text-justify">Chuyên viên tư vấn trực tiếp 24/7. Hỗ trợ thông tin pháp lý, xem nhà thực tế và thương lượng mức giá tốt nhất.</p>
               
               <div className="space-y-3">
                 <a href={`tel:${CONTACT_PHONE}`} className="flex items-center justify-center gap-2 w-full bg-blue-600 text-white py-3.5 rounded-xl font-bold hover:bg-blue-700 transition shadow-md shadow-blue-600/20">📞 Gọi {CONTACT_PHONE.replace(/(\d{4})(\d{3})(\d{3})/, '$1 $2 $3')}</a>
@@ -318,6 +321,10 @@ export default function PropertyDetail() {
             <div className="p-6">
               <p className="text-sm text-gray-600 mb-6 italic">Anh/chị chỉ cần để lại nhu cầu, chúng em sẽ lọc ra 3-5 căn đẹp nhất, giá tốt nhất và gửi qua Zalo ngay sau 5 phút!</p>
               <form onSubmit={handleFindSubmit} className="space-y-4 text-sm">
+                 <div>
+                   <label className="block font-bold text-gray-700 mb-1">Tên của anh/chị</label>
+                   <input type="text" placeholder="Nhập tên..." value={findData.ten} onChange={(e)=>setFindData({...findData, ten: e.target.value})} className="w-full p-2.5 border border-gray-300 rounded-lg outline-none focus:border-blue-600" />
+                 </div>
                  <div className="flex gap-4">
                    <label className="flex-1 bg-gray-50 border border-gray-200 rounded-lg p-2.5 flex items-center gap-2 cursor-pointer has-[:checked]:border-blue-600 has-[:checked]:bg-blue-50 transition">
                      <input type="radio" name="nhuCau" value="Cho thuê" checked={findData.nhuCau === 'Cho thuê'} onChange={(e)=>setFindData({...findData, nhuCau: e.target.value})} className="w-4 h-4 text-blue-600" />

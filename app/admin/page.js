@@ -19,8 +19,6 @@ export default function AdminPage() {
 
   const [isPwdModalOpen, setIsPwdModalOpen] = useState(false);
   const [pwdData, setPwdData] = useState({ old: '', new: '', confirm: '' });
-  
-  // MODAL CẤU HÌNH PHÂN KHU (GỘP PHÍ DỊCH VỤ + TỔNG QUAN + ƯU ĐIỂM)
   const [isPhanKhuModalOpen, setIsPhanKhuModalOpen] = useState(false);
   const phanKhuList = ['Sapphire', 'Miami', 'Sakura', 'Victoria', 'Imperia', 'Sola Park', 'Tonkin', 'Canopy', 'Masteri West Height', 'Lumiere Evergreen'];
   const [phanKhuData, setPhanKhuData] = useState({});
@@ -36,6 +34,7 @@ export default function AdminPage() {
   const [adminTab, setAdminTab] = useState('quy-can');
   const [properties, setProperties] = useState([]);
   const [kyGuiList, setKyGuiList] = useState([]);
+  const [nhoTimList, setNhoTimList] = useState([]); // THÊM STATE KHÁCH NHỜ TÌM
   const [editingId, setEditingId] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   
@@ -48,6 +47,7 @@ export default function AdminPage() {
       fetchProperties();
       fetchPhanKhu();
       fetchKyGui();
+      fetchNhoTim();
     }
   }, [isAuthenticated]);
 
@@ -61,6 +61,13 @@ export default function AdminPage() {
     const q = query(collection(db, 'ky_gui'), orderBy('createdAt', 'desc'));
     const querySnapshot = await getDocs(q);
     setKyGuiList(querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+  };
+
+  // FETCH DỮ LIỆU KHÁCH NHỜ TÌM
+  const fetchNhoTim = async () => {
+    const q = query(collection(db, 'nho_tim_can'), orderBy('createdAt', 'desc'));
+    const querySnapshot = await getDocs(q);
+    setNhoTimList(querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
   };
 
   const fetchPhanKhu = async () => {
@@ -104,9 +111,17 @@ export default function AdminPage() {
     } catch (error) { alert('Lỗi khi đổi mật khẩu!'); }
   };
 
-  const handleInputChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
+  // Cập nhật formData: Nếu đổi sang Thuê thì reset nhãn dán nếu đang là Cắt lỗ
+  const handleInputChange = (e) => {
+    const name = e.target.name;
+    const val = e.target.value;
+    if (name === 'listingType' && val === 'Cho thuê' && formData.nhanDan === 'Cắt lỗ') {
+      setFormData({ ...formData, listingType: val, nhanDan: 'Không có' });
+    } else {
+      setFormData({ ...formData, [name]: val });
+    }
+  };
   
-  // TỰ ĐỘNG ĐÓNG DẤU CHÌM (WATERMARK) KHI CHỌN ẢNH
   const handleImageChange = async (e) => {
     if (e.target.files) {
       const files = Array.from(e.target.files);
@@ -115,6 +130,7 @@ export default function AdminPage() {
     }
   };
 
+  // TẠO WATERMARK GÓC DƯỚI PHẢI
   const addWatermark = (file) => {
     return new Promise((resolve) => {
       const reader = new FileReader();
@@ -127,17 +143,21 @@ export default function AdminPage() {
           const ctx = canvas.getContext('2d');
           ctx.drawImage(img, 0, 0);
 
-          // Tùy chỉnh Watermark
-          const fontSize = Math.floor(img.width / 25);
+          const text = '© Quỹ Căn Smart City - 0912.791.925';
+          const fontSize = Math.max(16, Math.floor(img.width / 35));
           ctx.font = `bold ${fontSize}px Arial`;
-          ctx.fillStyle = 'rgba(255, 255, 255, 0.4)'; // Màu trắng mờ
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-
-          // Xoay 45 độ chéo giữa ảnh
-          ctx.translate(canvas.width / 2, canvas.height / 2);
-          ctx.rotate(-Math.PI / 6);
-          ctx.fillText('QUỸ CĂN SMART CITY - 0912.791.925', 0, 0);
+          const textWidth = ctx.measureText(text).width;
+          const padding = 10;
+          
+          // Vẽ hộp nền trong suốt
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+          ctx.fillRect(canvas.width - textWidth - padding * 2, canvas.height - fontSize - padding * 2, textWidth + padding * 2, fontSize + padding * 2);
+          
+          // Vẽ chữ trắng
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+          ctx.textAlign = 'right';
+          ctx.textBaseline = 'bottom';
+          ctx.fillText(text, canvas.width - padding, canvas.height - padding + 2);
 
           canvas.toBlob((blob) => {
             const newFile = new File([blob], file.name, { type: 'image/jpeg' });
@@ -171,10 +191,23 @@ export default function AdminPage() {
     fetchKyGui();
   };
 
+  const toggleNhoTimStatus = async (id, currentStatus) => {
+    const newStatus = currentStatus === 'Chưa xử lý' ? 'Đã liên hệ' : 'Chưa xử lý';
+    await updateDoc(doc(db, 'nho_tim_can', id), { status: newStatus });
+    fetchNhoTim();
+  };
+
   const handleDeleteKyGui = async (id) => {
-    if (window.confirm('Xóa thông tin ký gửi này khỏi danh sách?')) {
+    if (window.confirm('Xóa thông tin ký gửi này?')) {
       await deleteDoc(doc(db, 'ky_gui', id));
       fetchKyGui();
+    }
+  };
+
+  const handleDeleteNhoTim = async (id) => {
+    if (window.confirm('Xóa thông tin yêu cầu tìm căn này?')) {
+      await deleteDoc(doc(db, 'nho_tim_can', id));
+      fetchNhoTim();
     }
   };
 
@@ -259,6 +292,12 @@ export default function AdminPage() {
   const paginatedProperties = filteredProperties.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   const unreadKyGuiCount = kyGuiList.filter(k => k.status === 'Chưa xử lý').length;
+  const unreadNhoTimCount = nhoTimList.filter(k => k.status === 'Chưa xử lý').length;
+
+  // Xử lý danh sách nhãn dán cho phù hợp loại hình
+  const nhanDanOptions = formData.listingType === 'Chuyển nhượng' 
+    ? ['Không có', 'Giá tốt', 'Độc quyền', 'Cắt lỗ'] 
+    : ['Không có', 'Giá tốt', 'Độc quyền'];
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans pb-12">
@@ -339,11 +378,11 @@ export default function AdminPage() {
                   <input type="date" name="ngayNhanNha" value={formData.ngayNhanNha || ''} onChange={handleInputChange} className="w-full p-2 border border-blue-200 rounded-lg focus:border-blue-500 outline-none text-sm font-medium" />
                 </div>
               )}
-              {/* CẤU HÌNH NHÃN DÁN ĐỎ */}
+              
               <div className="bg-red-50/50 p-3 rounded-xl border border-red-100 flex-1">
                 <label className="block text-[11px] font-bold mb-1 text-red-800 uppercase">Gắn nhãn HOT</label>
                 <select name="nhanDan" value={formData.nhanDan || 'Không có'} onChange={handleInputChange} className="w-full p-2 border border-red-200 rounded-lg focus:border-red-500 outline-none text-sm font-medium text-red-700 bg-white">
-                  {['Không có', 'Giá tốt', 'Độc quyền', 'Cắt lỗ'].map(opt => <option key={opt}>{opt}</option>)}
+                  {nhanDanOptions.map(opt => <option key={opt}>{opt}</option>)}
                 </select>
               </div>
             </div>
@@ -356,7 +395,7 @@ export default function AdminPage() {
             <div className="border-2 border-dashed border-gray-300 p-5 text-center rounded-xl bg-gray-50 hover:bg-gray-100 transition">
               <label className="block font-bold mb-2 cursor-pointer text-blue-900 text-sm">Tải lên Ảnh căn hộ</label>
               <input type="file" multiple accept="image/*" onChange={handleImageChange} className="w-full text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200 cursor-pointer" />
-              {images.length > 0 && <p className="text-sm text-blue-600 mt-3 font-bold">Đã chọn {images.length} ảnh mới (Có Watermark tự động)</p>}
+              {images.length > 0 && <p className="text-sm text-blue-600 mt-3 font-bold">Đã chọn {images.length} ảnh mới</p>}
             </div>
 
             <button type="submit" disabled={isUploading} className="w-full bg-blue-600 hover:bg-blue-700 text-white p-4 rounded-xl font-bold text-base transition shadow-lg shadow-blue-600/30 disabled:bg-gray-400 mt-2">
@@ -372,14 +411,18 @@ export default function AdminPage() {
             </button>
             <button onClick={() => setAdminTab('ky-gui')} className={`font-bold pb-3 border-b-2 transition flex items-center gap-2 ${adminTab === 'ky-gui' ? 'border-blue-900 text-blue-900' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
               Khách Ký Gửi
-              {unreadKyGuiCount > 0 && <span className="bg-red-500 text-white text-[10px] px-2 py-0.5 rounded-full shadow-sm animate-pulse">{unreadKyGuiCount} mới</span>}
+              {unreadKyGuiCount > 0 && <span className="bg-red-500 text-white text-[10px] px-2 py-0.5 rounded-full shadow-sm animate-pulse">{unreadKyGuiCount}</span>}
+            </button>
+            <button onClick={() => setAdminTab('nho-tim')} className={`font-bold pb-3 border-b-2 transition flex items-center gap-2 ${adminTab === 'nho-tim' ? 'border-blue-900 text-blue-900' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
+              Khách Nhờ Tìm
+              {unreadNhoTimCount > 0 && <span className="bg-red-500 text-white text-[10px] px-2 py-0.5 rounded-full shadow-sm animate-pulse">{unreadNhoTimCount}</span>}
             </button>
           </div>
 
           <div className="mb-6">
             <input 
               type="text" 
-              placeholder={adminTab === 'quy-can' ? "Tìm mã căn, tòa nhà..." : "Tìm SĐT, tòa nhà khách gửi..."}
+              placeholder={adminTab === 'quy-can' ? "Tìm mã căn, tòa nhà..." : "Tìm SĐT, nhu cầu khách..."}
               value={searchTerm}
               onChange={(e) => {setSearchTerm(e.target.value); setCurrentPage(1);}}
               className="w-full max-w-sm px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition font-medium"
@@ -387,7 +430,7 @@ export default function AdminPage() {
           </div>
 
           <div className="overflow-x-auto">
-            {adminTab === 'quy-can' ? (
+            {adminTab === 'quy-can' && (
               <>
                 <table className="w-full text-sm text-left">
                   <thead className="bg-gray-100 text-gray-500 uppercase text-[10px] font-bold tracking-wider">
@@ -452,7 +495,9 @@ export default function AdminPage() {
                   </div>
                 )}
               </>
-            ) : (
+            )}
+
+            {adminTab === 'ky-gui' && (
               <table className="w-full text-sm text-left">
                 <thead className="bg-gray-100 text-gray-500 uppercase text-[10px] font-bold tracking-wider">
                   <tr>
@@ -483,14 +528,57 @@ export default function AdminPage() {
                       </tr>
                     );
                   })}
+                  {kyGuiList.length === 0 && <tr><td colSpan="5" className="px-4 py-10 text-center text-gray-400 font-medium">Chưa có ai ký gửi.</td></tr>}
                 </tbody>
               </table>
             )}
+
+            {/* TAB KHÁCH NHỜ TÌM */}
+            {adminTab === 'nho-tim' && (
+              <table className="w-full text-sm text-left">
+                <thead className="bg-gray-100 text-gray-500 uppercase text-[10px] font-bold tracking-wider">
+                  <tr>
+                    <th className="px-4 py-3 rounded-l-lg">Khách Hàng / Nguồn</th>
+                    <th className="px-4 py-3">Nhu cầu Tìm</th>
+                    <th className="px-4 py-3">Yêu cầu khác</th>
+                    <th className="px-4 py-3">Trạng thái</th>
+                    <th className="px-4 py-3 text-right rounded-r-lg">Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {nhoTimList.filter(item => item.soDienThoai?.includes(searchTerm) || item.nhuCau?.toLowerCase().includes(searchTerm.toLowerCase())).map(item => {
+                    let d = new Date();
+                    if (item.createdAt?.seconds) d = new Date(item.createdAt.seconds * 1000);
+                    const dateStr = `${d.getDate()}/${d.getMonth()+1} ${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`;
+                    return (
+                      <tr key={item.id} className={`hover:bg-blue-50/30 transition group ${item.status === 'Chưa xử lý' ? 'bg-red-50/30' : ''}`}>
+                        <td className="px-4 py-4">
+                          <span className="font-bold text-gray-900 block">{item.ten || 'Khách Vãng Lai'} - <span className="text-blue-600">{item.soDienThoai}</span></span>
+                          <span className="text-[10px] text-gray-500 font-medium mt-1 block">Nguồn: {item.source} • Gửi lúc: {dateStr}</span>
+                        </td>
+                        <td className="px-4 py-4">
+                          <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold uppercase ${item.nhuCau === 'Cho thuê' ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'}`}>Tìm {item.nhuCau}</span>
+                          <span className="block text-xs font-black text-gray-800 mt-1">{item.loaiCan || 'N/A'} • {item.taiChinh || 'N/A'}</span>
+                        </td>
+                        <td className="px-4 py-4 max-w-[200px]">
+                          <p className="text-[11px] text-gray-600 line-clamp-2" title={item.ghiChu}>{item.ghiChu || <span className="italic text-gray-400">Không có</span>}</p>
+                        </td>
+                        <td className="px-4 py-4"><button onClick={() => toggleNhoTimStatus(item.id, item.status)} className={`px-3 py-1 rounded-full text-[10px] font-bold border transition ${item.status === 'Chưa xử lý' ? 'bg-red-100 text-red-700 border-red-200 hover:bg-red-200' : 'bg-green-100 text-green-700 border-green-200 hover:bg-green-200'}`}>{item.status} (Click đổi)</button></td>
+                        <td className="px-4 py-4 text-right">
+                          <button onClick={() => handleDeleteNhoTim(item.id)} className="text-red-500 hover:bg-red-50 px-3 py-1.5 rounded-md font-bold transition opacity-0 group-hover:opacity-100">Xóa</button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {nhoTimList.length === 0 && <tr><td colSpan="5" className="px-4 py-10 text-center text-gray-400 font-medium">Chưa có dữ liệu.</td></tr>}
+                </tbody>
+              </table>
+            )}
+
           </div>
         </div>
       </div>
       
-      {/* MODAL CẤU HÌNH PHÂN KHU (GỘP PHÍ, TỔNG QUAN, ƯU ĐIỂM) */}
       {isPhanKhuModalOpen && (
         <div className="fixed inset-0 bg-blue-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl p-6 md:p-8 w-full max-w-2xl transform transition-all overflow-y-auto max-h-[90vh]">
