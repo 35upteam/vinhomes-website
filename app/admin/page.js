@@ -9,13 +9,18 @@ export default function AdminPage() {
   const [password, setPassword] = useState('');
   const [dbPassword, setDbPassword] = useState('0912791925'); 
 
-  // DATA MẪU - TỰ ĐỘNG BƠM NẾU CHƯA CÓ
+  // DATA MẪU - TỰ ĐỘNG BƠM VÀO FIREBASE
   const defaultPkConfig = {
-    "Lumiere Evergreen": { phi: "18.000 VNĐ/m2", tongQuan: "Phân khu cao cấp bậc nhất với bộ sưu tập tiện ích trong nhà và ngoài trời mang tiêu chuẩn quốc tế, được phát triển bởi Masterise Homes.", uuDiem: "Miễn phí bể bơi 4 mùa, phòng gym hiện đại; Sảnh lễ tân tiêu chuẩn 5 sao; Kính Low-E cản nhiệt toàn bộ mặt ngoài; Gần nhà xe nổi và trường học." },
-    "Masteri West Height": { phi: "18.000 VNĐ/m2", tongQuan: "Vị trí 'kim cương' trực diện hồ trung tâm 4.8ha, mang đến tầm view đắt giá và không gian sống đẳng cấp.", uuDiem: "Bể bơi tầng thượng Panorama tại mỗi tòa; Thiết bị bàn giao từ thương hiệu quốc tế (Kohler, Hafele, Daikin); 51 tiện ích đặc quyền chuẩn resort; Miễn phí quản lý 3 năm đầu." },
-    "Tonkin": { phi: "16.500 VNĐ/m2", tongQuan: "Phân khu mang đậm dấu ấn Indochine nghệ thuật, thiết kế tinh tế kết hợp hài hòa giữa nét hoài cổ phương Đông và sự hiện đại phương Tây.", uuDiem: "Có bể bơi nhiệt đới Oasis phong cách Indochine; Kế cận công viên trung tâm Central Park; Tiêu chuẩn bàn giao liền tường cao cấp (có điều hòa âm trần)." },
-    "Sapphire": { phi: "8.800 VNĐ/m2", tongQuan: "Phân khu năng động, nhịp sống sầm uất với mức chi phí dịch vụ tối ưu, lý tưởng cho giới trẻ và các gia đình mới.", uuDiem: "Ngay kế bên công viên thể thao Sportia Park; Nhiều trường mầm non và shophouse khối đế sầm uất; Tuyến xe buýt Vinbus nội khu thuận tiện; Mức giá thuê/mua hợp lý nhất dự án." },
-    "Sola Park": { phi: "10.000 VNĐ/m2", tongQuan: "Phân khu mới mang thiết kế hiện đại, nhiều không gian xanh, nằm tại tâm điểm giao thương sầm uất của dự án.", uuDiem: "Kế cận trường liên cấp Vinschool; Gần cổng chào dự án giúp di chuyển ra Lê Trọng Tấn dễ dàng; Thiết kế layout căn hộ tối ưu công năng." }
+    "Sapphire": { phi: "8.800 VNĐ/m2", tongQuan: "Phân khu trung tâm sầm uất với mức chi phí dịch vụ tối ưu, thiết kế năng động lý tưởng cho giới trẻ và các gia đình mới.", uuDiem: "Ngay kế bên công viên thể thao Sportia Park; Hệ thống shophouse khối đế sầm uất; Trạm xe buýt nội khu thuận tiện; Mức giá thuê/mua hợp lý nhất dự án." },
+    "Miami": { phi: "8.800 VNĐ/m2", tongQuan: "Lấy cảm hứng từ nhịp sống sôi động của thành phố biển Miami (Mỹ), phân khu mang đậm phong cách nhiệt đới phóng khoáng.", uuDiem: "Bể bơi ngoài trời phong cách resort 1.000m2; Hệ thống sân tập thể thao đa dạng; Cảnh quan nội khu đậm chất nhiệt đới Mỹ." },
+    "Sakura": { phi: "8.800 VNĐ/m2", tongQuan: "Sự kết hợp giữa Vinhomes và tập đoàn SAMTY (Nhật Bản), mang đến không gian sống an yên, tĩnh tại đậm triết lý Zen.", uuDiem: "Vườn Nhật nội khu tĩnh lãm; Bể bơi 4 mùa mái kính hiện đại; Quảng trường nước Ashi, đường dạo tơ tằm; Thiết kế căn hộ tối ưu công năng." },
+    "Victoria": { phi: "12.000 VNĐ/m2", tongQuan: "Phân khu mang phong cách thiết kế Hồng Kông độc đáo, hòa quyện sự sôi động của phố thị và vẻ đẹp đương đại.", uuDiem: "Thiết kế mặt ngoài ấn tượng; Tiện ích nội khu phong phú; Gần các trục đường kết nối chính của dự án." },
+    "Imperia": { phi: "11.000 VNĐ/m2", tongQuan: "Được phát triển bởi MIK Group, phân khu Imperia Smart City mang tới không gian sống cao cấp, liền kề công viên trung tâm.", uuDiem: "Vị trí sát ngay công viên trung tâm 10.2ha; Bể bơi ngoài trời tiêu chuẩn resort; Tiêu chuẩn bàn giao cao cấp liền tường." },
+    "Sola Park": { phi: "10.000 VNĐ/m2", tongQuan: "Phân khu do MIK Group phát triển, sở hữu thiết kế hiện đại, ngập tràn ánh sáng và không gian xanh mát.", uuDiem: "Vị trí kế cận cổng chào dự án, kết nối đường Lê Trọng Tấn cực nhanh; Nằm ngay cạnh bãi đỗ xe nổi và trường học Vinschool." },
+    "Tonkin": { phi: "16.500 VNĐ/m2", tongQuan: "Tự hào mang đậm dấu ấn Indochine nghệ thuật, thiết kế tinh tế kết hợp hài hòa giữa nét hoài cổ phương Đông và sự hiện đại phương Tây.", uuDiem: "Bể bơi nhiệt đới Oasis phong cách Đông Dương; Tiêu chuẩn bàn giao Ruby cao cấp (có điều hòa âm trần); Kế cận công viên trung tâm." },
+    "Canopy": { phi: "12.000 VNĐ/m2", tongQuan: "Được thiết kế theo phong cách sinh thái Singapore, mang thiên nhiên vào từng không gian sống.", uuDiem: "Hệ thống tiện ích cảnh quan xanh mát; Thiết kế tối giản, thông minh; Vị trí thuận lợi dễ dàng di chuyển tới các cụm tiện ích lớn." },
+    "Masteri West Height": { phi: "18.000 VNĐ/m2", tongQuan: "Vị trí 'kim cương' trực diện hồ trung tâm 4.8ha, mang đến tầm view đắt giá và không gian sống chuẩn quốc tế.", uuDiem: "Bể bơi tầng thượng Panorama tại mỗi tòa; Thiết bị bàn giao từ thương hiệu quốc tế cao cấp (Kohler, Hafele, Daikin); 51 tiện ích đặc quyền riêng biệt." },
+    "Lumiere Evergreen": { phi: "18.000 VNĐ/m2", tongQuan: "Phân khu căn hộ hạng sang được phát triển bởi Masterise Homes, bộ sưu tập tiện ích độc bản mang tiêu chuẩn quốc tế.", uuDiem: "Hệ thống tiện ích đặc quyền: bể bơi 4 mùa, phòng gym hiện đại; Sảnh lễ tân tiêu chuẩn 5 sao; Kính Low-E cản nhiệt toàn bộ mặt ngoài; Vị trí tâm điểm dự án." }
   };
 
   useEffect(() => {
@@ -84,7 +89,6 @@ export default function AdminPage() {
     if (pkDoc.exists() && Object.keys(pkDoc.data()).length > 0) {
       setPhanKhuData(pkDoc.data());
     } else {
-      // Nếu chưa có, tự động tạo Seed Data
       await setDoc(doc(db, 'settings', 'phanKhuConfig'), defaultPkConfig);
       setPhanKhuData(defaultPkConfig);
     }
@@ -143,7 +147,7 @@ export default function AdminPage() {
     }
   };
 
-  // TẠO WATERMARK GÓC DƯỚI PHẢI
+  // WATERMARK TINH TẾ GÓC PHẢI DƯỚI
   const addWatermark = (file) => {
     return new Promise((resolve) => {
       const reader = new FileReader();
@@ -156,24 +160,31 @@ export default function AdminPage() {
           const ctx = canvas.getContext('2d');
           ctx.drawImage(img, 0, 0);
 
-          const text = '© Quỹ Căn Smart City - 0912.791.925';
-          const fontSize = Math.max(16, Math.floor(img.width / 35));
-          ctx.font = `bold ${fontSize}px Arial`;
+          const text = '© Quỹ Căn Smart City - Hotline: 0912.791.925';
+          const fontSize = Math.max(14, Math.floor(img.width * 0.035)); 
+          ctx.font = `600 ${fontSize}px Arial`;
+          
+          const paddingX = 12;
+          const paddingY = 8;
           const textWidth = ctx.measureText(text).width;
-          const padding = 10;
           
-          ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
-          ctx.fillRect(canvas.width - textWidth - padding * 2, canvas.height - fontSize - padding * 2, textWidth + padding * 2, fontSize + padding * 2);
+          const rectX = canvas.width - textWidth - paddingX * 2 - 20;
+          const rectY = canvas.height - fontSize - paddingY * 2 - 20;
+
+          // Nền kính mờ
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+          ctx.fillRect(rectX, rectY, textWidth + paddingX * 2, fontSize + paddingY * 2);
           
+          // Chữ trắng
           ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-          ctx.textAlign = 'right';
-          ctx.textBaseline = 'bottom';
-          ctx.fillText(text, canvas.width - padding, canvas.height - padding + 2);
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(text, rectX + paddingX + textWidth / 2, rectY + paddingY + fontSize / 2 + 1);
 
           canvas.toBlob((blob) => {
             const newFile = new File([blob], file.name, { type: 'image/jpeg' });
             resolve(newFile);
-          }, 'image/jpeg', 0.9);
+          }, 'image/jpeg', 0.95);
         };
         img.src = event.target.result;
       };
@@ -399,13 +410,13 @@ export default function AdminPage() {
 
             <div>
               <label className="block text-[11px] font-bold mb-1.5 text-gray-500 uppercase">Ghi chú mật (Chỉ lưu nội bộ)</label>
-              <textarea name="moTa" value={formData.moTa || ''} onChange={handleInputChange} rows="2" placeholder="VD: Pass cửa, thông chủ nhà, % hoa hồng..." className="w-full p-3 border border-gray-200 rounded-lg focus:border-blue-500 outline-none text-sm font-medium"></textarea>
+              <textarea name="moTa" value={formData.moTa || ''} onChange={handleInputChange} rows="2" placeholder="VD: Pass cửa, thông tin chủ nhà, % hoa hồng..." className="w-full p-3 border border-gray-200 rounded-lg focus:border-blue-500 outline-none text-sm font-medium"></textarea>
             </div>
 
             <div className="border-2 border-dashed border-gray-300 p-5 text-center rounded-xl bg-gray-50 hover:bg-gray-100 transition">
               <label className="block font-bold mb-2 cursor-pointer text-blue-900 text-sm">Tải lên Ảnh căn hộ</label>
               <input type="file" multiple accept="image/*" onChange={handleImageChange} className="w-full text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200 cursor-pointer" />
-              {images.length > 0 && <p className="text-sm text-blue-600 mt-3 font-bold">Đã chọn {images.length} ảnh mới (Có Watermark tự động)</p>}
+              {images.length > 0 && <p className="text-sm text-blue-600 mt-3 font-bold">Đã chọn {images.length} ảnh mới (Có Watermark)</p>}
             </div>
 
             <button type="submit" disabled={isUploading} className="w-full bg-blue-600 hover:bg-blue-700 text-white p-4 rounded-xl font-bold text-base transition shadow-lg shadow-blue-600/30 disabled:bg-gray-400 mt-2">
