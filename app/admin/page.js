@@ -9,20 +9,6 @@ export default function AdminPage() {
   const [password, setPassword] = useState('');
   const [dbPassword, setDbPassword] = useState('0912791925'); 
 
-  // DATA MẪU - TỰ ĐỘNG BƠM VÀO FIREBASE
-  const defaultPkConfig = {
-    "Sapphire": { phi: "8.800 VNĐ/m2", tongQuan: "Phân khu trung tâm sầm uất với mức chi phí dịch vụ tối ưu, thiết kế năng động lý tưởng cho giới trẻ và các gia đình mới.", uuDiem: "Ngay kế bên công viên thể thao Sportia Park; Hệ thống shophouse khối đế sầm uất; Trạm xe buýt nội khu thuận tiện; Mức giá thuê/mua hợp lý nhất dự án." },
-    "Miami": { phi: "8.800 VNĐ/m2", tongQuan: "Lấy cảm hứng từ nhịp sống sôi động của thành phố biển Miami (Mỹ), phân khu mang đậm phong cách nhiệt đới phóng khoáng.", uuDiem: "Bể bơi ngoài trời phong cách resort 1.000m2; Hệ thống sân tập thể thao đa dạng; Cảnh quan nội khu đậm chất nhiệt đới Mỹ." },
-    "Sakura": { phi: "8.800 VNĐ/m2", tongQuan: "Sự kết hợp giữa Vinhomes và tập đoàn SAMTY (Nhật Bản), mang đến không gian sống an yên, tĩnh tại đậm triết lý Zen.", uuDiem: "Vườn Nhật nội khu tĩnh lãm; Bể bơi 4 mùa mái kính hiện đại; Quảng trường nước Ashi, đường dạo tơ tằm; Thiết kế căn hộ tối ưu công năng." },
-    "Victoria": { phi: "12.000 VNĐ/m2", tongQuan: "Phân khu mang phong cách thiết kế Hồng Kông độc đáo, hòa quyện sự sôi động của phố thị và vẻ đẹp đương đại.", uuDiem: "Thiết kế mặt ngoài ấn tượng; Tiện ích nội khu phong phú; Gần các trục đường kết nối chính của dự án." },
-    "Imperia": { phi: "11.000 VNĐ/m2", tongQuan: "Được phát triển bởi MIK Group, phân khu Imperia Smart City mang tới không gian sống cao cấp, liền kề công viên trung tâm.", uuDiem: "Vị trí sát ngay công viên trung tâm 10.2ha; Bể bơi ngoài trời tiêu chuẩn resort; Tiêu chuẩn bàn giao cao cấp liền tường." },
-    "Sola Park": { phi: "10.000 VNĐ/m2", tongQuan: "Phân khu do MIK Group phát triển, sở hữu thiết kế hiện đại, ngập tràn ánh sáng và không gian xanh mát.", uuDiem: "Vị trí kế cận cổng chào dự án, kết nối đường Lê Trọng Tấn cực nhanh; Nằm ngay cạnh bãi đỗ xe nổi và trường học Vinschool." },
-    "Tonkin": { phi: "16.500 VNĐ/m2", tongQuan: "Tự hào mang đậm dấu ấn Indochine nghệ thuật, thiết kế tinh tế kết hợp hài hòa giữa nét hoài cổ phương Đông và sự hiện đại phương Tây.", uuDiem: "Bể bơi nhiệt đới Oasis phong cách Đông Dương; Tiêu chuẩn bàn giao Ruby cao cấp (có điều hòa âm trần); Kế cận công viên trung tâm." },
-    "Canopy": { phi: "12.000 VNĐ/m2", tongQuan: "Được thiết kế theo phong cách sinh thái Singapore, mang thiên nhiên vào từng không gian sống.", uuDiem: "Hệ thống tiện ích cảnh quan xanh mát; Thiết kế tối giản, thông minh; Vị trí thuận lợi dễ dàng di chuyển tới các cụm tiện ích lớn." },
-    "Masteri West Height": { phi: "18.000 VNĐ/m2", tongQuan: "Vị trí 'kim cương' trực diện hồ trung tâm 4.8ha, mang đến tầm view đắt giá và không gian sống chuẩn quốc tế.", uuDiem: "Bể bơi tầng thượng Panorama tại mỗi tòa; Thiết bị bàn giao từ thương hiệu quốc tế cao cấp (Kohler, Hafele, Daikin); 51 tiện ích đặc quyền riêng biệt." },
-    "Lumiere Evergreen": { phi: "18.000 VNĐ/m2", tongQuan: "Phân khu căn hộ hạng sang được phát triển bởi Masterise Homes, bộ sưu tập tiện ích độc bản mang tiêu chuẩn quốc tế.", uuDiem: "Hệ thống tiện ích đặc quyền: bể bơi 4 mùa, phòng gym hiện đại; Sảnh lễ tân tiêu chuẩn 5 sao; Kính Low-E cản nhiệt toàn bộ mặt ngoài; Vị trí tâm điểm dự án." }
-  };
-
   useEffect(() => {
     const fetchAuth = async () => {
       const docSnap = await getDoc(doc(db, 'settings', 'adminAuth'));
@@ -86,12 +72,8 @@ export default function AdminPage() {
 
   const fetchPhanKhu = async () => {
     const pkDoc = await getDoc(doc(db, 'settings', 'phanKhuConfig'));
-    if (pkDoc.exists() && Object.keys(pkDoc.data()).length > 0) {
-      setPhanKhuData(pkDoc.data());
-    } else {
-      await setDoc(doc(db, 'settings', 'phanKhuConfig'), defaultPkConfig);
-      setPhanKhuData(defaultPkConfig);
-    }
+    if (pkDoc.exists()) setPhanKhuData(pkDoc.data());
+    else setPhanKhuData({});
   };
 
   const openPhanKhuModal = () => { 
@@ -147,7 +129,7 @@ export default function AdminPage() {
     }
   };
 
-  // WATERMARK TINH TẾ GÓC PHẢI DƯỚI
+  // WATERMARK TINH TẾ GÓC PHẢI DƯỚI (Đã Xóa "Hotline:")
   const addWatermark = (file) => {
     return new Promise((resolve) => {
       const reader = new FileReader();
@@ -160,7 +142,7 @@ export default function AdminPage() {
           const ctx = canvas.getContext('2d');
           ctx.drawImage(img, 0, 0);
 
-          const text = '© Quỹ Căn Smart City - Hotline: 0912.791.925';
+          const text = '© Quỹ Căn Smart City - 0912.791.925';
           const fontSize = Math.max(14, Math.floor(img.width * 0.035)); 
           ctx.font = `600 ${fontSize}px Arial`;
           

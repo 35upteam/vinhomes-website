@@ -196,7 +196,7 @@ export default function Home() {
     
     try {
       await addDoc(collection(db, 'nho_tim_can'), { ...findData, source: 'Nút Nhờ Tìm', createdAt: serverTimestamp(), status: 'Chưa xử lý' });
-    } catch(err) {}
+    } catch(err) { console.error("Lỗi Firebase", err); }
 
     const BOT_TOKEN = process.env.NEXT_PUBLIC_TELEGRAM_BOT_TOKEN; 
     const CHAT_ID = process.env.NEXT_PUBLIC_TELEGRAM_CHAT_ID;
@@ -226,7 +226,7 @@ export default function Home() {
 
     try {
       await addDoc(collection(db, 'nho_tim_can'), { ...leadData, source: 'Popup 20s', createdAt: serverTimestamp(), status: 'Chưa xử lý' });
-    } catch(err) {}
+    } catch(err) { console.error("Lỗi Firebase", err); }
 
     const BOT_TOKEN = process.env.NEXT_PUBLIC_TELEGRAM_BOT_TOKEN; 
     const CHAT_ID = process.env.NEXT_PUBLIC_TELEGRAM_CHAT_ID;
@@ -263,18 +263,17 @@ export default function Home() {
         </div>
       </header>
       
-      {/* BANNER ẢNH SÁNG HƠN - FONT CHỮ SANG TRỌNG ĐỔ BÓNG */}
+      {/* BANNER ẢNH SÁNG HƠN BẰNG OPACITY 100%, CẮT TOP */}
       <section className="relative bg-blue-950 text-white py-24 px-4 md:px-12 flex items-center overflow-hidden">
-        <div className="absolute inset-0 bg-[url('/banner.jpg')] bg-cover bg-center opacity-70"></div>
-        <div className="absolute inset-0 bg-gradient-to-r from-blue-950/80 via-blue-900/50 to-transparent"></div>
+        <div className="absolute inset-0 bg-[url('/banner.jpg')] bg-cover bg-top opacity-100"></div>
+        <div className="absolute inset-0 bg-gradient-to-r from-blue-950/70 via-blue-900/40 to-transparent"></div>
         <div className="relative z-10 max-w-5xl mx-auto w-full">
           <p className="text-sm font-bold text-blue-200 mb-4 uppercase tracking-[0.3em] drop-shadow-md">Vinhomes Smart City</p>
-          <h2 className="text-4xl md:text-[3.5rem] font-black mb-6 leading-[1.2] tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white to-blue-200 drop-shadow-lg">QUỸ CĂN CHUYỂN NHƯỢNG<br/>& CHO THUÊ</h2>
+          <h2 className="text-4xl md:text-[3.5rem] font-black mb-6 leading-[1.2] tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white to-blue-100 drop-shadow-lg">QUỸ CĂN CHUYỂN NHƯỢNG<br/>& CHO THUÊ</h2>
           <p className="text-base md:text-lg text-blue-50 max-w-xl font-medium leading-relaxed drop-shadow-md">Bảng hàng cập nhật liên tục 24/7, hỗ trợ tìm căn theo yêu cầu.</p>
         </div>
       </section>
 
-      {/* TABS NÚT BẤM (PILL SHAPE) ĐẨY SANG TRÁI */}
       <div className="max-w-[1400px] mx-auto px-4 md:px-8 mt-10 w-full flex justify-start">
         <div className="flex gap-2 bg-gray-200/70 p-1.5 rounded-full inline-flex shadow-inner">
            <button onClick={() => handleTabChange('Cho thuê')} className={`py-2.5 px-10 rounded-full text-sm font-black uppercase tracking-wide transition-all ${activeTab === 'Cho thuê' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-600 hover:text-gray-900'}`}>Cho thuê</button>
@@ -283,7 +282,6 @@ export default function Home() {
       </div>
 
       <main className="max-w-[1400px] mx-auto px-4 md:px-8 py-8 flex flex-col lg:flex-row gap-8 items-start flex-grow w-full">
-        {/* BỘ LỌC CHI TIẾT */}
         <aside className="w-full lg:w-[280px] flex-shrink-0 bg-white p-5 rounded-xl shadow-sm border border-gray-200 sticky top-24 self-start">
           <h3 className="font-black text-lg mb-6 text-blue-900 uppercase tracking-tight">Bộ lọc chi tiết</h3>
           <div className="space-y-6">
@@ -406,7 +404,7 @@ export default function Home() {
         </div>
       </footer>
 
-      {/* MODAL TÌM CĂN (NÚT CHỦ ĐỘNG) */}
+      {/* MODAL TÌM CĂN */}
       {isFindModalOpen && (
         <div className="fixed inset-0 bg-blue-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-fade-in-up">
@@ -469,6 +467,50 @@ export default function Home() {
                    {isSendingFind ? 'Đang gửi...' : <><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg> Gửi yêu cầu tìm căn</>}
                  </button>
               </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* POPUP BẮT LEAD THÔNG MINH */}
+      {isLeadPopupOpen && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[110] flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-fade-in-up text-center relative border-4 border-blue-100">
+            <button onClick={() => setIsLeadPopupOpen(false)} className="absolute top-3 right-3 text-gray-400 hover:text-gray-600 bg-gray-100 rounded-full p-1"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+            <div className="bg-gradient-to-br from-blue-700 to-blue-900 p-6 text-white">
+              <div className="text-4xl mb-2">👋</div>
+              <h3 className="text-2xl font-black uppercase tracking-tight mb-2">XIN CHÀO ANH/CHỊ!</h3>
+              <p className="text-blue-100 font-medium text-sm">Chưa tìm được căn ưng ý? Đừng tốn thời gian lướt nữa!</p>
+            </div>
+            <div className="p-6">
+              <p className="text-gray-700 font-bold mb-5 text-sm">Hãy để chuyên viên của chúng tôi hỗ trợ tìm kiếm và báo giá các căn phù hợp nhất hoàn toàn miễn phí.</p>
+              <form onSubmit={handleLeadSubmit} className="space-y-4">
+                 <div>
+                   <input required type="text" placeholder="Tên của anh/chị..." value={leadData.ten} onChange={(e)=>setLeadData({...leadData, ten: e.target.value})} className="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-blue-600 text-sm font-medium" />
+                 </div>
+                 <div>
+                   <input required type="tel" placeholder="Số điện thoại / Zalo..." value={leadData.soDienThoai} onChange={(e)=>{setLeadData({...leadData, soDienThoai: e.target.value}); setLeadPhoneError('');}} className={`w-full p-3 bg-gray-50 border rounded-lg outline-none text-sm font-medium transition ${leadPhoneError ? 'border-red-500 bg-red-50' : 'border-gray-200 focus:border-blue-600'}`} />
+                   {leadPhoneError && <p className="text-red-500 text-[11px] font-bold mt-1 text-left">{leadPhoneError}</p>}
+                 </div>
+                 <div className="flex gap-4">
+                    <label className="flex-1 flex items-center gap-2 cursor-pointer text-sm font-bold text-gray-700"><input type="radio" name="leadNhuCau" value="Mua" checked={leadData.nhuCau === 'Mua'} onChange={(e)=>setLeadData({...leadData, nhuCau: e.target.value})} className="w-4 h-4 text-blue-600" /> Cần Mua</label>
+                    <label className="flex-1 flex items-center gap-2 cursor-pointer text-sm font-bold text-gray-700"><input type="radio" name="leadNhuCau" value="Thuê" checked={leadData.nhuCau === 'Thuê'} onChange={(e)=>setLeadData({...leadData, nhuCau: e.target.value})} className="w-4 h-4 text-blue-600" /> Cần Thuê</label>
+                 </div>
+                 <div className="grid grid-cols-2 gap-4">
+                    <select required value={leadData.loaiCan || ''} onChange={(e)=>setLeadData({...leadData, loaiCan: e.target.value})} className="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-blue-600 text-sm font-medium">
+                        <option value="" disabled hidden>Loại căn...</option>
+                        {['Studio', '1N', '1N+', '2N1WC', '2N2WC', '2N+', '3N', '4N'].map(opt => <option key={opt}>{opt}</option>)}
+                     </select>
+                     <input required type="text" placeholder="Tài chính dự kiến..." value={leadData.taiChinh || ''} onChange={(e)=>setLeadData({...leadData, taiChinh: e.target.value})} className="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-blue-600 text-sm font-medium" />
+                 </div>
+                 <div>
+                   <textarea rows="2" placeholder="Ghi chú thêm (Tầng, hướng, nội thất...)" value={leadData.ghiChu} onChange={(e)=>setLeadData({...leadData, ghiChu: e.target.value})} className="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-blue-600 text-sm font-medium"></textarea>
+                 </div>
+                 <button type="submit" disabled={isSendingLead} className="w-full bg-blue-600 hover:bg-blue-700 text-white p-3.5 rounded-lg font-black uppercase tracking-wider text-sm transition shadow-lg shadow-blue-600/30 disabled:opacity-50">
+                   {isSendingLead ? 'Đang gửi...' : 'Gửi yêu cầu & Nhận báo giá'}
+                 </button>
+              </form>
+              <p className="text-[10px] text-gray-400 mt-4">Cam kết bảo mật thông tin 100%.</p>
             </div>
           </div>
         </div>
