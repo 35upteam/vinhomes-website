@@ -4,7 +4,6 @@ import { db } from '../firebase';
 import { collection, query, orderBy, getDocs, addDoc, serverTimestamp } from 'firebase/firestore';
 import Link from 'next/link';
 
-// Hàm ép Cloudinary tự động nén dung lượng, đổi định dạng WebP để load siêu nhanh
 const optimizeImg = (url) => url?.includes('cloudinary.com') ? url.replace('/upload/', '/upload/w_800,c_limit,q_auto,f_auto/') : url;
 
 const PropertyCard = ({ item, contactPhone }) => {
@@ -102,7 +101,7 @@ export default function Home() {
   const itemsPerPage = 9;
   
   const [filters, setFilters] = useState({ phanKhu: 'Tất cả phân khu', loaiCan: [], khoangTang: 'Tất cả tầng', huongBanCong: 'Tất cả hướng', noiThat: 'Tất cả nội thất', mucGia: 'Tất cả mức giá' });
-  const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false); // BẬT/TẮT LỌC TRÊN MOBILE
+  const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
   
   const CONTACT_PHONE = "0912791925";
 
@@ -120,7 +119,6 @@ export default function Home() {
   const [leadPhoneError, setLeadPhoneError] = useState('');
 
   useEffect(() => {
-    document.title = "Quỹ Căn Smart City - Bán & Cho Thuê Giá Tốt Nhất";
     const fetchProperties = async () => {
       try {
         const q = query(collection(db, 'properties'), orderBy('createdAt', 'desc'));
@@ -193,7 +191,6 @@ export default function Home() {
   const totalPages = Math.ceil(sortedProperties.length / itemsPerPage);
   const currentProperties = sortedProperties.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
-  // CHỐNG SPAM BẰNG LOCALSTORAGE
   const checkSpam = () => {
     const lastSent = localStorage.getItem('lastFormSubmit');
     if (lastSent && Date.now() - parseInt(lastSent) < 60000) {
@@ -262,6 +259,7 @@ export default function Home() {
         </div>
       </header>
       
+      {/* BANNER TỐI ƯU HIỂN THỊ ẢNH TOÀN CẢNH (CẮT MÉP TRÊN THEO YÊU CẦU) */}
       <section className="relative bg-blue-950 text-white py-24 px-4 md:px-12 flex items-center overflow-hidden">
         <div className="absolute inset-0 bg-[url('/banner.jpg')] bg-cover bg-bottom opacity-100"></div>
         <div className="absolute inset-0 bg-gradient-to-r from-blue-950/70 via-blue-900/40 to-transparent"></div>
@@ -272,16 +270,16 @@ export default function Home() {
         </div>
       </section>
 
+      {/* TABS NÚT BẤM CĂN TRÁI KÈM CHỮ CHUYỂN NHƯỢNG BÁN */}
       <div className="max-w-[1400px] mx-auto px-4 md:px-8 mt-10 w-full flex justify-start">
-        <div className="flex gap-2 bg-gray-200/70 p-1.5 rounded-full inline-flex shadow-inner">
+        <div className="flex bg-gray-200/70 p-1.5 rounded-full inline-flex shadow-inner">
            <button onClick={() => handleTabChange('Cho thuê')} className={`py-2.5 px-6 md:px-10 rounded-full text-xs md:text-sm font-black uppercase tracking-wide transition-all ${activeTab === 'Cho thuê' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-600 hover:text-gray-900'}`}>Cho thuê</button>
-           <button onClick={() => handleTabChange('Chuyển nhượng')} className={`py-2.5 px-6 md:px-10 rounded-full text-xs md:text-sm font-black uppercase tracking-wide transition-all ${activeTab === 'Chuyển nhượng' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-600 hover:text-gray-900'}`}>Bán</button>
+           <button onClick={() => handleTabChange('Chuyển nhượng')} className={`py-2.5 px-6 md:px-10 rounded-full text-xs md:text-sm font-black uppercase tracking-wide transition-all ${activeTab === 'Chuyển nhượng' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-600 hover:text-gray-900'}`}>Chuyển nhượng (Bán)</button>
         </div>
       </div>
 
       <main className="max-w-[1400px] mx-auto px-4 md:px-8 py-6 flex flex-col lg:flex-row gap-8 items-start flex-grow w-full">
         
-        {/* NÚT LỌC TRÊN MOBILE */}
         <div className="lg:hidden w-full mb-2">
           <button onClick={() => setIsMobileFilterOpen(true)} className="w-full bg-white border border-gray-200 text-blue-900 font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 shadow-sm">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path></svg>
@@ -289,7 +287,6 @@ export default function Home() {
           </button>
         </div>
 
-        {/* BỘ LỌC CHI TIẾT (Ẩn trên mobile, hiện dạng Popup khi bấm) */}
         <aside className={`${isMobileFilterOpen ? 'fixed inset-0 z-[120] bg-white overflow-y-auto p-6 block' : 'hidden'} lg:block lg:w-[280px] lg:flex-shrink-0 lg:bg-white lg:p-5 lg:rounded-xl lg:shadow-sm lg:border lg:border-gray-200 lg:sticky lg:top-24 lg:self-start lg:relative lg:z-auto`}>
           <div className="flex justify-between items-center mb-6">
             <h3 className="font-black text-lg text-blue-900 uppercase tracking-tight">Bộ lọc chi tiết</h3>
@@ -349,7 +346,6 @@ export default function Home() {
               </select>
             </div>
             
-            {/* Nút Áp dụng trên Mobile */}
             {isMobileFilterOpen && (
                <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-200 z-50">
                  <button onClick={()=>setIsMobileFilterOpen(false)} className="w-full bg-blue-600 text-white font-bold py-3.5 rounded-xl shadow-lg">Áp dụng bộ lọc</button>
@@ -423,7 +419,6 @@ export default function Home() {
         </div>
       </footer>
 
-      {/* MODAL TÌM CĂN */}
       {isFindModalOpen && (
         <div className="fixed inset-0 bg-blue-900/60 backdrop-blur-sm z-[150] flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-y-auto max-h-[90vh] animate-fade-in-up">
@@ -482,7 +477,7 @@ export default function Home() {
                    <label className="block font-bold text-gray-700 mb-1">Yêu cầu thêm</label>
                    <textarea rows="2" placeholder="VD: Cần tầng trung, ưu tiên view công viên..." value={findData.ghiChu} onChange={(e)=>setFindData({...findData, ghiChu: e.target.value})} className="w-full p-3 border border-gray-300 rounded-lg outline-none focus:border-blue-600 bg-gray-50"></textarea>
                  </div>
-                 <button type="submit" disabled={isSendingFind} className="w-full bg-blue-700 hover:bg-blue-800 text-white p-3.5 rounded-xl font-bold text-base transition shadow-md disabled:bg-gray-400 flex items-center justify-center gap-2 mt-2">
+                 <button type="submit" disabled={isSendingFind} className="w-full bg-blue-700 hover:bg-blue-800 text-white p-3.5 rounded-lg font-bold text-base transition shadow-md disabled:bg-gray-400 flex items-center justify-center gap-2 mt-2">
                    {isSendingFind ? 'Đang gửi...' : <><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg> Gửi yêu cầu & Nhận báo giá</>}
                  </button>
               </form>
@@ -491,7 +486,6 @@ export default function Home() {
         </div>
       )}
 
-      {/* POPUP BẮT LEAD 20S */}
       {isLeadPopupOpen && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[150] flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-fade-in-up text-center relative border-4 border-blue-100">
@@ -525,7 +519,7 @@ export default function Home() {
                  <div>
                    <textarea rows="2" placeholder="Ghi chú thêm (Tầng, hướng, nội thất...)" value={leadData.ghiChu} onChange={(e)=>setLeadData({...leadData, ghiChu: e.target.value})} className="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-blue-600 text-sm font-medium"></textarea>
                  </div>
-                 <button type="submit" disabled={isSendingLead} className="w-full bg-blue-600 hover:bg-blue-700 text-white p-3.5 rounded-xl font-black uppercase tracking-wider text-sm transition shadow-lg shadow-blue-600/30 disabled:opacity-50">
+                 <button type="submit" disabled={isSendingLead} className="w-full bg-blue-600 hover:bg-blue-700 text-white p-3.5 rounded-lg font-black uppercase tracking-wider text-sm transition shadow-lg shadow-blue-600/30 disabled:opacity-50">
                    {isSendingLead ? 'Đang gửi...' : 'Gửi yêu cầu & Nhận báo giá'}
                  </button>
               </form>
@@ -535,13 +529,12 @@ export default function Home() {
         </div>
       )}
 
-      {/* MOBILE STICKY BOTTOM BAR (Chỉ hiện trên điện thoại) */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-3 flex gap-3 z-50 shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
         <a href={`tel:${CONTACT_PHONE}`} className="flex-1 bg-blue-600 text-white flex justify-center items-center gap-2 py-3.5 rounded-xl font-bold text-sm shadow-md">
            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg>
            Gọi ngay
         </a>
-        <a href={`https://zalo.me/${CONTACT_PHONE}`} target="_blank" rel="noreferrer" className="flex-1 bg-blue-50 border border-blue-200 text-blue-800 flex justify-center items-center gap-2 py-3.5 rounded-xl font-bold text-sm">
+        <a href={`https://zalo.me/${CONTACT_PHONE}?text=${encodeURIComponent(`Xin chào, tôi quan tâm các căn trên web.`)}`} target="_blank" rel="noreferrer" className="flex-1 bg-blue-50 border border-blue-200 text-blue-800 flex justify-center items-center gap-2 py-3.5 rounded-xl font-bold text-sm">
            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M20 15.5c-1.2 0-2.4-.2-3.6-.6-.3-.1-.7 0-1 .2l-2.2 2.2c-2.8-1.4-5.1-3.8-6.6-6.6l2.2-2.2c.3-.3.4-.7.2-1-.4-1.2-.6-2.4-.6-3.6 0-.6-.4-1-1-1H4c-.6 0-1 .4-1 1 0 9.4 7.6 17 17 17 .6 0 1-.4 1-1v-3.5c0-.6-.4-1-1-1zM19 12h2a9 9 0 00-9-9v2c3.9 0 7.1 3.2 7.1 7.1zM15 12h2c0-2.8-2.2-5-5-5v2c1.7 0 3 1.3 3 3z"/></svg>
            Nhắn Zalo
         </a>

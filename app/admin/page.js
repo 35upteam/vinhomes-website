@@ -1,13 +1,16 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { db } from '../../firebase';
+import { db, auth, provider } from '../../firebase';
+import { signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth';
 import { collection, addDoc, getDocs, doc, getDoc, setDoc, deleteDoc, updateDoc, serverTimestamp, query, orderBy } from 'firebase/firestore';
 import Link from 'next/link';
 
 export default function AdminPage() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [password, setPassword] = useState('');
-  const [dbPassword, setDbPassword] = useState('0912791925'); 
+  const [user, setUser] = useState(null);
+  const [isAuthorized, setIsAuthorized] = useState(false);
+  const [allowedEmails, setAllowedEmails] = useState([]);
+  const [newEmail, setNewEmail] = useState('');
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
   const defaultPkConfig = {
     "Sapphire": { phi: "8.800 VNĐ/m2", tongQuan: "Phân khu trung tâm sầm uất với mức chi phí dịch vụ tối ưu, thiết kế năng động lý tưởng cho giới trẻ và các gia đình mới.", uuDiem: "Ngay kế bên công viên thể thao Sportia Park; Hệ thống shophouse khối đế sầm uất; Trạm xe buýt nội khu thuận tiện; Mức giá thuê/mua hợp lý nhất dự án." },
@@ -22,17 +25,6 @@ export default function AdminPage() {
     "Lumiere Evergreen": { phi: "18.000 VNĐ/m2", tongQuan: "Phân khu căn hộ hạng sang được phát triển bởi Masterise Homes, bộ sưu tập tiện ích độc bản mang tiêu chuẩn quốc tế.", uuDiem: "Hệ thống tiện ích đặc quyền (bể bơi 4 mùa, phòng gym hiện đại); Sảnh lễ tân tiêu chuẩn 5 sao; Kính Low-E cản nhiệt toàn bộ mặt ngoài; Vị trí tâm điểm dự án." }
   };
 
-  useEffect(() => {
-    const fetchAuth = async () => {
-      const docSnap = await getDoc(doc(db, 'settings', 'adminAuth'));
-      if (docSnap.exists()) setDbPassword(docSnap.data().password);
-    };
-    fetchAuth();
-  }, []);
-
-  const [isPwdModalOpen, setIsPwdModalOpen] = useState(false);
-  const [pwdData, setPwdData] = useState({ old: '', new: '', confirm: '' });
-  
   const [isPhanKhuModalOpen, setIsPhanKhuModalOpen] = useState(false);
   const phanKhuList = ['Sapphire', 'Miami', 'Sakura', 'Victoria', 'Imperia', 'Sola Park', 'Tonkin', 'Canopy', 'Masteri West Height', 'Lumiere Evergreen'];
   const [phanKhuData, setPhanKhuData] = useState({});
@@ -57,13 +49,67 @@ export default function AdminPage() {
   const itemsPerPage = 10;
 
   useEffect(() => {
-    if (isAuthenticated) {
-      fetchProperties();
-      fetchPhanKhu();
-      fetchKyGui();
-      fetchNhoTim();
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      if (currentUser) {
+        const docRef = doc(db, 'settings', 'allowedEmails');
+        const docSnap = await getDoc(docRef);
+        let emails = [];
+        
+        if (docSnap.exists()) {
+          emails = docSnap.data().emails || [];
+        } else {
+          // Tài khoản đăng nhập đầu tiên sẽ làm Root Admin
+          emails = [currentUser.email];
+          await setDoc(docRef, { emails });
+        }
+
+        if (emails.includes(currentUser.email)) {
+          setUser(currentUser);
+          setIsAuthorized(true);
+          setAllowedEmails(emails);
+          fetchProperties();
+          fetchPhanKhu();
+          fetchKyGui();
+          fetchNhoTim();
+        } else {
+          await signOut(auth);
+          alert("Tài khoản Gmail của bạn không có quyền truy cập trang Quản trị!");
+        }
+      } else {
+        setUser(null);
+        setIsAuthorized(false);
+      }
+      setIsCheckingAuth(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  const handleLogin = async () => {
+    try { await signInWithPopup(auth, provider); } 
+    catch (error) { console.error("Lỗi đăng nhập: ", error); }
+  };
+
+  const handleLogout = async () => { await signOut(auth); };
+
+  const handleAddEmail = async () => {
+    if (!newEmail || !newEmail.includes('@')) return alert("Email không hợp lệ!");
+    if (allowedEmails.includes(newEmail)) return alert("Email này đã có quyền rồi!");
+    const updatedEmails = [...allowedEmails, newEmail];
+    await setDoc(doc(db, 'settings', 'allowedEmails'), { emails: updatedEmails });
+    setAllowedEmails(updatedEmails);
+    setNewEmail('');
+    alert("Đã cấp quyền truy cập thành công!");
+  };
+
+  const handleRemoveEmail = async (emailToRemove) => {
+    if (emailToRemove === user.email) return alert("Bạn không thể tự xóa chính mình!");
+    if (window.confirm(`Thu hồi quyền truy cập của ${emailToRemove}?`)) {
+      const updatedEmails = allowedEmails.filter(e => e !== emailToRemove);
+      await setDoc(doc(db, 'settings', 'allowedEmails'), { emails: updatedEmails });
+      setAllowedEmails(updatedEmails);
     }
-  }, [isAuthenticated]);
+  };
 
   const fetchProperties = async () => {
     const q = query(collection(db, 'properties'), orderBy('createdAt', 'desc'));
@@ -83,44 +129,27 @@ export default function AdminPage() {
     setNhoTimList(querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
   };
 
-  // LOGIC ÉP BUỘC NẠP DỮ LIỆU CHUẨN XÁC
   const fetchPhanKhu = async () => {
     const pkDoc = await getDoc(doc(db, 'settings', 'phanKhuConfig'));
     let dbData = pkDoc.exists() ? pkDoc.data() : {};
-    
     const mergedData = {};
     let needsUpdate = false;
 
     phanKhuList.forEach(pk => {
-      // Nếu Database có dữ liệu của phân khu đó và ít nhất 1 ô không trống thì giữ nguyên
       if (dbData[pk] && (dbData[pk].phi || dbData[pk].tongQuan)) {
         mergedData[pk] = dbData[pk];
       } else {
-        // Nếu trống rỗng, ép lấy dữ liệu default
         mergedData[pk] = defaultPkConfig[pk];
-        needsUpdate = true; // Cần đẩy lại lên DB
+        needsUpdate = true;
       }
     });
-
     setPhanKhuData(mergedData);
-    
-    // Nếu phát hiện thiếu/trống dữ liệu, lưu ngược lên DB để đồng bộ cứng
-    if (needsUpdate) {
-      await setDoc(doc(db, 'settings', 'phanKhuConfig'), mergedData);
-    }
+    if (needsUpdate) await setDoc(doc(db, 'settings', 'phanKhuConfig'), mergedData);
   };
 
-  const openPhanKhuModal = () => { 
-    setTempPKData(phanKhuData[selectedPK] || defaultPkConfig[selectedPK]); 
-    setIsPhanKhuModalOpen(true); 
-  };
+  const openPhanKhuModal = () => { setTempPKData(phanKhuData[selectedPK] || defaultPkConfig[selectedPK]); setIsPhanKhuModalOpen(true); };
+  const handleSelectPKChange = (e) => { const val = e.target.value; setSelectedPK(val); setTempPKData(phanKhuData[val] || defaultPkConfig[val]); };
   
-  const handleSelectPKChange = (e) => {
-    const val = e.target.value;
-    setSelectedPK(val);
-    setTempPKData(phanKhuData[val] || defaultPkConfig[val]);
-  };
-
   const handleSavePK = async () => {
     setIsSavingPK(true);
     try {
@@ -132,27 +161,12 @@ export default function AdminPage() {
     setIsSavingPK(false);
   };
 
-  const handleChangePassword = async () => {
-    if (pwdData.old !== dbPassword) return alert('Mật khẩu cũ không chính xác!');
-    if (pwdData.new !== pwdData.confirm) return alert('Mật khẩu mới không khớp!');
-    if (pwdData.new.length < 6) return alert('Mật khẩu phải từ 6 ký tự!');
-    try {
-      await setDoc(doc(db, 'settings', 'adminAuth'), { password: pwdData.new });
-      setDbPassword(pwdData.new);
-      alert('Đổi mật khẩu thành công!');
-      setIsPwdModalOpen(false);
-      setPwdData({ old: '', new: '', confirm: '' });
-    } catch (error) { alert('Lỗi khi đổi mật khẩu!'); }
-  };
-
   const handleInputChange = (e) => {
     const name = e.target.name;
     const val = e.target.value;
     if (name === 'listingType' && val === 'Cho thuê' && formData.nhanDan === 'Cắt lỗ') {
       setFormData({ ...formData, listingType: val, nhanDan: 'Không có' });
-    } else {
-      setFormData({ ...formData, [name]: val });
-    }
+    } else { setFormData({ ...formData, [name]: val }); }
   };
   
   const handleImageChange = async (e) => {
@@ -163,7 +177,6 @@ export default function AdminPage() {
     }
   };
 
-  // WATERMARK BỎ CHỮ HOTLINE CHO NGẮN GỌN NHƯ YÊU CẦU
   const addWatermark = (file) => {
     return new Promise((resolve) => {
       const reader = new FileReader();
@@ -176,15 +189,11 @@ export default function AdminPage() {
           const ctx = canvas.getContext('2d');
           ctx.drawImage(img, 0, 0);
 
-          // BỎ CHỮ "Hotline:" đi, chỉ còn Tên và SĐT
           const text = '© Quỹ Căn Smart City - 0912.791.925';
           const fontSize = Math.max(14, Math.floor(img.width * 0.035)); 
           ctx.font = `600 ${fontSize}px Arial`;
-          
-          const paddingX = 12;
-          const paddingY = 8;
+          const paddingX = 12; const paddingY = 8;
           const textWidth = ctx.measureText(text).width;
-          
           const rectX = canvas.width - textWidth - paddingX * 2 - 20;
           const rectY = canvas.height - fontSize - paddingY * 2 - 20;
 
@@ -192,13 +201,11 @@ export default function AdminPage() {
           ctx.fillRect(rectX, rectY, textWidth + paddingX * 2, fontSize + paddingY * 2);
           
           ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
+          ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
           ctx.fillText(text, rectX + paddingX + textWidth / 2, rectY + paddingY + fontSize / 2 + 1);
 
           canvas.toBlob((blob) => {
-            const newFile = new File([blob], file.name, { type: 'image/jpeg' });
-            resolve(newFile);
+            resolve(new File([blob], file.name, { type: 'image/jpeg' }));
           }, 'image/jpeg', 0.95);
         };
         img.src = event.target.result;
@@ -209,51 +216,31 @@ export default function AdminPage() {
 
   const handleDelete = async (id) => {
     if (window.confirm('Cảnh báo: Bạn có chắc chắn muốn xóa căn hộ này khỏi hệ thống?')) {
-      await deleteDoc(doc(db, 'properties', id));
-      alert('Đã xóa thành công!');
-      fetchProperties();
+      await deleteDoc(doc(db, 'properties', id)); alert('Đã xóa thành công!'); fetchProperties();
     }
   };
 
   const handleEdit = (item) => {
-    setFormData({ ...initialForm, ...item });
-    setEditingId(item.id);
-    setImages([]);
+    setFormData({ ...initialForm, ...item }); setEditingId(item.id); setImages([]);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const toggleKyGuiStatus = async (id, currentStatus) => {
     const newStatus = currentStatus === 'Chưa xử lý' ? 'Đã liên hệ' : 'Chưa xử lý';
-    await updateDoc(doc(db, 'ky_gui', id), { status: newStatus });
-    fetchKyGui();
+    await updateDoc(doc(db, 'ky_gui', id), { status: newStatus }); fetchKyGui();
   };
 
   const toggleNhoTimStatus = async (id, currentStatus) => {
     const newStatus = currentStatus === 'Chưa xử lý' ? 'Đã liên hệ' : 'Chưa xử lý';
-    await updateDoc(doc(db, 'nho_tim_can', id), { status: newStatus });
-    fetchNhoTim();
+    await updateDoc(doc(db, 'nho_tim_can', id), { status: newStatus }); fetchNhoTim();
   };
 
-  const handleDeleteKyGui = async (id) => {
-    if (window.confirm('Xóa thông tin ký gửi này?')) {
-      await deleteDoc(doc(db, 'ky_gui', id));
-      fetchKyGui();
-    }
-  };
-
-  const handleDeleteNhoTim = async (id) => {
-    if (window.confirm('Xóa thông tin yêu cầu tìm căn này?')) {
-      await deleteDoc(doc(db, 'nho_tim_can', id));
-      fetchNhoTim();
-    }
-  };
+  const handleDeleteKyGui = async (id) => { if (window.confirm('Xóa thông tin ký gửi này?')) { await deleteDoc(doc(db, 'ky_gui', id)); fetchKyGui(); } };
+  const handleDeleteNhoTim = async (id) => { if (window.confirm('Xóa thông tin yêu cầu tìm căn này?')) { await deleteDoc(doc(db, 'nho_tim_can', id)); fetchNhoTim(); } };
 
   const generateMaCan = (type) => {
-    const prefix = type === 'Cho thuê' ? 'CT' : 'CN';
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    let result = '';
-    for (let i = 0; i < 5; i++) result += chars.charAt(Math.floor(Math.random() * chars.length));
-    return prefix + result;
+    const prefix = type === 'Cho thuê' ? 'CT' : 'CN'; const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'; let result = '';
+    for (let i = 0; i < 5; i++) result += chars.charAt(Math.floor(Math.random() * chars.length)); return prefix + result;
   };
 
   const handleSubmit = async (e) => {
@@ -264,15 +251,11 @@ export default function AdminPage() {
       let imageUrls = editingId ? formData.images : []; 
       if (images.length > 0) {
         imageUrls = [];
-        const CLOUD_NAME = "ibzfmsqp"; 
-        const UPLOAD_PRESET = "upload preset";
+        const CLOUD_NAME = "ibzfmsqp"; const UPLOAD_PRESET = "upload preset";
         for (const file of images) {
-          const data = new FormData();
-          data.append('file', file);
-          data.append('upload_preset', UPLOAD_PRESET);
+          const data = new FormData(); data.append('file', file); data.append('upload_preset', UPLOAD_PRESET);
           const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, { method: 'POST', body: data });
-          const uploadedImage = await res.json();
-          imageUrls.push(uploadedImage.secure_url);
+          const uploadedImage = await res.json(); imageUrls.push(uploadedImage.secure_url);
         }
       }
 
@@ -280,22 +263,19 @@ export default function AdminPage() {
       const dataToSave = { ...formData, maCan: finalMaCan, price: Number(formData.price), area: Number(formData.area), images: imageUrls };
 
       if (editingId) {
-        await updateDoc(doc(db, 'properties', editingId), dataToSave);
-        alert('Cập nhật thông tin thành công!');
+        await updateDoc(doc(db, 'properties', editingId), dataToSave); alert('Cập nhật thông tin thành công!');
       } else {
-        await addDoc(collection(db, 'properties'), { ...dataToSave, createdAt: serverTimestamp() });
-        alert(`Đã đăng thành công căn ${formData.listingType} với Mã: ${finalMaCan}`);
+        await addDoc(collection(db, 'properties'), { ...dataToSave, createdAt: serverTimestamp() }); alert(`Đã đăng thành công căn ${formData.listingType} với Mã: ${finalMaCan}`);
       }
 
-      setFormData(initialForm);
-      setEditingId(null);
-      setImages([]);
-      fetchProperties();
+      setFormData(initialForm); setEditingId(null); setImages([]); fetchProperties();
     } catch (error) { alert('Có lỗi xảy ra, vui lòng thử lại!'); }
     setIsUploading(false);
   };
 
-  if (!isAuthenticated) {
+  if (isCheckingAuth) return <div className="min-h-screen bg-gray-900 flex items-center justify-center"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-white"></div></div>;
+
+  if (!isAuthorized) {
     return (
       <div className="min-h-screen flex items-center justify-center font-sans relative" style={{ backgroundColor: '#111827' }}>
         <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?q=80&w=2000&auto=format&fit=crop')] bg-cover bg-center opacity-40"></div>
@@ -303,11 +283,14 @@ export default function AdminPage() {
         
         <div className="relative z-10 bg-white/95 backdrop-blur-xl p-10 rounded-[24px] shadow-2xl text-center max-w-[400px] w-full mx-4 border border-white/40">
           <img src="/logo.png" alt="Logo Quỹ Căn Smart City" className="h-14 mx-auto mb-5 object-contain" />
-          <h2 className="text-[22px] font-bold mb-1 text-blue-900 uppercase tracking-widest">Hệ thống Quản trị</h2>
-          <p className="text-sm text-gray-500 mb-8 font-medium">Bảng điều khiển nội bộ</p>
+          <h2 className="text-[22px] font-bold mb-1 text-blue-900 uppercase tracking-widest">Hệ Thống Quản Trị</h2>
+          <p className="text-sm text-gray-500 mb-8 font-medium">Đăng nhập bằng Gmail nội bộ</p>
           
-          <input type="password" value={password} onChange={e => setPassword(e.target.value)} onKeyDown={(e) => {if(e.key === 'Enter') document.getElementById('btnLogin').click()}} className="w-full p-4 border border-gray-300 rounded-xl mb-6 text-center text-2xl tracking-[0.3em] focus:border-blue-600 focus:ring-4 focus:ring-blue-100 outline-none transition font-black text-blue-900 bg-white/50" placeholder="••••••••" />
-          <button id="btnLogin" onClick={() => { if(password === dbPassword) setIsAuthenticated(true); else alert('Sai mật khẩu!'); }} className="w-full bg-blue-700 hover:bg-blue-800 text-white p-4 rounded-xl font-bold text-lg transition shadow-xl shadow-blue-700/30">Đăng Nhập Dashboard</button>
+          <button onClick={handleLogin} className="w-full bg-white hover:bg-gray-50 border border-gray-300 text-gray-700 p-4 rounded-xl font-bold text-base transition shadow-md flex items-center justify-center gap-3">
+             <svg className="w-6 h-6" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+             Tiếp tục với Google
+          </button>
+          <p className="text-[11px] text-gray-400 mt-6">Chỉ tài khoản được cấp quyền mới có thể truy cập.</p>
         </div>
       </div>
     );
@@ -330,10 +313,7 @@ export default function AdminPage() {
 
   const unreadKyGuiCount = kyGuiList.filter(k => k.status === 'Chưa xử lý').length;
   const unreadNhoTimCount = nhoTimList.filter(k => k.status === 'Chưa xử lý').length;
-
-  const nhanDanOptions = formData.listingType === 'Chuyển nhượng' 
-    ? ['Không có', 'Giá tốt', 'Độc quyền', 'Cắt lỗ'] 
-    : ['Không có', 'Giá tốt', 'Độc quyền'];
+  const nhanDanOptions = formData.listingType === 'Chuyển nhượng' ? ['Không có', 'Giá tốt', 'Độc quyền', 'Cắt lỗ'] : ['Không có', 'Giá tốt', 'Độc quyền'];
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans pb-12">
@@ -344,106 +324,109 @@ export default function AdminPage() {
              <h1 className="font-bold text-base tracking-wider hidden sm:block">ADMIN DASHBOARD</h1>
           </div>
           <div className="flex gap-4 items-center">
-            <button onClick={() => setIsPwdModalOpen(true)} className="bg-white/10 hover:bg-white/20 border border-white/30 px-4 py-2 rounded-lg text-sm font-medium transition">Đổi mật khẩu</button>
-            <button onClick={openPhanKhuModal} className="bg-blue-600 hover:bg-blue-700 px-5 py-2 rounded-lg text-sm font-bold transition flex items-center gap-2 shadow-md">Cấu hình Phân khu</button>
+            <span className="hidden md:block text-xs font-medium text-blue-200">{user?.email}</span>
+            <button onClick={openPhanKhuModal} className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg text-sm font-bold transition flex items-center shadow-md">Cấu hình Phân khu</button>
+            <button onClick={handleLogout} className="bg-red-500 hover:bg-red-600 px-4 py-2 rounded-lg text-sm font-bold transition">Đăng xuất</button>
           </div>
         </div>
       </nav>
 
       <div className="max-w-[1400px] mx-auto px-4 md:px-8 mt-8 flex flex-col xl:flex-row gap-8 items-start">
-        <div className="w-full xl:w-[35%] flex-shrink-0 bg-white p-6 md:p-8 rounded-2xl shadow-sm shadow-gray-200/50 border border-gray-100">
-          <div className="flex justify-between items-center mb-6 pb-4 border-b border-gray-100">
-             <div>
-               <h2 className="text-xl font-bold text-blue-900 tracking-tight">{editingId ? 'Sửa thông tin căn hộ' : 'Lên giỏ hàng mới'}</h2>
-               {editingId && <p className="text-blue-600 font-bold mt-1 text-sm">Đang sửa mã: {formData.maCan}</p>}
-             </div>
-             {editingId && <button onClick={() => {setEditingId(null); setFormData(initialForm);}} className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded-md font-bold transition">Hủy sửa</button>}
-          </div>
-          
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="flex bg-gray-50 p-1.5 rounded-xl border border-gray-200">
-              <label className="flex-1 cursor-pointer">
-                <input type="radio" name="listingType" value="Cho thuê" checked={formData.listingType === 'Cho thuê'} onChange={handleInputChange} className="hidden peer" />
-                <div className="text-center py-2.5 rounded-lg peer-checked:bg-white peer-checked:text-blue-600 peer-checked:shadow-sm font-bold text-gray-500 transition text-sm">Cho Thuê</div>
-              </label>
-              <label className="flex-1 cursor-pointer">
-                <input type="radio" name="listingType" value="Chuyển nhượng" checked={formData.listingType === 'Chuyển nhượng'} onChange={handleInputChange} className="hidden peer" />
-                <div className="text-center py-2.5 rounded-lg peer-checked:bg-white peer-checked:text-blue-600 peer-checked:shadow-sm font-bold text-gray-500 transition text-sm">Chuyển Nhượng</div>
-              </label>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-[11px] font-bold mb-1 text-gray-500 uppercase">Phân khu</label>
-                <select name="phanKhu" value={formData.phanKhu} onChange={handleInputChange} className="w-full p-3 border border-gray-200 rounded-lg focus:border-blue-500 outline-none text-sm font-medium">{phanKhuList.map(opt => <option key={opt}>{opt}</option>)}</select>
-              </div>
-              <div>
-                <label className="block text-[11px] font-bold mb-1 text-gray-500 uppercase">Tòa nhà (VD: S1.02)</label>
-                <input name="toaNha" value={formData.toaNha} onChange={handleInputChange} placeholder="Nhập tên tòa..." className="w-full p-3 border border-gray-200 rounded-lg focus:border-blue-500 outline-none text-sm font-medium" required />
-              </div>
-              <div>
-                <label className="block text-[11px] font-bold mb-1 text-gray-500 uppercase">Loại căn</label>
-                <select name="loaiCan" value={formData.loaiCan} onChange={handleInputChange} className="w-full p-3 border border-gray-200 rounded-lg focus:border-blue-500 outline-none text-sm font-medium">{['Studio', '1N', '1N+', '2N1WC', '2N2WC', '2N+', '3N', '4N'].map(opt => <option key={opt}>{opt}</option>)}</select>
-              </div>
-              <div>
-                <label className="block text-[11px] font-bold mb-1 text-gray-500 uppercase">Khoảng tầng</label>
-                <select name="khoangTang" value={formData.khoangTang} onChange={handleInputChange} className="w-full p-3 border border-gray-200 rounded-lg focus:border-blue-500 outline-none text-sm font-medium">{['Tầng thấp', 'Tầng trung', 'Tầng cao'].map(opt => <option key={opt}>{opt}</option>)}</select>
-              </div>
-              <div>
-                <label className="block text-[11px] font-bold mb-1 text-gray-500 uppercase">Hướng</label>
-                <select name="huongBanCong" value={formData.huongBanCong} onChange={handleInputChange} className="w-full p-3 border border-gray-200 rounded-lg focus:border-blue-500 outline-none text-sm font-medium">{['Đông', 'Tây', 'Nam', 'Bắc', 'Đông Nam', 'Đông Bắc', 'Tây Nam', 'Tây Bắc'].map(opt => <option key={opt}>{opt}</option>)}</select>
-              </div>
-              <div>
-                <label className="block text-[11px] font-bold mb-1 text-gray-500 uppercase">Nội thất</label>
-                <select name="noiThat" value={formData.noiThat} onChange={handleInputChange} className="w-full p-3 border border-gray-200 rounded-lg focus:border-blue-500 outline-none text-sm font-medium">{['Nguyên bản CĐT', 'Đồ cơ bản', 'Đầy đủ nội thất'].map(opt => <option key={opt}>{opt}</option>)}</select>
-              </div>
+        {adminTab !== 'tai-khoan' && (
+          <div className="w-full xl:w-[35%] flex-shrink-0 bg-white p-6 md:p-8 rounded-2xl shadow-sm shadow-gray-200/50 border border-gray-100">
+            <div className="flex justify-between items-center mb-6 pb-4 border-b border-gray-100">
                <div>
-                  <label className="block text-[11px] font-bold mb-1 text-gray-500 uppercase">Diện tích (m²)</label>
-                  <input name="area" value={formData.area} onChange={handleInputChange} type="number" step="0.1" placeholder="Nhập số" className="w-full p-3 border border-gray-200 rounded-lg focus:border-blue-500 outline-none text-sm font-medium" required />
+                 <h2 className="text-xl font-bold text-blue-900 tracking-tight">{editingId ? 'Sửa thông tin căn hộ' : 'Lên giỏ hàng mới'}</h2>
+                 {editingId && <p className="text-blue-600 font-bold mt-1 text-sm">Đang sửa mã: {formData.maCan}</p>}
                </div>
-               <div>
-                  <label className="block text-[11px] font-bold mb-1 text-gray-500 uppercase">{formData.listingType === 'Cho thuê' ? 'Giá thuê (Triệu)' : 'Giá bán (Tỷ)'}</label>
-                  <input name="price" value={formData.price} onChange={handleInputChange} type="number" step="0.01" placeholder="VD: 15.5" className="w-full p-3 border border-gray-200 rounded-lg focus:border-blue-500 outline-none text-sm font-medium" required />
-               </div>
+               {editingId && <button onClick={() => {setEditingId(null); setFormData(initialForm);}} className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded-md font-bold transition">Hủy sửa</button>}
             </div>
+            
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="flex bg-gray-50 p-1.5 rounded-xl border border-gray-200">
+                <label className="flex-1 cursor-pointer">
+                  <input type="radio" name="listingType" value="Cho thuê" checked={formData.listingType === 'Cho thuê'} onChange={handleInputChange} className="hidden peer" />
+                  <div className="text-center py-2.5 rounded-lg peer-checked:bg-white peer-checked:text-blue-600 peer-checked:shadow-sm font-bold text-gray-500 transition text-sm">Cho Thuê</div>
+                </label>
+                <label className="flex-1 cursor-pointer">
+                  <input type="radio" name="listingType" value="Chuyển nhượng" checked={formData.listingType === 'Chuyển nhượng'} onChange={handleInputChange} className="hidden peer" />
+                  <div className="text-center py-2.5 rounded-lg peer-checked:bg-white peer-checked:text-blue-600 peer-checked:shadow-sm font-bold text-gray-500 transition text-sm">Chuyển Nhượng</div>
+                </label>
+              </div>
 
-            <div className="flex gap-4">
-              {formData.listingType === 'Cho thuê' && (
-                <div className="bg-blue-50/50 p-3 rounded-xl border border-blue-100 flex-1">
-                  <label className="block text-[11px] font-bold mb-1 text-blue-800 uppercase">Ngày nhận nhà</label>
-                  <input type="date" name="ngayNhanNha" value={formData.ngayNhanNha || ''} onChange={handleInputChange} className="w-full p-2 border border-blue-200 rounded-lg focus:border-blue-500 outline-none text-sm font-medium" />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[11px] font-bold mb-1 text-gray-500 uppercase">Phân khu</label>
+                  <select name="phanKhu" value={formData.phanKhu} onChange={handleInputChange} className="w-full p-3 border border-gray-200 rounded-lg focus:border-blue-500 outline-none text-sm font-medium">{phanKhuList.map(opt => <option key={opt}>{opt}</option>)}</select>
                 </div>
-              )}
-              
-              <div className="bg-red-50/50 p-3 rounded-xl border border-red-100 flex-1">
-                <label className="block text-[11px] font-bold mb-1 text-red-800 uppercase">Gắn nhãn HOT</label>
-                <select name="nhanDan" value={formData.nhanDan || 'Không có'} onChange={handleInputChange} className="w-full p-2 border border-red-200 rounded-lg focus:border-red-500 outline-none text-sm font-medium text-red-700 bg-white">
-                  {nhanDanOptions.map(opt => <option key={opt}>{opt}</option>)}
-                </select>
+                <div>
+                  <label className="block text-[11px] font-bold mb-1 text-gray-500 uppercase">Tòa nhà (VD: S1.02)</label>
+                  <input name="toaNha" value={formData.toaNha} onChange={handleInputChange} placeholder="Nhập tên tòa..." className="w-full p-3 border border-gray-200 rounded-lg focus:border-blue-500 outline-none text-sm font-medium" required />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold mb-1 text-gray-500 uppercase">Loại căn</label>
+                  <select name="loaiCan" value={formData.loaiCan} onChange={handleInputChange} className="w-full p-3 border border-gray-200 rounded-lg focus:border-blue-500 outline-none text-sm font-medium">{['Studio', '1N', '1N+', '2N1WC', '2N2WC', '2N+', '3N', '4N'].map(opt => <option key={opt}>{opt}</option>)}</select>
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold mb-1 text-gray-500 uppercase">Khoảng tầng</label>
+                  <select name="khoangTang" value={formData.khoangTang} onChange={handleInputChange} className="w-full p-3 border border-gray-200 rounded-lg focus:border-blue-500 outline-none text-sm font-medium">{['Tầng thấp', 'Tầng trung', 'Tầng cao'].map(opt => <option key={opt}>{opt}</option>)}</select>
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold mb-1 text-gray-500 uppercase">Hướng</label>
+                  <select name="huongBanCong" value={formData.huongBanCong} onChange={handleInputChange} className="w-full p-3 border border-gray-200 rounded-lg focus:border-blue-500 outline-none text-sm font-medium">{['Đông', 'Tây', 'Nam', 'Bắc', 'Đông Nam', 'Đông Bắc', 'Tây Nam', 'Tây Bắc'].map(opt => <option key={opt}>{opt}</option>)}</select>
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold mb-1 text-gray-500 uppercase">Nội thất</label>
+                  <select name="noiThat" value={formData.noiThat} onChange={handleInputChange} className="w-full p-3 border border-gray-200 rounded-lg focus:border-blue-500 outline-none text-sm font-medium">{['Nguyên bản CĐT', 'Đồ cơ bản', 'Đầy đủ nội thất'].map(opt => <option key={opt}>{opt}</option>)}</select>
+                </div>
+                 <div>
+                    <label className="block text-[11px] font-bold mb-1 text-gray-500 uppercase">Diện tích (m²)</label>
+                    <input name="area" value={formData.area} onChange={handleInputChange} type="number" step="0.1" placeholder="Nhập số" className="w-full p-3 border border-gray-200 rounded-lg focus:border-blue-500 outline-none text-sm font-medium" required />
+                 </div>
+                 <div>
+                    <label className="block text-[11px] font-bold mb-1 text-gray-500 uppercase">{formData.listingType === 'Cho thuê' ? 'Giá thuê (Triệu)' : 'Giá bán (Tỷ)'}</label>
+                    <input name="price" value={formData.price} onChange={handleInputChange} type="number" step="0.01" placeholder="VD: 15.5" className="w-full p-3 border border-gray-200 rounded-lg focus:border-blue-500 outline-none text-sm font-medium" required />
+                 </div>
               </div>
-            </div>
 
-            <div>
-              <label className="block text-[11px] font-bold mb-1.5 text-gray-500 uppercase">Ghi chú mật (Chỉ lưu nội bộ)</label>
-              <textarea name="moTa" value={formData.moTa || ''} onChange={handleInputChange} rows="2" placeholder="VD: Pass cửa, thông tin chủ nhà, % hoa hồng..." className="w-full p-3 border border-gray-200 rounded-lg focus:border-blue-500 outline-none text-sm font-medium"></textarea>
-            </div>
+              <div className="flex gap-4">
+                {formData.listingType === 'Cho thuê' && (
+                  <div className="bg-blue-50/50 p-3 rounded-xl border border-blue-100 flex-1">
+                    <label className="block text-[11px] font-bold mb-1 text-blue-800 uppercase">Ngày nhận nhà</label>
+                    <input type="date" name="ngayNhanNha" value={formData.ngayNhanNha || ''} onChange={handleInputChange} className="w-full p-2 border border-blue-200 rounded-lg focus:border-blue-500 outline-none text-sm font-medium" />
+                  </div>
+                )}
+                
+                <div className="bg-red-50/50 p-3 rounded-xl border border-red-100 flex-1">
+                  <label className="block text-[11px] font-bold mb-1 text-red-800 uppercase">Gắn nhãn HOT</label>
+                  <select name="nhanDan" value={formData.nhanDan || 'Không có'} onChange={handleInputChange} className="w-full p-2 border border-red-200 rounded-lg focus:border-red-500 outline-none text-sm font-medium text-red-700 bg-white">
+                    {nhanDanOptions.map(opt => <option key={opt}>{opt}</option>)}
+                  </select>
+                </div>
+              </div>
 
-            <div className="border-2 border-dashed border-gray-300 p-5 text-center rounded-xl bg-gray-50 hover:bg-gray-100 transition">
-              <label className="block font-bold mb-2 cursor-pointer text-blue-900 text-sm">Tải lên Ảnh căn hộ</label>
-              <input type="file" multiple accept="image/*" onChange={handleImageChange} className="w-full text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200 cursor-pointer" />
-              {images.length > 0 && <p className="text-sm text-blue-600 mt-3 font-bold">Đã chọn {images.length} ảnh mới</p>}
-            </div>
+              <div>
+                <label className="block text-[11px] font-bold mb-1.5 text-gray-500 uppercase">Ghi chú mật (Chỉ lưu nội bộ)</label>
+                <textarea name="moTa" value={formData.moTa || ''} onChange={handleInputChange} rows="2" placeholder="VD: Pass cửa, thông tin chủ nhà, % hoa hồng..." className="w-full p-3 border border-gray-200 rounded-lg focus:border-blue-500 outline-none text-sm font-medium"></textarea>
+              </div>
 
-            <button type="submit" disabled={isUploading} className="w-full bg-blue-600 hover:bg-blue-700 text-white p-4 rounded-xl font-bold text-base transition shadow-lg shadow-blue-600/30 disabled:bg-gray-400 mt-2">
-               {isUploading ? 'Đang tải dữ liệu...' : (editingId ? 'CẬP NHẬT THÔNG TIN' : `ĐĂNG CĂN ${formData.listingType.toUpperCase()}`)}
-            </button>
-          </form>
-        </div>
+              <div className="border-2 border-dashed border-gray-300 p-5 text-center rounded-xl bg-gray-50 hover:bg-gray-100 transition">
+                <label className="block font-bold mb-2 cursor-pointer text-blue-900 text-sm">Tải lên Ảnh căn hộ</label>
+                <input type="file" multiple accept="image/*" onChange={handleImageChange} className="w-full text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200 cursor-pointer" />
+                {images.length > 0 && <p className="text-sm text-blue-600 mt-3 font-bold">Đã chọn {images.length} ảnh mới</p>}
+              </div>
+
+              <button type="submit" disabled={isUploading} className="w-full bg-blue-600 hover:bg-blue-700 text-white p-4 rounded-xl font-bold text-base transition shadow-lg shadow-blue-600/30 disabled:bg-gray-400 mt-2">
+                 {isUploading ? 'Đang tải dữ liệu...' : (editingId ? 'CẬP NHẬT THÔNG TIN' : `ĐĂNG CĂN ${formData.listingType.toUpperCase()}`)}
+              </button>
+            </form>
+          </div>
+        )}
 
         <div className="flex-1 w-full bg-white p-6 md:p-8 rounded-2xl shadow-sm shadow-gray-200/50 border border-gray-100 overflow-hidden">
-          <div className="flex gap-6 mb-6 border-b border-gray-100">
+          <div className="flex flex-wrap gap-4 mb-6 border-b border-gray-100 pb-2">
             <button onClick={() => setAdminTab('quy-can')} className={`font-bold pb-3 border-b-2 transition ${adminTab === 'quy-can' ? 'border-blue-900 text-blue-900' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
-              Quỹ căn đang đăng ({properties.length})
+              Quỹ căn ({properties.length})
             </button>
             <button onClick={() => setAdminTab('ky-gui')} className={`font-bold pb-3 border-b-2 transition flex items-center gap-2 ${adminTab === 'ky-gui' ? 'border-blue-900 text-blue-900' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
               Khách Ký Gửi
@@ -453,17 +436,22 @@ export default function AdminPage() {
               Khách Nhờ Tìm
               {unreadNhoTimCount > 0 && <span className="bg-red-500 text-white text-[10px] px-2 py-0.5 rounded-full shadow-sm animate-pulse">{unreadNhoTimCount}</span>}
             </button>
+            <button onClick={() => setAdminTab('tai-khoan')} className={`font-bold pb-3 border-b-2 transition flex items-center gap-2 ml-auto ${adminTab === 'tai-khoan' ? 'border-blue-900 text-blue-900' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
+              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg> Quản lý Tài khoản
+            </button>
           </div>
 
-          <div className="mb-6">
-            <input 
-              type="text" 
-              placeholder={adminTab === 'quy-can' ? "Tìm mã căn, tòa nhà..." : "Tìm SĐT, nhu cầu khách..."}
-              value={searchTerm}
-              onChange={(e) => {setSearchTerm(e.target.value); setCurrentPage(1);}}
-              className="w-full max-w-sm px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition font-medium"
-            />
-          </div>
+          {adminTab !== 'tai-khoan' && (
+             <div className="mb-6">
+               <input 
+                 type="text" 
+                 placeholder={adminTab === 'quy-can' ? "Tìm mã căn, tòa nhà..." : "Tìm SĐT, nhu cầu khách..."}
+                 value={searchTerm}
+                 onChange={(e) => {setSearchTerm(e.target.value); setCurrentPage(1);}}
+                 className="w-full max-w-sm px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition font-medium"
+               />
+             </div>
+          )}
 
           <div className="overflow-x-auto">
             {adminTab === 'quy-can' && (
@@ -610,10 +598,43 @@ export default function AdminPage() {
               </table>
             )}
 
+            {/* TAB QUẢN LÝ TÀI KHOẢN (GMAIL WHITELIST) */}
+            {adminTab === 'tai-khoan' && (
+              <div className="max-w-2xl mx-auto bg-gray-50 p-6 rounded-xl border border-gray-200">
+                <h3 className="text-lg font-bold text-blue-900 mb-2">Danh sách Email được cấp quyền</h3>
+                <p className="text-sm text-gray-500 mb-6">Chỉ những tài khoản Gmail dưới đây mới có quyền Đăng nhập và Quản trị nội dung Website này.</p>
+                
+                <div className="flex gap-3 mb-6">
+                  <input type="email" placeholder="Nhập Gmail của cộng tác viên..." value={newEmail} onChange={(e) => setNewEmail(e.target.value)} className="flex-1 p-3 border border-gray-300 rounded-lg outline-none focus:border-blue-600 text-sm" />
+                  <button onClick={handleAddEmail} className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-bold text-sm shadow-md transition whitespace-nowrap">Thêm quyền</button>
+                </div>
+
+                <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                   <ul className="divide-y divide-gray-100">
+                     {allowedEmails.map(email => (
+                        <li key={email} className="flex justify-between items-center p-4 hover:bg-gray-50 transition">
+                           <div className="flex items-center gap-3">
+                             <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold">{email[0].toUpperCase()}</div>
+                             <div>
+                                <p className="text-sm font-bold text-gray-800">{email}</p>
+                                {email === user?.email && <p className="text-[10px] text-green-600 font-bold">Đang đăng nhập (Bạn)</p>}
+                             </div>
+                           </div>
+                           {email !== user?.email && (
+                             <button onClick={() => handleRemoveEmail(email)} className="text-red-500 hover:bg-red-50 px-3 py-1.5 rounded-md text-xs font-bold transition border border-transparent hover:border-red-200">Thu hồi quyền</button>
+                           )}
+                        </li>
+                     ))}
+                   </ul>
+                </div>
+              </div>
+            )}
+
           </div>
         </div>
       </div>
       
+      {/* MODAL CẤU HÌNH PHÂN KHU TỪ ADMIN */}
       {isPhanKhuModalOpen && (
         <div className="fixed inset-0 bg-blue-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl p-6 md:p-8 w-full max-w-2xl transform transition-all overflow-y-auto max-h-[90vh]">
@@ -645,20 +666,6 @@ export default function AdminPage() {
             </div>
 
             <div className="flex justify-end gap-3 border-t border-gray-100 pt-5"><button onClick={() => setIsPhanKhuModalOpen(false)} className="px-6 py-2.5 rounded-lg text-gray-600 font-bold hover:bg-gray-100">Hủy</button><button onClick={handleSavePK} disabled={isSavingPK} className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-2.5 rounded-lg font-bold shadow-md disabled:opacity-50">Lưu thông tin</button></div>
-          </div>
-        </div>
-      )}
-
-      {isPwdModalOpen && (
-        <div className="fixed inset-0 bg-blue-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl p-6 md:p-8 w-full max-w-sm">
-            <h2 className="text-xl font-bold text-blue-900 mb-6">Đổi Mật Khẩu Admin</h2>
-            <div className="space-y-4 mb-6">
-              <div><label className="block text-xs font-bold text-gray-600 mb-1">Mật khẩu cũ</label><input type="password" value={pwdData.old} onChange={e => setPwdData({...pwdData, old: e.target.value})} className="w-full p-3 border rounded-lg outline-none focus:border-blue-500" /></div>
-              <div><label className="block text-xs font-bold text-gray-600 mb-1">Mật khẩu mới</label><input type="password" value={pwdData.new} onChange={e => setPwdData({...pwdData, new: e.target.value})} className="w-full p-3 border rounded-lg outline-none focus:border-blue-500" /></div>
-              <div><label className="block text-xs font-bold text-gray-600 mb-1">Nhập lại</label><input type="password" value={pwdData.confirm} onChange={e => setPwdData({...pwdData, confirm: e.target.value})} className="w-full p-3 border rounded-lg outline-none focus:border-blue-500" /></div>
-            </div>
-            <div className="flex justify-end gap-3"><button onClick={() => setIsPwdModalOpen(false)} className="px-4 py-2 text-gray-600 font-bold hover:bg-gray-100 rounded-lg">Hủy</button><button onClick={handleChangePassword} className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-bold">Cập nhật</button></div>
           </div>
         </div>
       )}

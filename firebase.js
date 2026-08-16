@@ -1,17 +1,18 @@
-import { initializeApp, getApps } from "firebase/app";
+import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
-import { getStorage } from "firebase/storage";
+import { getAuth, GoogleAuthProvider } from "firebase/auth";
 
+// BẠN HÃY GIỮ NGUYÊN ĐOẠN FIREBASE CONFIG THẬT CỦA BẠN Ở ĐÂY NHÉ:
 const firebaseConfig = {
-  apiKey: "AIzaSyDazUxRNjxzYAM-_vIH0kfpwf_e7MN3P1g",
-  authDomain: "vinhomes-data.firebaseapp.com",
-  projectId: "vinhomes-data",
-  storageBucket: "vinhomes-data.firebasestorage.app",
-  messagingSenderId: "429430673894",
-  appId: "1:429430673894:web:3058c5fe2d985ca2aa4627"
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID
 };
 
-// Khởi tạo Firebase
-const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
-export const storage = getStorage(app);
+export const auth = getAuth(app); 
+export const provider = new GoogleAuthProvider();
