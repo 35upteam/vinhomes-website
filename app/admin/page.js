@@ -9,6 +9,15 @@ export default function AdminPage() {
   const [password, setPassword] = useState('');
   const [dbPassword, setDbPassword] = useState('0912791925'); 
 
+  // DATA MẪU - TỰ ĐỘNG BƠM NẾU CHƯA CÓ
+  const defaultPkConfig = {
+    "Lumiere Evergreen": { phi: "18.000 VNĐ/m2", tongQuan: "Phân khu cao cấp bậc nhất với bộ sưu tập tiện ích trong nhà và ngoài trời mang tiêu chuẩn quốc tế, được phát triển bởi Masterise Homes.", uuDiem: "Miễn phí bể bơi 4 mùa, phòng gym hiện đại; Sảnh lễ tân tiêu chuẩn 5 sao; Kính Low-E cản nhiệt toàn bộ mặt ngoài; Gần nhà xe nổi và trường học." },
+    "Masteri West Height": { phi: "18.000 VNĐ/m2", tongQuan: "Vị trí 'kim cương' trực diện hồ trung tâm 4.8ha, mang đến tầm view đắt giá và không gian sống đẳng cấp.", uuDiem: "Bể bơi tầng thượng Panorama tại mỗi tòa; Thiết bị bàn giao từ thương hiệu quốc tế (Kohler, Hafele, Daikin); 51 tiện ích đặc quyền chuẩn resort; Miễn phí quản lý 3 năm đầu." },
+    "Tonkin": { phi: "16.500 VNĐ/m2", tongQuan: "Phân khu mang đậm dấu ấn Indochine nghệ thuật, thiết kế tinh tế kết hợp hài hòa giữa nét hoài cổ phương Đông và sự hiện đại phương Tây.", uuDiem: "Có bể bơi nhiệt đới Oasis phong cách Indochine; Kế cận công viên trung tâm Central Park; Tiêu chuẩn bàn giao liền tường cao cấp (có điều hòa âm trần)." },
+    "Sapphire": { phi: "8.800 VNĐ/m2", tongQuan: "Phân khu năng động, nhịp sống sầm uất với mức chi phí dịch vụ tối ưu, lý tưởng cho giới trẻ và các gia đình mới.", uuDiem: "Ngay kế bên công viên thể thao Sportia Park; Nhiều trường mầm non và shophouse khối đế sầm uất; Tuyến xe buýt Vinbus nội khu thuận tiện; Mức giá thuê/mua hợp lý nhất dự án." },
+    "Sola Park": { phi: "10.000 VNĐ/m2", tongQuan: "Phân khu mới mang thiết kế hiện đại, nhiều không gian xanh, nằm tại tâm điểm giao thương sầm uất của dự án.", uuDiem: "Kế cận trường liên cấp Vinschool; Gần cổng chào dự án giúp di chuyển ra Lê Trọng Tấn dễ dàng; Thiết kế layout căn hộ tối ưu công năng." }
+  };
+
   useEffect(() => {
     const fetchAuth = async () => {
       const docSnap = await getDoc(doc(db, 'settings', 'adminAuth'));
@@ -19,6 +28,7 @@ export default function AdminPage() {
 
   const [isPwdModalOpen, setIsPwdModalOpen] = useState(false);
   const [pwdData, setPwdData] = useState({ old: '', new: '', confirm: '' });
+  
   const [isPhanKhuModalOpen, setIsPhanKhuModalOpen] = useState(false);
   const phanKhuList = ['Sapphire', 'Miami', 'Sakura', 'Victoria', 'Imperia', 'Sola Park', 'Tonkin', 'Canopy', 'Masteri West Height', 'Lumiere Evergreen'];
   const [phanKhuData, setPhanKhuData] = useState({});
@@ -34,7 +44,7 @@ export default function AdminPage() {
   const [adminTab, setAdminTab] = useState('quy-can');
   const [properties, setProperties] = useState([]);
   const [kyGuiList, setKyGuiList] = useState([]);
-  const [nhoTimList, setNhoTimList] = useState([]); // THÊM STATE KHÁCH NHỜ TÌM
+  const [nhoTimList, setNhoTimList] = useState([]);
   const [editingId, setEditingId] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   
@@ -63,7 +73,6 @@ export default function AdminPage() {
     setKyGuiList(querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
   };
 
-  // FETCH DỮ LIỆU KHÁCH NHỜ TÌM
   const fetchNhoTim = async () => {
     const q = query(collection(db, 'nho_tim_can'), orderBy('createdAt', 'desc'));
     const querySnapshot = await getDocs(q);
@@ -72,8 +81,13 @@ export default function AdminPage() {
 
   const fetchPhanKhu = async () => {
     const pkDoc = await getDoc(doc(db, 'settings', 'phanKhuConfig'));
-    if (pkDoc.exists()) setPhanKhuData(pkDoc.data());
-    else setPhanKhuData({});
+    if (pkDoc.exists() && Object.keys(pkDoc.data()).length > 0) {
+      setPhanKhuData(pkDoc.data());
+    } else {
+      // Nếu chưa có, tự động tạo Seed Data
+      await setDoc(doc(db, 'settings', 'phanKhuConfig'), defaultPkConfig);
+      setPhanKhuData(defaultPkConfig);
+    }
   };
 
   const openPhanKhuModal = () => { 
@@ -111,7 +125,6 @@ export default function AdminPage() {
     } catch (error) { alert('Lỗi khi đổi mật khẩu!'); }
   };
 
-  // Cập nhật formData: Nếu đổi sang Thuê thì reset nhãn dán nếu đang là Cắt lỗ
   const handleInputChange = (e) => {
     const name = e.target.name;
     const val = e.target.value;
@@ -149,11 +162,9 @@ export default function AdminPage() {
           const textWidth = ctx.measureText(text).width;
           const padding = 10;
           
-          // Vẽ hộp nền trong suốt
           ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
           ctx.fillRect(canvas.width - textWidth - padding * 2, canvas.height - fontSize - padding * 2, textWidth + padding * 2, fontSize + padding * 2);
           
-          // Vẽ chữ trắng
           ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
           ctx.textAlign = 'right';
           ctx.textBaseline = 'bottom';
@@ -294,7 +305,6 @@ export default function AdminPage() {
   const unreadKyGuiCount = kyGuiList.filter(k => k.status === 'Chưa xử lý').length;
   const unreadNhoTimCount = nhoTimList.filter(k => k.status === 'Chưa xử lý').length;
 
-  // Xử lý danh sách nhãn dán cho phù hợp loại hình
   const nhanDanOptions = formData.listingType === 'Chuyển nhượng' 
     ? ['Không có', 'Giá tốt', 'Độc quyền', 'Cắt lỗ'] 
     : ['Không có', 'Giá tốt', 'Độc quyền'];
@@ -389,13 +399,13 @@ export default function AdminPage() {
 
             <div>
               <label className="block text-[11px] font-bold mb-1.5 text-gray-500 uppercase">Ghi chú mật (Chỉ lưu nội bộ)</label>
-              <textarea name="moTa" value={formData.moTa || ''} onChange={handleInputChange} rows="2" placeholder="VD: Pass cửa, thông tin chủ nhà, % hoa hồng..." className="w-full p-3 border border-gray-200 rounded-lg focus:border-blue-500 outline-none text-sm font-medium"></textarea>
+              <textarea name="moTa" value={formData.moTa || ''} onChange={handleInputChange} rows="2" placeholder="VD: Pass cửa, thông chủ nhà, % hoa hồng..." className="w-full p-3 border border-gray-200 rounded-lg focus:border-blue-500 outline-none text-sm font-medium"></textarea>
             </div>
 
             <div className="border-2 border-dashed border-gray-300 p-5 text-center rounded-xl bg-gray-50 hover:bg-gray-100 transition">
               <label className="block font-bold mb-2 cursor-pointer text-blue-900 text-sm">Tải lên Ảnh căn hộ</label>
               <input type="file" multiple accept="image/*" onChange={handleImageChange} className="w-full text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200 cursor-pointer" />
-              {images.length > 0 && <p className="text-sm text-blue-600 mt-3 font-bold">Đã chọn {images.length} ảnh mới</p>}
+              {images.length > 0 && <p className="text-sm text-blue-600 mt-3 font-bold">Đã chọn {images.length} ảnh mới (Có Watermark tự động)</p>}
             </div>
 
             <button type="submit" disabled={isUploading} className="w-full bg-blue-600 hover:bg-blue-700 text-white p-4 rounded-xl font-bold text-base transition shadow-lg shadow-blue-600/30 disabled:bg-gray-400 mt-2">
@@ -533,7 +543,6 @@ export default function AdminPage() {
               </table>
             )}
 
-            {/* TAB KHÁCH NHỜ TÌM */}
             {adminTab === 'nho-tim' && (
               <table className="w-full text-sm text-left">
                 <thead className="bg-gray-100 text-gray-500 uppercase text-[10px] font-bold tracking-wider">

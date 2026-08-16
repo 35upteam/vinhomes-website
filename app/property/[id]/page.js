@@ -200,7 +200,6 @@ export default function PropertyDetail() {
             <div className="mb-8 border-b border-gray-200 pb-6">
               <h1 className="text-2xl md:text-3xl font-bold text-blue-950 mb-6 leading-tight">{titleString}</h1>
               
-              {/* THẺ GIÁ THIẾT KẾ CỰC SANG TRỌNG & TỐI GIẢN CHUẨN YÊU CẦU */}
               <div className="flex justify-between items-center bg-white">
                  <div className="flex items-baseline gap-2">
                     <span className="text-sm font-semibold text-gray-500 uppercase tracking-wide">{property.listingType === 'Chuyển nhượng' ? 'Giá bán:' : 'Giá thuê:'}</span>
@@ -274,7 +273,6 @@ export default function PropertyDetail() {
             <div className="bg-white rounded-2xl shadow-xl shadow-gray-200/50 border border-gray-100 p-6">
               <h2 className="text-2xl font-black text-blue-900 uppercase tracking-tight mb-2 text-center">Liên hệ tư vấn</h2>
               <h3 className="text-base font-bold text-gray-800 mb-3 text-center">Quỹ Căn Smart City</h3>
-              {/* CHỈNH LẠI CĂN ĐỀU 2 BÊN NHƯ YÊU CẦU */}
               <p className="text-[13px] text-gray-500 mb-6 font-medium leading-relaxed text-justify">Chuyên viên tư vấn trực tiếp 24/7. Hỗ trợ thông tin pháp lý, xem nhà thực tế và thương lượng mức giá tốt nhất.</p>
               
               <div className="space-y-3">
