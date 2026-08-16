@@ -24,7 +24,10 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="vi">
-      <body className="font-sans antialiased text-gray-800 bg-gray-50">{children}</body>
+      {/* KHÔNG ÉP FONT NÀO CẢ, ĐỂ TRÌNH DUYỆT TỰ DÙNG SYSTEM FONT MẶC ĐỊNH ĐỂ TRÁNH LỖI TIẾNG VIỆT */}
+      <body className="bg-gray-50 text-gray-800 antialiased">
+        {children}
+      </body>
     </html>
   )
 }
