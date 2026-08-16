@@ -81,7 +81,7 @@ const PropertyCard = ({ item, contactPhone }) => {
           <object>
             <a href={`https://zalo.me/${contactPhone}?text=${encodeURIComponent(`Xin chào, tôi muốn nhờ tư vấn căn hộ Mã ${item.maCan} (${item.listingType} ${item.loaiCan} tòa ${item.toaNha}) trên web.`)}`} target="_blank" rel="noreferrer" onClick={(e)=>e.stopPropagation()} className="w-full bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-700 hover:to-blue-900 text-white text-center py-3 rounded-xl font-bold transition shadow-md shadow-blue-600/20 flex justify-center items-center gap-2">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
-              Tư vấn căn này
+              Nhận tư vấn căn này
             </a>
           </object>
         </div>
@@ -196,7 +196,7 @@ export default function Home() {
     
     try {
       await addDoc(collection(db, 'nho_tim_can'), { ...findData, source: 'Nút Nhờ Tìm', createdAt: serverTimestamp(), status: 'Chưa xử lý' });
-    } catch(err) { console.error("Lỗi Firebase", err); }
+    } catch(err) {}
 
     const BOT_TOKEN = process.env.NEXT_PUBLIC_TELEGRAM_BOT_TOKEN; 
     const CHAT_ID = process.env.NEXT_PUBLIC_TELEGRAM_CHAT_ID;
@@ -226,7 +226,7 @@ export default function Home() {
 
     try {
       await addDoc(collection(db, 'nho_tim_can'), { ...leadData, source: 'Popup 20s', createdAt: serverTimestamp(), status: 'Chưa xử lý' });
-    } catch(err) { console.error("Lỗi Firebase", err); }
+    } catch(err) {}
 
     const BOT_TOKEN = process.env.NEXT_PUBLIC_TELEGRAM_BOT_TOKEN; 
     const CHAT_ID = process.env.NEXT_PUBLIC_TELEGRAM_CHAT_ID;
@@ -241,7 +241,7 @@ export default function Home() {
     }
     setIsSendingLead(false);
     setIsLeadPopupOpen(false);
-    alert("Gửi yêu cầu thành công! Chuyên viên An Ninh sẽ tìm và gửi báo giá qua Zalo cho anh/chị trong ít phút.");
+    alert("Gửi yêu cầu thành công! Chuyên viên An Ninh sẽ liên hệ Zalo cho anh/chị trong ít phút.");
   };
 
   if (loading) return <div className="flex justify-center items-center h-screen bg-gray-50"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-900"></div></div>;
@@ -263,9 +263,9 @@ export default function Home() {
         </div>
       </header>
       
-      {/* BANNER ẢNH SÁNG HƠN BẰNG OPACITY 100%, CẮT TOP */}
+      {/* SỬA BANNER DÙNG bg-bottom ĐỂ GIỮ MÉP DƯỚI */}
       <section className="relative bg-blue-950 text-white py-24 px-4 md:px-12 flex items-center overflow-hidden">
-        <div className="absolute inset-0 bg-[url('/banner.jpg')] bg-cover bg-top opacity-100"></div>
+        <div className="absolute inset-0 bg-[url('/banner.jpg')] bg-cover bg-bottom opacity-100"></div>
         <div className="absolute inset-0 bg-gradient-to-r from-blue-950/70 via-blue-900/40 to-transparent"></div>
         <div className="relative z-10 max-w-5xl mx-auto w-full">
           <p className="text-sm font-bold text-blue-200 mb-4 uppercase tracking-[0.3em] drop-shadow-md">Vinhomes Smart City</p>
@@ -466,13 +466,13 @@ export default function Home() {
                  <button type="submit" disabled={isSendingFind} className="w-full bg-blue-700 hover:bg-blue-800 text-white p-3.5 rounded-lg font-bold text-base transition shadow-md disabled:bg-gray-400 flex items-center justify-center gap-2 mt-2">
                    {isSendingFind ? 'Đang gửi...' : <><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg> Gửi yêu cầu tìm căn</>}
                  </button>
-              </form>
+               </form>
             </div>
           </div>
         </div>
       )}
 
-      {/* POPUP BẮT LEAD THÔNG MINH */}
+      {/* POPUP BẮT LEAD 20S */}
       {isLeadPopupOpen && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[110] flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-fade-in-up text-center relative border-4 border-blue-100">
