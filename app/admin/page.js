@@ -11,6 +11,9 @@ export default function AdminPage() {
   const [allowedEmails, setAllowedEmails] = useState([]);
   const [newEmail, setNewEmail] = useState('');
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  
+  // STATE MỚI: QUẢN LÝ TÀI KHOẢN MODAL
+  const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
 
   const defaultPkConfig = {
     "Sapphire": { phi: "8.800 VNĐ/m2", tongQuan: "Phân khu trung tâm sầm uất với mức chi phí dịch vụ tối ưu, thiết kế năng động lý tưởng cho giới trẻ và các gia đình mới.", uuDiem: "Ngay kế bên công viên thể thao Sportia Park; Hệ thống shophouse khối đế sầm uất; Trạm xe buýt nội khu thuận tiện; Mức giá thuê/mua hợp lý nhất dự án." },
@@ -327,105 +330,107 @@ export default function AdminPage() {
              <Link href="/" className="bg-white rounded-lg p-1.5 h-10 flex items-center justify-center shadow-inner"><img src="/logo.png" alt="Logo" className="h-full object-contain" /></Link>
              <h1 className="font-bold text-base tracking-wider hidden sm:block">ADMIN DASHBOARD</h1>
           </div>
-          <div className="flex gap-4 items-center">
-            <span className="hidden md:block text-xs font-medium text-blue-200">{user?.email}</span>
-            <button onClick={openPhanKhuModal} className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg text-sm font-bold transition flex items-center shadow-md">Cấu hình Phân khu</button>
-            <button onClick={handleLogout} className="bg-red-500 hover:bg-red-600 px-4 py-2 rounded-lg text-sm font-bold transition">Đăng xuất</button>
+          <div className="flex gap-3 items-center">
+            <span className="hidden lg:block text-xs font-medium text-blue-200">{user?.email}</span>
+            <button onClick={() => setIsAccountModalOpen(true)} className="bg-white/10 hover:bg-white/20 border border-white/30 px-3 py-2 rounded-lg text-sm font-medium transition flex items-center gap-1.5" title="Quản lý Tài khoản">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+              <span className="hidden md:inline">Tài khoản</span>
+            </button>
+            <button onClick={openPhanKhuModal} className="bg-blue-600 hover:bg-blue-700 px-3 py-2 rounded-lg text-sm font-bold transition flex items-center shadow-md">Phân khu</button>
+            <button onClick={handleLogout} className="bg-red-500 hover:bg-red-600 px-3 py-2 rounded-lg text-sm font-bold transition">Thoát</button>
           </div>
         </div>
       </nav>
 
       <div className="max-w-[1400px] mx-auto px-4 md:px-8 mt-8 flex flex-col xl:flex-row gap-8 items-start">
-        {adminTab !== 'tai-khoan' && (
-          <div className="w-full xl:w-[35%] flex-shrink-0 bg-white p-6 md:p-8 rounded-2xl shadow-sm shadow-gray-200/50 border border-gray-100">
-            <div className="flex justify-between items-center mb-6 pb-4 border-b border-gray-100">
-               <div>
-                 <h2 className="text-xl font-bold text-blue-900 tracking-tight">{editingId ? 'Sửa thông tin căn hộ' : 'Lên giỏ hàng mới'}</h2>
-                 {editingId && <p className="text-blue-600 font-bold mt-1 text-sm">Đang sửa mã: {formData.maCan}</p>}
-               </div>
-               {editingId && <button onClick={() => {setEditingId(null); setFormData(initialForm);}} className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded-md font-bold transition">Hủy sửa</button>}
-            </div>
-            
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="flex bg-gray-50 p-1.5 rounded-xl border border-gray-200">
-                <label className="flex-1 cursor-pointer">
-                  <input type="radio" name="listingType" value="Cho thuê" checked={formData.listingType === 'Cho thuê'} onChange={handleInputChange} className="hidden peer" />
-                  <div className="text-center py-2.5 rounded-lg peer-checked:bg-white peer-checked:text-blue-600 peer-checked:shadow-sm font-bold text-gray-500 transition text-sm">Cho Thuê</div>
-                </label>
-                <label className="flex-1 cursor-pointer">
-                  <input type="radio" name="listingType" value="Chuyển nhượng" checked={formData.listingType === 'Chuyển nhượng'} onChange={handleInputChange} className="hidden peer" />
-                  <div className="text-center py-2.5 rounded-lg peer-checked:bg-white peer-checked:text-blue-600 peer-checked:shadow-sm font-bold text-gray-500 transition text-sm">Chuyển Nhượng</div>
-                </label>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-[11px] font-bold mb-1 text-gray-500 uppercase">Phân khu</label>
-                  <select name="phanKhu" value={formData.phanKhu} onChange={handleInputChange} className="w-full p-3 border border-gray-200 rounded-lg focus:border-blue-500 outline-none text-sm font-medium">{phanKhuList.map(opt => <option key={opt}>{opt}</option>)}</select>
-                </div>
-                <div>
-                  <label className="block text-[11px] font-bold mb-1 text-gray-500 uppercase">Tòa nhà (VD: S1.02)</label>
-                  <input name="toaNha" value={formData.toaNha} onChange={handleInputChange} placeholder="Nhập tên tòa..." className="w-full p-3 border border-gray-200 rounded-lg focus:border-blue-500 outline-none text-sm font-medium" required />
-                </div>
-                <div>
-                  <label className="block text-[11px] font-bold mb-1 text-gray-500 uppercase">Loại căn</label>
-                  <select name="loaiCan" value={formData.loaiCan} onChange={handleInputChange} className="w-full p-3 border border-gray-200 rounded-lg focus:border-blue-500 outline-none text-sm font-medium">{['Studio', '1N', '1N+', '2N1WC', '2N2WC', '2N+', '3N', '4N'].map(opt => <option key={opt}>{opt}</option>)}</select>
-                </div>
-                <div>
-                  <label className="block text-[11px] font-bold mb-1 text-gray-500 uppercase">Khoảng tầng</label>
-                  <select name="khoangTang" value={formData.khoangTang} onChange={handleInputChange} className="w-full p-3 border border-gray-200 rounded-lg focus:border-blue-500 outline-none text-sm font-medium">{['Tầng thấp', 'Tầng trung', 'Tầng cao'].map(opt => <option key={opt}>{opt}</option>)}</select>
-                </div>
-                <div>
-                  <label className="block text-[11px] font-bold mb-1 text-gray-500 uppercase">Hướng</label>
-                  <select name="huongBanCong" value={formData.huongBanCong} onChange={handleInputChange} className="w-full p-3 border border-gray-200 rounded-lg focus:border-blue-500 outline-none text-sm font-medium">{['Đông', 'Tây', 'Nam', 'Bắc', 'Đông Nam', 'Đông Bắc', 'Tây Nam', 'Tây Bắc'].map(opt => <option key={opt}>{opt}</option>)}</select>
-                </div>
-                <div>
-                  <label className="block text-[11px] font-bold mb-1 text-gray-500 uppercase">Nội thất</label>
-                  <select name="noiThat" value={formData.noiThat} onChange={handleInputChange} className="w-full p-3 border border-gray-200 rounded-lg focus:border-blue-500 outline-none text-sm font-medium">{['Nguyên bản CĐT', 'Đồ cơ bản', 'Đầy đủ nội thất'].map(opt => <option key={opt}>{opt}</option>)}</select>
-                </div>
-                 <div>
-                    <label className="block text-[11px] font-bold mb-1 text-gray-500 uppercase">Diện tích (m²)</label>
-                    <input name="area" value={formData.area} onChange={handleInputChange} type="number" step="0.1" placeholder="Nhập số" className="w-full p-3 border border-gray-200 rounded-lg focus:border-blue-500 outline-none text-sm font-medium" required />
-                 </div>
-                 <div>
-                    <label className="block text-[11px] font-bold mb-1 text-gray-500 uppercase">{formData.listingType === 'Cho thuê' ? 'Giá thuê (Triệu)' : 'Giá bán (Tỷ)'}</label>
-                    <input name="price" value={formData.price} onChange={handleInputChange} type="number" step="0.01" placeholder="VD: 15.5" className="w-full p-3 border border-gray-200 rounded-lg focus:border-blue-500 outline-none text-sm font-medium" required />
-                 </div>
-              </div>
-
-              <div className="flex gap-4">
-                {formData.listingType === 'Cho thuê' && (
-                  <div className="bg-blue-50/50 p-3 rounded-xl border border-blue-100 flex-1">
-                    <label className="block text-[11px] font-bold mb-1 text-blue-800 uppercase">Ngày nhận nhà</label>
-                    <input type="date" name="ngayNhanNha" value={formData.ngayNhanNha || ''} onChange={handleInputChange} className="w-full p-2 border border-blue-200 rounded-lg focus:border-blue-500 outline-none text-sm font-medium" />
-                  </div>
-                )}
-                
-                <div className="bg-red-50/50 p-3 rounded-xl border border-red-100 flex-1">
-                  <label className="block text-[11px] font-bold mb-1 text-red-800 uppercase">Gắn nhãn HOT</label>
-                  <select name="nhanDan" value={formData.nhanDan || 'Không có'} onChange={handleInputChange} className="w-full p-2 border border-red-200 rounded-lg focus:border-red-500 outline-none text-sm font-medium text-red-700 bg-white">
-                    {nhanDanOptions.map(opt => <option key={opt}>{opt}</option>)}
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-bold mb-1.5 text-gray-500 uppercase">Ghi chú mật (Chỉ lưu nội bộ)</label>
-                <textarea name="moTa" value={formData.moTa || ''} onChange={handleInputChange} rows="2" placeholder="VD: Pass cửa, thông tin chủ nhà, % hoa hồng..." className="w-full p-3 border border-gray-200 rounded-lg focus:border-blue-500 outline-none text-sm font-medium"></textarea>
-              </div>
-
-              <div className="border-2 border-dashed border-gray-300 p-5 text-center rounded-xl bg-gray-50 hover:bg-gray-100 transition">
-                <label className="block font-bold mb-2 cursor-pointer text-blue-900 text-sm">Tải lên Ảnh căn hộ</label>
-                <input type="file" multiple accept="image/*" onChange={handleImageChange} className="w-full text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200 cursor-pointer" />
-                {images.length > 0 && <p className="text-sm text-blue-600 mt-3 font-bold">Đã chọn {images.length} ảnh mới</p>}
-              </div>
-
-              <button type="submit" disabled={isUploading} className="w-full bg-blue-600 hover:bg-blue-700 text-white p-4 rounded-xl font-bold text-base transition shadow-lg shadow-blue-600/30 disabled:bg-gray-400 mt-2">
-                 {isUploading ? 'Đang tải dữ liệu...' : (editingId ? 'CẬP NHẬT THÔNG TIN' : `ĐĂNG CĂN ${formData.listingType.toUpperCase()}`)}
-              </button>
-            </form>
+        <div className="w-full xl:w-[35%] flex-shrink-0 bg-white p-6 md:p-8 rounded-2xl shadow-sm shadow-gray-200/50 border border-gray-100">
+          <div className="flex justify-between items-center mb-6 pb-4 border-b border-gray-100">
+             <div>
+               <h2 className="text-xl font-bold text-blue-900 tracking-tight">{editingId ? 'Sửa thông tin căn hộ' : 'Lên giỏ hàng mới'}</h2>
+               {editingId && <p className="text-blue-600 font-bold mt-1 text-sm">Đang sửa mã: {formData.maCan}</p>}
+             </div>
+             {editingId && <button onClick={() => {setEditingId(null); setFormData(initialForm);}} className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded-md font-bold transition">Hủy sửa</button>}
           </div>
-        )}
+          
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="flex bg-gray-50 p-1.5 rounded-xl border border-gray-200">
+              <label className="flex-1 cursor-pointer">
+                <input type="radio" name="listingType" value="Cho thuê" checked={formData.listingType === 'Cho thuê'} onChange={handleInputChange} className="hidden peer" />
+                <div className="text-center py-2.5 rounded-lg peer-checked:bg-white peer-checked:text-blue-600 peer-checked:shadow-sm font-bold text-gray-500 transition text-sm">Cho Thuê</div>
+              </label>
+              <label className="flex-1 cursor-pointer">
+                <input type="radio" name="listingType" value="Chuyển nhượng" checked={formData.listingType === 'Chuyển nhượng'} onChange={handleInputChange} className="hidden peer" />
+                <div className="text-center py-2.5 rounded-lg peer-checked:bg-white peer-checked:text-blue-600 peer-checked:shadow-sm font-bold text-gray-500 transition text-sm">Chuyển Nhượng</div>
+              </label>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-[11px] font-bold mb-1 text-gray-500 uppercase">Phân khu</label>
+                <select name="phanKhu" value={formData.phanKhu} onChange={handleInputChange} className="w-full p-3 border border-gray-200 rounded-lg focus:border-blue-500 outline-none text-sm font-medium">{phanKhuList.map(opt => <option key={opt}>{opt}</option>)}</select>
+              </div>
+              <div>
+                <label className="block text-[11px] font-bold mb-1 text-gray-500 uppercase">Tòa nhà (VD: S1.02)</label>
+                <input name="toaNha" value={formData.toaNha} onChange={handleInputChange} placeholder="Nhập tên tòa..." className="w-full p-3 border border-gray-200 rounded-lg focus:border-blue-500 outline-none text-sm font-medium" required />
+              </div>
+              <div>
+                <label className="block text-[11px] font-bold mb-1 text-gray-500 uppercase">Loại căn</label>
+                <select name="loaiCan" value={formData.loaiCan} onChange={handleInputChange} className="w-full p-3 border border-gray-200 rounded-lg focus:border-blue-500 outline-none text-sm font-medium">{['Studio', '1N', '1N+', '2N1WC', '2N2WC', '2N+', '3N', '4N'].map(opt => <option key={opt}>{opt}</option>)}</select>
+              </div>
+              <div>
+                <label className="block text-[11px] font-bold mb-1 text-gray-500 uppercase">Khoảng tầng</label>
+                <select name="khoangTang" value={formData.khoangTang} onChange={handleInputChange} className="w-full p-3 border border-gray-200 rounded-lg focus:border-blue-500 outline-none text-sm font-medium">{['Tầng thấp', 'Tầng trung', 'Tầng cao'].map(opt => <option key={opt}>{opt}</option>)}</select>
+              </div>
+              <div>
+                <label className="block text-[11px] font-bold mb-1 text-gray-500 uppercase">Hướng</label>
+                <select name="huongBanCong" value={formData.huongBanCong} onChange={handleInputChange} className="w-full p-3 border border-gray-200 rounded-lg focus:border-blue-500 outline-none text-sm font-medium">{['Đông', 'Tây', 'Nam', 'Bắc', 'Đông Nam', 'Đông Bắc', 'Tây Nam', 'Tây Bắc'].map(opt => <option key={opt}>{opt}</option>)}</select>
+              </div>
+              <div>
+                <label className="block text-[11px] font-bold mb-1 text-gray-500 uppercase">Nội thất</label>
+                <select name="noiThat" value={formData.noiThat} onChange={handleInputChange} className="w-full p-3 border border-gray-200 rounded-lg focus:border-blue-500 outline-none text-sm font-medium">{['Nguyên bản CĐT', 'Đồ cơ bản', 'Đầy đủ nội thất'].map(opt => <option key={opt}>{opt}</option>)}</select>
+              </div>
+               <div>
+                  <label className="block text-[11px] font-bold mb-1 text-gray-500 uppercase">Diện tích (m²)</label>
+                  <input name="area" value={formData.area} onChange={handleInputChange} type="number" step="0.1" placeholder="Nhập số" className="w-full p-3 border border-gray-200 rounded-lg focus:border-blue-500 outline-none text-sm font-medium" required />
+               </div>
+               <div>
+                  <label className="block text-[11px] font-bold mb-1 text-gray-500 uppercase">{formData.listingType === 'Cho thuê' ? 'Giá thuê (Triệu)' : 'Giá bán (Tỷ)'}</label>
+                  <input name="price" value={formData.price} onChange={handleInputChange} type="number" step="0.01" placeholder="VD: 15.5" className="w-full p-3 border border-gray-200 rounded-lg focus:border-blue-500 outline-none text-sm font-medium" required />
+               </div>
+            </div>
+
+            <div className="flex gap-4">
+              {formData.listingType === 'Cho thuê' && (
+                <div className="bg-blue-50/50 p-3 rounded-xl border border-blue-100 flex-1">
+                  <label className="block text-[11px] font-bold mb-1 text-blue-800 uppercase">Ngày nhận nhà</label>
+                  <input type="date" name="ngayNhanNha" value={formData.ngayNhanNha || ''} onChange={handleInputChange} className="w-full p-2 border border-blue-200 rounded-lg focus:border-blue-500 outline-none text-sm font-medium" />
+                </div>
+              )}
+              
+              <div className="bg-red-50/50 p-3 rounded-xl border border-red-100 flex-1">
+                <label className="block text-[11px] font-bold mb-1 text-red-800 uppercase">Gắn nhãn HOT</label>
+                <select name="nhanDan" value={formData.nhanDan || 'Không có'} onChange={handleInputChange} className="w-full p-2 border border-red-200 rounded-lg focus:border-red-500 outline-none text-sm font-medium text-red-700 bg-white">
+                  {nhanDanOptions.map(opt => <option key={opt}>{opt}</option>)}
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-bold mb-1.5 text-gray-500 uppercase">Ghi chú mật (Chỉ lưu nội bộ)</label>
+              <textarea name="moTa" value={formData.moTa || ''} onChange={handleInputChange} rows="2" placeholder="VD: Pass cửa, thông tin chủ nhà, % hoa hồng..." className="w-full p-3 border border-gray-200 rounded-lg focus:border-blue-500 outline-none text-sm font-medium"></textarea>
+            </div>
+
+            <div className="border-2 border-dashed border-gray-300 p-5 text-center rounded-xl bg-gray-50 hover:bg-gray-100 transition">
+              <label className="block font-bold mb-2 cursor-pointer text-blue-900 text-sm">Tải lên Ảnh căn hộ</label>
+              <input type="file" multiple accept="image/*" onChange={handleImageChange} className="w-full text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200 cursor-pointer" />
+              {images.length > 0 && <p className="text-sm text-blue-600 mt-3 font-bold">Đã chọn {images.length} ảnh mới</p>}
+            </div>
+
+            <button type="submit" disabled={isUploading} className="w-full bg-blue-600 hover:bg-blue-700 text-white p-4 rounded-xl font-bold text-base transition shadow-lg shadow-blue-600/30 disabled:bg-gray-400 mt-2">
+               {isUploading ? 'Đang tải dữ liệu...' : (editingId ? 'CẬP NHẬT THÔNG TIN' : `ĐĂNG CĂN ${formData.listingType.toUpperCase()}`)}
+            </button>
+          </form>
+        </div>
 
         <div className="flex-1 w-full bg-white p-6 md:p-8 rounded-2xl shadow-sm shadow-gray-200/50 border border-gray-100 overflow-hidden">
           <div className="flex flex-wrap gap-4 mb-6 border-b border-gray-100 pb-2">
@@ -440,22 +445,17 @@ export default function AdminPage() {
               Khách Nhờ Tìm
               {unreadNhoTimCount > 0 && <span className="bg-red-500 text-white text-[10px] px-2 py-0.5 rounded-full shadow-sm animate-pulse">{unreadNhoTimCount}</span>}
             </button>
-            <button onClick={() => setAdminTab('tai-khoan')} className={`font-bold pb-3 border-b-2 transition flex items-center gap-2 ml-auto ${adminTab === 'tai-khoan' ? 'border-blue-900 text-blue-900' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
-              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg> Quản lý Tài khoản
-            </button>
           </div>
 
-          {adminTab !== 'tai-khoan' && (
-             <div className="mb-6">
-               <input 
-                 type="text" 
-                 placeholder={adminTab === 'quy-can' ? "Tìm mã căn, tòa nhà..." : "Tìm SĐT, nhu cầu khách..."}
-                 value={searchTerm}
-                 onChange={(e) => {setSearchTerm(e.target.value); setCurrentPage(1);}}
-                 className="w-full max-w-sm px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition font-medium"
-               />
-             </div>
-          )}
+          <div className="mb-6">
+            <input 
+              type="text" 
+              placeholder={adminTab === 'quy-can' ? "Tìm mã căn, tòa nhà..." : "Tìm SĐT, nhu cầu khách..."}
+              value={searchTerm}
+              onChange={(e) => {setSearchTerm(e.target.value); setCurrentPage(1);}}
+              className="w-full max-w-sm px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition font-medium"
+            />
+          </div>
 
           <div className="overflow-x-auto">
             {adminTab === 'quy-can' && (
@@ -602,41 +602,11 @@ export default function AdminPage() {
               </table>
             )}
 
-            {adminTab === 'tai-khoan' && (
-              <div className="max-w-2xl mx-auto bg-gray-50 p-6 rounded-xl border border-gray-200 mt-6">
-                <h3 className="text-lg font-bold text-blue-900 mb-2">Danh sách Email được cấp quyền</h3>
-                <p className="text-sm text-gray-500 mb-6">Chỉ những tài khoản Gmail dưới đây mới có quyền Đăng nhập và Quản trị nội dung Website này.</p>
-                
-                <div className="flex gap-3 mb-6">
-                  <input type="email" placeholder="Nhập Gmail của cộng tác viên..." value={newEmail} onChange={(e) => setNewEmail(e.target.value)} className="flex-1 p-3 border border-gray-300 rounded-lg outline-none focus:border-blue-600 text-sm" />
-                  <button onClick={handleAddEmail} className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-bold text-sm shadow-md transition whitespace-nowrap">Thêm quyền</button>
-                </div>
-
-                <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-                   <ul className="divide-y divide-gray-100">
-                     {allowedEmails.map(email => (
-                        <li key={email} className="flex justify-between items-center p-4 hover:bg-gray-50 transition">
-                           <div className="flex items-center gap-3">
-                             <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold">{email[0].toUpperCase()}</div>
-                             <div>
-                                <p className="text-sm font-bold text-gray-800">{email}</p>
-                                {email === user?.email && <p className="text-[10px] text-green-600 font-bold">Đang đăng nhập (Bạn)</p>}
-                             </div>
-                           </div>
-                           {email !== user?.email && (
-                             <button onClick={() => handleRemoveEmail(email)} className="text-red-500 hover:bg-red-50 px-3 py-1.5 rounded-md text-xs font-bold transition border border-transparent hover:border-red-200">Thu hồi quyền</button>
-                           )}
-                        </li>
-                     ))}
-                   </ul>
-                </div>
-              </div>
-            )}
-
           </div>
         </div>
       </div>
       
+      {/* MODAL CẤU HÌNH PHÂN KHU TỪ ADMIN */}
       {isPhanKhuModalOpen && (
         <div className="fixed inset-0 bg-blue-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl p-6 md:p-8 w-full max-w-2xl transform transition-all overflow-y-auto max-h-[90vh]">
@@ -668,6 +638,47 @@ export default function AdminPage() {
             </div>
 
             <div className="flex justify-end gap-3 border-t border-gray-100 pt-5"><button onClick={() => setIsPhanKhuModalOpen(false)} className="px-6 py-2.5 rounded-lg text-gray-600 font-bold hover:bg-gray-100">Hủy</button><button onClick={handleSavePK} disabled={isSavingPK} className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-2.5 rounded-lg font-bold shadow-md disabled:opacity-50">Lưu thông tin</button></div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL QUẢN LÝ TÀI KHOẢN (PHÂN QUYỀN GMAIL) */}
+      {isAccountModalOpen && (
+        <div className="fixed inset-0 bg-blue-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl p-6 md:p-8 w-full max-w-2xl transform transition-all overflow-y-auto max-h-[90vh]">
+            <div className="flex justify-between items-center mb-6">
+              <div><h2 className="text-xl font-bold text-blue-900">Quản Lý Tài Khoản</h2></div>
+              <button onClick={() => setIsAccountModalOpen(false)} className="text-gray-400 hover:text-red-500">X</button>
+            </div>
+            
+            <p className="text-sm text-gray-500 mb-6">Chỉ những tài khoản Gmail dưới đây mới có quyền Đăng nhập và Quản trị nội dung Website này.</p>
+            
+            <div className="flex gap-3 mb-6">
+              <input type="email" placeholder="Nhập Gmail của cộng tác viên..." value={newEmail} onChange={(e) => setNewEmail(e.target.value)} className="flex-1 p-3 border border-gray-300 rounded-lg outline-none focus:border-blue-600 text-sm" />
+              <button onClick={handleAddEmail} className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-bold text-sm shadow-md transition whitespace-nowrap">Thêm quyền</button>
+            </div>
+
+            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+               <ul className="divide-y divide-gray-100">
+                 {allowedEmails.map(email => (
+                    <li key={email} className="flex justify-between items-center p-4 hover:bg-gray-50 transition">
+                       <div className="flex items-center gap-3">
+                         <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold">{email[0].toUpperCase()}</div>
+                         <div>
+                            <p className="text-sm font-bold text-gray-800">{email}</p>
+                            {email === user?.email && <p className="text-[10px] text-green-600 font-bold">Đang đăng nhập (Bạn)</p>}
+                         </div>
+                       </div>
+                       {email !== user?.email && (
+                         <button onClick={() => handleRemoveEmail(email)} className="text-red-500 hover:bg-red-50 px-3 py-1.5 rounded-md text-xs font-bold transition border border-transparent hover:border-red-200">Thu hồi quyền</button>
+                       )}
+                    </li>
+                 ))}
+               </ul>
+            </div>
+            <div className="flex justify-end mt-6">
+              <button onClick={() => setIsAccountModalOpen(false)} className="px-6 py-2.5 rounded-lg bg-gray-100 text-gray-600 font-bold hover:bg-gray-200">Đóng</button>
+            </div>
           </div>
         </div>
       )}

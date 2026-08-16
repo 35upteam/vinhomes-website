@@ -1,8 +1,4 @@
-import { Inter } from 'next/font/google';
-import './globals.css';
-
-// Khởi tạo Font chữ Inter
-const inter = Inter({ subsets: ['latin', 'vietnamese'] });
+import './globals.css'
 
 export const metadata = {
   title: 'Quỹ Căn Smart City - Bán & Cho Thuê Giá Tốt Nhất',
@@ -14,7 +10,7 @@ export const metadata = {
     siteName: 'Quỹ Căn Smart City',
     images: [
       {
-        url: '/banner.jpg', 
+        url: '/banner.jpg',
         width: 1200,
         height: 630,
         alt: 'Toàn cảnh Vinhomes Smart City',
@@ -28,7 +24,7 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="vi">
-      <body className={inter.className}>{children}</body>
+      <body>{children}</body>
     </html>
   )
 }
