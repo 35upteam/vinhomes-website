@@ -2,14 +2,13 @@ import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { getAuth, GoogleAuthProvider } from "firebase/auth";
 
-// BẠN HÃY GIỮ NGUYÊN ĐOẠN FIREBASE CONFIG THẬT CỦA BẠN Ở ĐÂY NHÉ:
 const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID
+  apiKey: "AIzaSyDazUxRNjxzYAM-_vIH0kfpwf_e7MN3P1g",
+  authDomain: "vinhomes-data.firebaseapp.com",
+  projectId: "vinhomes-data",
+  storageBucket: "vinhomes-data.firebasestorage.app",
+  messagingSenderId: "429430673894",
+  appId: "1:429430673894:web:3058c5fe2d985ca2aa4627"
 };
 
 const app = initializeApp(firebaseConfig);

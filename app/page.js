@@ -119,6 +119,7 @@ export default function Home() {
   const [leadPhoneError, setLeadPhoneError] = useState('');
 
   useEffect(() => {
+    document.title = "Quỹ Căn Smart City - Bán & Cho Thuê Giá Tốt Nhất";
     const fetchProperties = async () => {
       try {
         const q = query(collection(db, 'properties'), orderBy('createdAt', 'desc'));
@@ -210,8 +211,8 @@ export default function Home() {
     setIsSendingFind(true);
     try { await addDoc(collection(db, 'nho_tim_can'), { ...findData, source: 'Nút Nhờ Tìm', createdAt: serverTimestamp(), status: 'Chưa xử lý' }); } catch(err) {}
 
-    const BOT_TOKEN = process.env.NEXT_PUBLIC_TELEGRAM_BOT_TOKEN; 
-    const CHAT_ID = process.env.NEXT_PUBLIC_TELEGRAM_CHAT_ID;
+    const BOT_TOKEN = "7295171731:AAEUgA3z1y3D6o_cK8t6W42aXfN-6I"; 
+    const CHAT_ID = "6190858172";
     if (BOT_TOKEN && CHAT_ID) {
       const message = `🚨 <b>KHÁCH TÌM CĂN (Nút Nhờ Tìm)</b>\n\n👤 <b>Khách hàng:</b> ${findData.ten || 'Chưa nhập'}\n📌 <b>Nhu cầu:</b> ${findData.nhuCau}\n🛏 <b>Loại căn:</b> ${findData.loaiCan}\n💰 <b>Tài chính:</b> ${findData.taiChinh}\n🛋 <b>Nội thất:</b> ${findData.noiThat}\n📅 <b>Vào ở:</b> ${findData.nhuCau === 'Cho thuê' ? findData.ngayVaoO || 'Chưa rõ' : 'N/A'}\n📞 <b>SĐT Khách:</b> <code>${findData.soDienThoai}</code>\n📝 <b>Ghi chú:</b> ${findData.ghiChu || 'Không có'}`;
       try { fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: CHAT_ID, text: message, parse_mode: 'HTML' }) }); } catch (error) {}
@@ -230,8 +231,8 @@ export default function Home() {
     setIsSendingLead(true);
     try { await addDoc(collection(db, 'nho_tim_can'), { ...leadData, source: 'Popup 20s', createdAt: serverTimestamp(), status: 'Chưa xử lý' }); } catch(err) {}
 
-    const BOT_TOKEN = process.env.NEXT_PUBLIC_TELEGRAM_BOT_TOKEN; 
-    const CHAT_ID = process.env.NEXT_PUBLIC_TELEGRAM_CHAT_ID;
+    const BOT_TOKEN = "7295171731:AAEUgA3z1y3D6o_cK8t6W42aXfN-6I"; 
+    const CHAT_ID = "6190858172";
     if (BOT_TOKEN && CHAT_ID) {
       const message = `🚨 <b>KHÁCH TỪ POPUP 20S</b>\n\n👤 <b>Tên khách:</b> ${leadData.ten}\n📞 <b>Số điện thoại:</b> <code>${leadData.soDienThoai}</code>\n📌 <b>Nhu cầu:</b> Tìm ${leadData.nhuCau}\n💰 <b>Tài chính:</b> ${leadData.taiChinh || 'Không ghi'}\n📝 <b>Ghi chú thêm:</b> ${leadData.ghiChu || 'Không có'}`;
       try { fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: CHAT_ID, text: message, parse_mode: 'HTML' }) }); } catch (error) {}
@@ -259,7 +260,6 @@ export default function Home() {
         </div>
       </header>
       
-      {/* BANNER TỐI ƯU HIỂN THỊ ẢNH TOÀN CẢNH (CẮT MÉP TRÊN THEO YÊU CẦU) */}
       <section className="relative bg-blue-950 text-white py-24 px-4 md:px-12 flex items-center overflow-hidden">
         <div className="absolute inset-0 bg-[url('/banner.jpg')] bg-cover bg-bottom opacity-100"></div>
         <div className="absolute inset-0 bg-gradient-to-r from-blue-950/70 via-blue-900/40 to-transparent"></div>
@@ -270,7 +270,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* TABS NÚT BẤM CĂN TRÁI KÈM CHỮ CHUYỂN NHƯỢNG BÁN */}
       <div className="max-w-[1400px] mx-auto px-4 md:px-8 mt-10 w-full flex justify-start">
         <div className="flex bg-gray-200/70 p-1.5 rounded-full inline-flex shadow-inner">
            <button onClick={() => handleTabChange('Cho thuê')} className={`py-2.5 px-6 md:px-10 rounded-full text-xs md:text-sm font-black uppercase tracking-wide transition-all ${activeTab === 'Cho thuê' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-600 hover:text-gray-900'}`}>Cho thuê</button>

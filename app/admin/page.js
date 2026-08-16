@@ -58,7 +58,7 @@ export default function AdminPage() {
         if (docSnap.exists()) {
           emails = docSnap.data().emails || [];
         } else {
-          // Tài khoản đăng nhập đầu tiên sẽ làm Root Admin
+          // Lần đầu tiên đăng nhập, tự động cấp quyền Admin cho email này
           emails = [currentUser.email];
           await setDoc(docRef, { emails });
         }
@@ -598,9 +598,8 @@ export default function AdminPage() {
               </table>
             )}
 
-            {/* TAB QUẢN LÝ TÀI KHOẢN (GMAIL WHITELIST) */}
             {adminTab === 'tai-khoan' && (
-              <div className="max-w-2xl mx-auto bg-gray-50 p-6 rounded-xl border border-gray-200">
+              <div className="max-w-2xl mx-auto bg-gray-50 p-6 rounded-xl border border-gray-200 mt-6">
                 <h3 className="text-lg font-bold text-blue-900 mb-2">Danh sách Email được cấp quyền</h3>
                 <p className="text-sm text-gray-500 mb-6">Chỉ những tài khoản Gmail dưới đây mới có quyền Đăng nhập và Quản trị nội dung Website này.</p>
                 
@@ -634,7 +633,6 @@ export default function AdminPage() {
         </div>
       </div>
       
-      {/* MODAL CẤU HÌNH PHÂN KHU TỪ ADMIN */}
       {isPhanKhuModalOpen && (
         <div className="fixed inset-0 bg-blue-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl p-6 md:p-8 w-full max-w-2xl transform transition-all overflow-y-auto max-h-[90vh]">
