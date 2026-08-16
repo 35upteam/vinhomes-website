@@ -1,4 +1,8 @@
-import './globals.css'
+import { Inter } from 'next/font/google';
+import './globals.css';
+
+// Khởi tạo Font chữ Inter
+const inter = Inter({ subsets: ['latin', 'vietnamese'] });
 
 export const metadata = {
   title: 'Quỹ Căn Smart City - Bán & Cho Thuê Giá Tốt Nhất',
@@ -6,11 +10,11 @@ export const metadata = {
   openGraph: {
     title: 'Quỹ Căn Smart City - Bán & Cho Thuê Giá Tốt Nhất',
     description: 'Bảng hàng cập nhật liên tục 24/7. Nhận tư vấn, ký gửi và tìm nhà theo yêu cầu tại Vinhomes Smart City.',
-    url: 'https://quycan-smartcity.com', // Bạn có thể sửa tên miền thật của bạn vào đây sau
+    url: 'https://quycan-smartcity.com', 
     siteName: 'Quỹ Căn Smart City',
     images: [
       {
-        url: '/banner.jpg',
+        url: '/banner.jpg', 
         width: 1200,
         height: 630,
         alt: 'Toàn cảnh Vinhomes Smart City',
@@ -24,7 +28,7 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="vi">
-      <body>{children}</body>
+      <body className={inter.className}>{children}</body>
     </html>
   )
 }

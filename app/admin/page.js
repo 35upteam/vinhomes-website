@@ -86,8 +86,12 @@ export default function AdminPage() {
   }, []);
 
   const handleLogin = async () => {
-    try { await signInWithPopup(auth, provider); } 
-    catch (error) { console.error("Lỗi đăng nhập: ", error); }
+    try { 
+      await signInWithPopup(auth, provider); 
+    } catch (error) { 
+      console.error("Lỗi đăng nhập: ", error); 
+      alert(`Đăng nhập thất bại: ${error.message} \n\n(Vui lòng kiểm tra đã thêm Tên miền vào Firebase Authorized domains chưa)`);
+    }
   };
 
   const handleLogout = async () => { await signOut(auth); };
