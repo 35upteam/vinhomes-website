@@ -12,7 +12,6 @@ export default function AdminPage() {
   const [newEmail, setNewEmail] = useState('');
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   
-  // STATE MỚI: QUẢN LÝ TÀI KHOẢN MODAL
   const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
 
   const defaultPkConfig = {
@@ -61,7 +60,6 @@ export default function AdminPage() {
         if (docSnap.exists()) {
           emails = docSnap.data().emails || [];
         } else {
-          // Lần đầu tiên đăng nhập, tự động cấp quyền Admin cho email này
           emails = [currentUser.email];
           await setDoc(docRef, { emails });
         }
@@ -330,15 +328,23 @@ export default function AdminPage() {
              <Link href="/" className="bg-white rounded-lg p-1.5 h-10 flex items-center justify-center shadow-inner"><img src="/logo.png" alt="Logo" className="h-full object-contain" /></Link>
              <h1 className="font-bold text-base tracking-wider hidden sm:block">ADMIN DASHBOARD</h1>
           </div>
-          <div className="flex gap-3 items-center">
-            <span className="hidden lg:block text-xs font-medium text-blue-200">{user?.email}</span>
-            <button onClick={() => setIsAccountModalOpen(true)} className="bg-white/10 hover:bg-white/20 border border-white/30 px-3 py-2 rounded-lg text-sm font-medium transition flex items-center gap-1.5" title="Quản lý Tài khoản">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
-              <span className="hidden md:inline">Tài khoản</span>
+          
+          {/* HEADER ADMIN MỚI: ĐẸP VÀ CHUYÊN NGHIỆP */}
+          <div className="flex gap-3 md:gap-4 items-center">
+            <span className="hidden lg:block text-sm font-medium text-blue-100">
+              Xin chào <strong className="text-white">{user?.email}</strong>!
+            </span>
+            <button onClick={openPhanKhuModal} className="bg-white/10 hover:bg-white/20 border border-white/30 px-4 py-2 rounded-lg text-sm font-medium transition whitespace-nowrap">
+              Quản lý phân khu
             </button>
-            <button onClick={openPhanKhuModal} className="bg-blue-600 hover:bg-blue-700 px-3 py-2 rounded-lg text-sm font-bold transition flex items-center shadow-md">Phân khu</button>
-            <button onClick={handleLogout} className="bg-red-500 hover:bg-red-600 px-3 py-2 rounded-lg text-sm font-bold transition">Thoát</button>
+            <button onClick={() => setIsAccountModalOpen(true)} className="bg-white/10 hover:bg-white/20 border border-white/30 px-4 py-2 rounded-lg text-sm font-medium transition whitespace-nowrap">
+              Quản lý tài khoản
+            </button>
+            <button onClick={handleLogout} className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-bold transition whitespace-nowrap">
+              Đăng xuất
+            </button>
           </div>
+          
         </div>
       </nav>
 

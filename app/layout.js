@@ -24,7 +24,7 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="vi">
-      <body>{children}</body>
+      <body className="font-sans antialiased text-gray-800 bg-gray-50">{children}</body>
     </html>
   )
 }
