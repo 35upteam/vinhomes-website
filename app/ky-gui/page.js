@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { db } from '../../firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
@@ -11,9 +11,23 @@ export default function KyGuiPage() {
   const [phoneError, setPhoneError] = useState('');
   const [formData, setFormData] = useState({ nhuCau: 'Cho thuê', toaNha: '', soCan: '', loaiCan: 'Studio', dienTich: '', noiThat: 'Nguyên bản CĐT', gia: '', ngayVaoO: '', ghiChu: '', soDienThoai: '' });
 
+  useEffect(() => {
+    document.title = "Nhận Ký Gửi BĐS Smart City - Nhanh Chóng, Bảo Mật";
+  }, []);
+
   const handleInputChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
     if(e.target.name === 'soDienThoai') setPhoneError('');
+  };
+
+  const checkSpam = () => {
+    const lastSent = localStorage.getItem('lastFormSubmit');
+    if (lastSent && Date.now() - parseInt(lastSent) < 60000) {
+      alert('Vui lòng đợi 1 phút trước khi gửi yêu cầu tiếp theo!');
+      return false;
+    }
+    localStorage.setItem('lastFormSubmit', Date.now());
+    return true;
   };
 
   const sendTelegramMessage = async (data) => {
@@ -22,12 +36,12 @@ export default function KyGuiPage() {
     if (!BOT_TOKEN || !CHAT_ID) return;
 
     const message = `🚨 <b>TỪ TRANG KÝ GỬI</b>\n\n👤 <b>Nhu cầu:</b> ${data.nhuCau}\n🏢 <b>Tòa/Căn:</b> ${data.toaNha} - Căn ${data.soCan}\n🛏 <b>Loại căn:</b> ${data.loaiCan} (${data.dienTich}m2)\n🛋 <b>Nội thất:</b> ${data.noiThat}\n💰 <b>Giá:</b> ${data.gia}\n📞 <b>SĐT Khách:</b> <code>${data.soDienThoai}</code>\n${data.ghiChu ? `📝 <b>Ghi chú:</b> ${data.ghiChu}` : ''}`;
-    const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
-    try { await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: CHAT_ID, text: message, parse_mode: 'HTML' }) }); } catch (err) {}
+    try { await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: CHAT_ID, text: message, parse_mode: 'HTML' }) }); } catch (err) {}
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!checkSpam()) return;
     const phoneRegex = /^0\d{9}$/;
     if (!phoneRegex.test(formData.soDienThoai)) {
       setPhoneError("Số điện thoại không hợp lệ!");
@@ -40,9 +54,7 @@ export default function KyGuiPage() {
       await sendTelegramMessage(formData);
       setIsSubmitted(true);
       window.scrollTo({ top: 0, behavior: 'smooth' });
-    } catch (error) {
-      alert("Có lỗi xảy ra, vui lòng thử lại sau!");
-    }
+    } catch (error) { alert("Có lỗi xảy ra, vui lòng thử lại sau!"); }
     setIsSending(false);
   };
 
@@ -159,23 +171,16 @@ export default function KyGuiPage() {
       <footer className="bg-white border-t border-gray-200 py-12 px-4 md:px-12 w-full mt-auto">
         <div className="max-w-[1400px] mx-auto grid grid-cols-1 md:grid-cols-2 gap-12 text-sm text-gray-600">
            <div className="md:pr-10">
-             <div className="flex items-center mb-6">
-               <img src="/logo.png" alt="Quỹ Căn Smart City Logo" className="h-10 md:h-12 w-auto object-contain" />
-             </div>
+             <div className="flex items-center mb-6"><img src="/logo.png" alt="Quỹ Căn Smart City Logo" className="h-10 md:h-12 w-auto object-contain" /></div>
              <p className="leading-relaxed font-light mb-4">Quỹ Căn Smart City – Chuyên trang tổng hợp nguồn hàng mua bán, chuyển nhượng, cho thuê căn hộ tại Vinhomes Smart City Tây Mỗ. Cập nhật quỹ căn mới mỗi ngày tại mọi phân khu.</p>
              <p className="text-xs text-gray-400">© 2026 Quỹ Căn Smart City.</p>
            </div>
-           
            <div className="md:pl-10 md:border-l border-gray-100">
              <h3 className="font-extrabold text-blue-900 mb-5 text-lg uppercase tracking-wider">Liên hệ tư vấn</h3>
              <div className="space-y-4 font-light text-[15px]">
-               <p className="flex items-center gap-3"><span className="text-gray-400">👤</span> <strong className="text-gray-800">Nguyễn An Ninh</strong></p>
-               <p className="flex items-center gap-3">
-                 <span className="text-gray-400">📞</span> 
-                 <a href={`tel:${CONTACT_PHONE}`} className="font-bold text-blue-600 hover:text-blue-800 transition text-lg">{CONTACT_PHONE.replace(/(\d{4})(\d{3})(\d{3})/, '$1 $2 $3')}</a> 
-                 <span className="text-gray-400 text-xs ml-1">(SĐT / Zalo)</span>
-               </p>
-               <p className="flex items-center gap-3"><span className="text-gray-400">📍</span> Vinhomes Smart City, Tây Mỗ, Nam Từ Liêm, Hà Nội</p>
+               <p className="flex items-center gap-3">👤 <strong className="text-gray-800">Nguyễn An Ninh</strong></p>
+               <p className="flex items-center gap-3">📞 <a href={`tel:${CONTACT_PHONE}`} className="font-bold text-blue-600 hover:text-blue-800 transition text-lg">{CONTACT_PHONE.replace(/(\d{4})(\d{3})(\d{3})/, '$1 $2 $3')}</a> <span className="text-gray-400 text-xs ml-1">(SĐT / Zalo)</span></p>
+               <p className="flex items-center gap-3">📍 Vinhomes Smart City, Tây Mỗ, Nam Từ Liêm, Hà Nội</p>
              </div>
            </div>
         </div>
