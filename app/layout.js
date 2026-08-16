@@ -1,4 +1,8 @@
-import './globals.css'
+import { Inter } from "next/font/google";
+import "./globals.css";
+
+// Khởi tạo lại font Inter với tập ký tự tiếng Việt để không bao giờ bị lỗi dấu
+const inter = Inter({ subsets: ["latin", "vietnamese"] });
 
 export const metadata = {
   title: 'Quỹ Căn Smart City - Bán & Cho Thuê Giá Tốt Nhất',
@@ -24,10 +28,8 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="vi">
-      {/* KHÔNG ÉP FONT NÀO CẢ, ĐỂ TRÌNH DUYỆT TỰ DÙNG SYSTEM FONT MẶC ĐỊNH ĐỂ TRÁNH LỖI TIẾNG VIỆT */}
-      <body className="bg-gray-50 text-gray-800 antialiased">
-        {children}
-      </body>
+      {/* Cấp lại font Inter cho toàn bộ thẻ body */}
+      <body className={inter.className}>{children}</body>
     </html>
-  )
+  );
 }
