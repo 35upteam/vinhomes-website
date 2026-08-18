@@ -412,7 +412,7 @@ export default function AdminPage() {
               {formData.listingType === 'Cho thuê' && (
                 <div className="bg-blue-50/50 p-3 rounded-xl border border-blue-100 flex-1">
                   <label className="block text-[11px] font-bold mb-1 text-blue-800 uppercase">Tình trạng vào ở</label>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 mt-1">
                     <input type="date" name="ngayNhanNha" value={formData.ngayNhanNha || ''} onChange={handleInputChange} disabled={formData.vaoLuon} className="flex-1 p-2 border border-blue-200 rounded-lg focus:border-blue-500 outline-none text-sm font-medium disabled:opacity-50" />
                     <label className="flex items-center gap-1.5 text-sm font-bold text-blue-900 cursor-pointer whitespace-nowrap">
                       <input type="checkbox" name="vaoLuon" checked={formData.vaoLuon || false} onChange={handleInputChange} className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500" />
@@ -425,7 +425,7 @@ export default function AdminPage() {
               {formData.listingType === 'Chuyển nhượng' && (
                 <div className="bg-blue-50/50 p-3 rounded-xl border border-blue-100 flex-1">
                   <label className="block text-[11px] font-bold mb-1 text-blue-800 uppercase">Tình trạng pháp lý</label>
-                  <select name="phapLy" value={formData.phapLy || 'Sổ đỏ'} onChange={handleInputChange} className="w-full p-2 border border-blue-200 rounded-lg focus:border-blue-500 outline-none text-sm font-medium bg-white">
+                  <select name="phapLy" value={formData.phapLy || 'Sổ đỏ'} onChange={handleInputChange} className="w-full mt-1 p-2 border border-blue-200 rounded-lg focus:border-blue-500 outline-none text-sm font-medium bg-white">
                     <option value="Sổ đỏ">Sổ đỏ</option>
                     <option value="Hợp đồng mua bán">Hợp đồng mua bán</option>
                   </select>
@@ -434,7 +434,7 @@ export default function AdminPage() {
               
               <div className="bg-red-50/50 p-3 rounded-xl border border-red-100 flex-1">
                 <label className="block text-[11px] font-bold mb-1 text-red-800 uppercase">Gắn nhãn HOT</label>
-                <select name="nhanDan" value={formData.nhanDan || 'Không có'} onChange={handleInputChange} className="w-full p-2 border border-red-200 rounded-lg focus:border-red-500 outline-none text-sm font-medium text-red-700 bg-white">
+                <select name="nhanDan" value={formData.nhanDan || 'Không có'} onChange={handleInputChange} className="w-full mt-1 p-2 border border-red-200 rounded-lg focus:border-red-500 outline-none text-sm font-medium text-red-700 bg-white">
                   {nhanDanOptions.map(opt => <option key={opt}>{opt}</option>)}
                 </select>
               </div>
@@ -611,7 +611,7 @@ export default function AdminPage() {
                           <span className="text-[10px] text-gray-500 font-medium mt-1 block">Nguồn: {item.source} • Gửi lúc: {dateStr}</span>
                         </td>
                         <td className="px-4 py-4">
-                          {/* ĐÃ SỬA CHỮ TÌM CHO THUÊ THÀNH TÌM THUÊ HOẶC TÌM MUA */}
+                          {/* SỬA HIỂN THỊ "TÌM THUÊ" VÀ "TÌM MUA" TRONG ADMIN */}
                           <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold uppercase ${item.nhuCau === 'Cho thuê' ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'}`}>
                             Tìm {item.nhuCau === 'Cho thuê' ? 'Thuê' : 'Mua'}
                           </span>
@@ -631,8 +631,6 @@ export default function AdminPage() {
                 </tbody>
               </table>
             )}
-
-            {/* QUẢN LÝ TÀI KHOẢN (GMAIL WHITELIST) VẪN HIỂN THỊ DẠNG MODAL POPUP */}
 
           </div>
         </div>
@@ -670,47 +668,6 @@ export default function AdminPage() {
             </div>
 
             <div className="flex justify-end gap-3 border-t border-gray-100 pt-5"><button onClick={() => setIsPhanKhuModalOpen(false)} className="px-6 py-2.5 rounded-lg text-gray-600 font-bold hover:bg-gray-100">Hủy</button><button onClick={handleSavePK} disabled={isSavingPK} className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-2.5 rounded-lg font-bold shadow-md disabled:opacity-50">Lưu thông tin</button></div>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL QUẢN LÝ TÀI KHOẢN (PHÂN QUYỀN GMAIL) */}
-      {isAccountModalOpen && (
-        <div className="fixed inset-0 bg-blue-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl p-6 md:p-8 w-full max-w-2xl transform transition-all overflow-y-auto max-h-[90vh]">
-            <div className="flex justify-between items-center mb-6">
-              <div><h2 className="text-xl font-bold text-blue-900">Quản Lý Tài Khoản</h2></div>
-              <button onClick={() => setIsAccountModalOpen(false)} className="text-gray-400 hover:text-red-500">X</button>
-            </div>
-            
-            <p className="text-sm text-gray-500 mb-6">Chỉ những tài khoản Gmail dưới đây mới có quyền Đăng nhập và Quản trị nội dung Website này.</p>
-            
-            <div className="flex gap-3 mb-6">
-              <input type="email" placeholder="Nhập Gmail của cộng tác viên..." value={newEmail} onChange={(e) => setNewEmail(e.target.value)} className="flex-1 p-3 border border-gray-300 rounded-lg outline-none focus:border-blue-600 text-sm" />
-              <button onClick={handleAddEmail} className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-bold text-sm shadow-md transition whitespace-nowrap">Thêm quyền</button>
-            </div>
-
-            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-               <ul className="divide-y divide-gray-100">
-                 {allowedEmails.map(email => (
-                    <li key={email} className="flex justify-between items-center p-4 hover:bg-gray-50 transition">
-                       <div className="flex items-center gap-3">
-                         <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold">{email[0].toUpperCase()}</div>
-                         <div>
-                            <p className="text-sm font-bold text-gray-800">{email}</p>
-                            {email === user?.email && <p className="text-[10px] text-green-600 font-bold">Đang đăng nhập (Bạn)</p>}
-                         </div>
-                       </div>
-                       {email !== user?.email && (
-                         <button onClick={() => handleRemoveEmail(email)} className="text-red-500 hover:bg-red-50 px-3 py-1.5 rounded-md text-xs font-bold transition border border-transparent hover:border-red-200">Thu hồi quyền</button>
-                       )}
-                    </li>
-                 ))}
-               </ul>
-            </div>
-            <div className="flex justify-end mt-6">
-              <button onClick={() => setIsAccountModalOpen(false)} className="px-6 py-2.5 rounded-lg bg-gray-100 text-gray-600 font-bold hover:bg-gray-200">Đóng</button>
-            </div>
           </div>
         </div>
       )}
