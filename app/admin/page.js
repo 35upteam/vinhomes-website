@@ -34,7 +34,8 @@ export default function AdminPage() {
   const [tempPKData, setTempPKData] = useState({ phi: '', tongQuan: '', uuDiem: '' });
   const [isSavingPK, setIsSavingPK] = useState(false);
 
-  const initialForm = { listingType: 'Cho thuê', phanKhu: 'Sapphire', loaiCan: 'Studio', toaNha: '', khoangTang: 'Tầng trung', huongBanCong: 'Đông Nam', noiThat: 'Đầy đủ nội thất', area: '', price: '', ngayNhanNha: '', moTa: '', nhanDan: 'Không có' };
+  // ĐÃ BỔ SUNG TRƯỜNG phapLy VÀ vaoLuon
+  const initialForm = { listingType: 'Cho thuê', phanKhu: 'Sapphire', loaiCan: 'Studio', toaNha: '', khoangTang: 'Tầng trung', huongBanCong: 'Đông Nam', noiThat: 'Đầy đủ nội thất', area: '', price: '', ngayNhanNha: '', vaoLuon: false, phapLy: 'Sổ đỏ', moTa: '', nhanDan: 'Không có' };
   const [formData, setFormData] = useState(initialForm);
   const [images, setImages] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
@@ -167,11 +168,14 @@ export default function AdminPage() {
   };
 
   const handleInputChange = (e) => {
-    const name = e.target.name;
-    const val = e.target.value;
-    if (name === 'listingType' && val === 'Cho thuê' && formData.nhanDan === 'Cắt lỗ') {
-      setFormData({ ...formData, listingType: val, nhanDan: 'Không có' });
-    } else { setFormData({ ...formData, [name]: val }); }
+    const { name, value, type, checked } = e.target;
+    if (type === 'checkbox') {
+      setFormData({ ...formData, [name]: checked });
+    } else if (name === 'listingType' && value === 'Cho thuê' && formData.nhanDan === 'Cắt lỗ') {
+      setFormData({ ...formData, listingType: value, nhanDan: 'Không có' });
+    } else {
+      setFormData({ ...formData, [name]: value });
+    }
   };
   
   const handleImageChange = async (e) => {
@@ -407,8 +411,24 @@ export default function AdminPage() {
             <div className="flex gap-4">
               {formData.listingType === 'Cho thuê' && (
                 <div className="bg-blue-50/50 p-3 rounded-xl border border-blue-100 flex-1">
-                  <label className="block text-[11px] font-bold mb-1 text-blue-800 uppercase">Ngày nhận nhà</label>
-                  <input type="date" name="ngayNhanNha" value={formData.ngayNhanNha || ''} onChange={handleInputChange} className="w-full p-2 border border-blue-200 rounded-lg focus:border-blue-500 outline-none text-sm font-medium" />
+                  <label className="block text-[11px] font-bold mb-1 text-blue-800 uppercase">Tình trạng vào ở</label>
+                  <div className="flex items-center gap-3">
+                    <input type="date" name="ngayNhanNha" value={formData.ngayNhanNha || ''} onChange={handleInputChange} disabled={formData.vaoLuon} className="flex-1 p-2 border border-blue-200 rounded-lg focus:border-blue-500 outline-none text-sm font-medium disabled:opacity-50" />
+                    <label className="flex items-center gap-1.5 text-sm font-bold text-blue-900 cursor-pointer whitespace-nowrap">
+                      <input type="checkbox" name="vaoLuon" checked={formData.vaoLuon || false} onChange={handleInputChange} className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500" />
+                      Vào luôn
+                    </label>
+                  </div>
+                </div>
+              )}
+
+              {formData.listingType === 'Chuyển nhượng' && (
+                <div className="bg-blue-50/50 p-3 rounded-xl border border-blue-100 flex-1">
+                  <label className="block text-[11px] font-bold mb-1 text-blue-800 uppercase">Tình trạng pháp lý</label>
+                  <select name="phapLy" value={formData.phapLy || 'Sổ đỏ'} onChange={handleInputChange} className="w-full p-2 border border-blue-200 rounded-lg focus:border-blue-500 outline-none text-sm font-medium bg-white">
+                    <option value="Sổ đỏ">Sổ đỏ</option>
+                    <option value="Hợp đồng mua bán">Hợp đồng mua bán</option>
+                  </select>
                 </div>
               )}
               
@@ -432,7 +452,7 @@ export default function AdminPage() {
             </div>
 
             <button type="submit" disabled={isUploading} className="w-full bg-blue-600 hover:bg-blue-700 text-white p-4 rounded-xl font-bold text-base transition shadow-lg shadow-blue-600/30 disabled:bg-gray-400 mt-2">
-               {isUploading ? 'Đang tải dữ liệu...' : (editingId ? 'CẬP thông tin' : `ĐĂNG CĂN ${formData.listingType.toUpperCase()}`)}
+               {isUploading ? 'Đang tải dữ liệu...' : (editingId ? 'CẬP NHẬT THÔNG TIN' : `ĐĂNG CĂN ${formData.listingType.toUpperCase()}`)}
             </button>
           </form>
         </div>
@@ -452,15 +472,17 @@ export default function AdminPage() {
             </button>
           </div>
 
-          <div className="mb-6">
-            <input 
-              type="text" 
-              placeholder={adminTab === 'quy-can' ? "Tìm mã căn, tòa nhà..." : "Tìm SĐT, nhu cầu khách..."}
-              value={searchTerm}
-              onChange={(e) => {setSearchTerm(e.target.value); setCurrentPage(1);}}
-              className="w-full max-w-sm px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition font-medium"
-            />
-          </div>
+          {adminTab !== 'tai-khoan' && (
+             <div className="mb-6">
+               <input 
+                 type="text" 
+                 placeholder={adminTab === 'quy-can' ? "Tìm mã căn, tòa nhà..." : "Tìm SĐT, nhu cầu khách..."}
+                 value={searchTerm}
+                 onChange={(e) => {setSearchTerm(e.target.value); setCurrentPage(1);}}
+                 className="w-full max-w-sm px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition font-medium"
+               />
+             </div>
+          )}
 
           <div className="overflow-x-auto">
             {adminTab === 'quy-can' && (
@@ -589,7 +611,10 @@ export default function AdminPage() {
                           <span className="text-[10px] text-gray-500 font-medium mt-1 block">Nguồn: {item.source} • Gửi lúc: {dateStr}</span>
                         </td>
                         <td className="px-4 py-4">
-                          <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold uppercase ${item.nhuCau === 'Cho thuê' ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'}`}>Tìm {item.nhuCau}</span>
+                          {/* ĐÃ SỬA CHỮ TÌM CHO THUÊ THÀNH TÌM THUÊ HOẶC TÌM MUA */}
+                          <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold uppercase ${item.nhuCau === 'Cho thuê' ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'}`}>
+                            Tìm {item.nhuCau === 'Cho thuê' ? 'Thuê' : 'Mua'}
+                          </span>
                           <span className="block text-xs font-black text-gray-800 mt-1">{item.loaiCan || 'N/A'} • {item.taiChinh || 'N/A'}</span>
                         </td>
                         <td className="px-4 py-4 max-w-[200px]">
@@ -607,10 +632,13 @@ export default function AdminPage() {
               </table>
             )}
 
+            {/* QUẢN LÝ TÀI KHOẢN (GMAIL WHITELIST) VẪN HIỂN THỊ DẠNG MODAL POPUP */}
+
           </div>
         </div>
       </div>
       
+      {/* MODAL CẤU HÌNH PHÂN KHU TỪ ADMIN */}
       {isPhanKhuModalOpen && (
         <div className="fixed inset-0 bg-blue-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl p-6 md:p-8 w-full max-w-2xl transform transition-all overflow-y-auto max-h-[90vh]">
