@@ -91,7 +91,7 @@ export default function AdminPage() {
       await signInWithPopup(auth, provider); 
     } catch (error) { 
       console.error("Lỗi đăng nhập: ", error); 
-      alert(`Đăng nhập thất bại: ${error.message} \n\n(Vui lòng kiểm tra đã thêm Tên miền vào Firebase Authorized domains chưa)`);
+      alert(`Đăng nhập thất bại: ${error.message}`);
     }
   };
 
@@ -329,7 +329,6 @@ export default function AdminPage() {
              <h1 className="font-bold text-base tracking-wider hidden sm:block">ADMIN DASHBOARD</h1>
           </div>
           
-          {/* HEADER ADMIN MỚI: ĐẸP VÀ CHUYÊN NGHIỆP */}
           <div className="flex gap-3 md:gap-4 items-center">
             <span className="hidden lg:block text-sm font-medium text-blue-100">
               Xin chào <strong className="text-white">{user?.email}</strong>!
@@ -433,7 +432,7 @@ export default function AdminPage() {
             </div>
 
             <button type="submit" disabled={isUploading} className="w-full bg-blue-600 hover:bg-blue-700 text-white p-4 rounded-xl font-bold text-base transition shadow-lg shadow-blue-600/30 disabled:bg-gray-400 mt-2">
-               {isUploading ? 'Đang tải dữ liệu...' : (editingId ? 'CẬP NHẬT THÔNG TIN' : `ĐĂNG CĂN ${formData.listingType.toUpperCase()}`)}
+               {isUploading ? 'Đang tải dữ liệu...' : (editingId ? 'CẬP thông tin' : `ĐĂNG CĂN ${formData.listingType.toUpperCase()}`)}
             </button>
           </form>
         </div>
@@ -612,7 +611,6 @@ export default function AdminPage() {
         </div>
       </div>
       
-      {/* MODAL CẤU HÌNH PHÂN KHU TỪ ADMIN */}
       {isPhanKhuModalOpen && (
         <div className="fixed inset-0 bg-blue-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl p-6 md:p-8 w-full max-w-2xl transform transition-all overflow-y-auto max-h-[90vh]">

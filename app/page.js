@@ -485,7 +485,6 @@ export default function Home() {
         </div>
       )}
 
-      {/* POPUP BẮT LEAD 20S */}
       {isLeadPopupOpen && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[150] flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-fade-in-up text-center relative border-4 border-blue-100">

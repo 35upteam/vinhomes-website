@@ -243,7 +243,6 @@ export default function PropertyDetail() {
               </div>
             </div>
 
-            {/* GỘP TẤT CẢ VÀO DANH SÁCH "THÔNG TIN CHI TIẾT" CHO GỌN VÀ CHUYÊN NGHIỆP */}
             <div className="bg-white rounded-2xl border border-gray-100 p-6 md:p-8 shadow-sm mb-8">
               <h3 className="font-bold text-blue-900 mb-6 text-lg border-b border-gray-100 pb-3">Thông tin chi tiết</h3>
               <ul className="space-y-0 text-sm">
@@ -297,7 +296,6 @@ export default function PropertyDetail() {
             </div>
           </div>
 
-          {/* CỘT LIÊN HỆ ĐÃ ĐƯỢC TỐI ƯU HIỂN THỊ ĐẸP, CHUYÊN NGHIỆP */}
           <aside className="w-full lg:w-[320px] flex-shrink-0 self-start sticky top-24">
             <div className="bg-white rounded-2xl shadow-xl shadow-gray-200/50 border border-gray-100 p-6">
               <h2 className="text-xl font-black text-blue-900 uppercase tracking-tight mb-2 text-center">Liên hệ tư vấn</h2>
