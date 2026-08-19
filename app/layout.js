@@ -1,4 +1,8 @@
+import { Inter } from "next/font/google";
 import "./globals.css";
+
+// KHÔI PHỤC LẠI FONT INTER GỐC CỦA BẠN (CÓ HỖ TRỢ TIẾNG VIỆT)
+const inter = Inter({ subsets: ["latin", "vietnamese"] });
 
 export const metadata = {
   title: 'Quỹ Căn Smart City - Bán & Cho Thuê Giá Tốt Nhất',
@@ -21,8 +25,7 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="vi">
-      {/* SỬ DỤNG FONT HỆ THỐNG MẶC ĐỊNH (font-sans) ĐỂ KHÔNG BAO GIỜ LỖI DẤU TIẾNG VIỆT */}
-      <body className="font-sans bg-gray-50 text-gray-800 antialiased">
+      <body className={`${inter.className} bg-gray-50 text-gray-800 antialiased`}>
         {children}
       </body>
     </html>

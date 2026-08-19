@@ -113,11 +113,10 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [isRestored, setIsRestored] = useState(false);
   
-  // KHỞI TẠO STATE RỖNG TRƯỚC ĐỂ TRÁNH LỖI NEXT.JS SERVER-SIDE
   const [activeTab, setActiveTab] = useState('Cho thuê');
   const [sortBy, setSortBy] = useState('newest');
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 12; // Hiển thị 12 căn / trang
+  const itemsPerPage = 12; 
   
   const [filters, setFilters] = useState({ phanKhu: 'Tất cả phân khu', loaiCan: [], khoangTang: 'Tất cả tầng', huongBanCong: 'Tất cả hướng', noiThat: 'Tất cả nội thất', mucGia: 'Tất cả mức giá' });
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
@@ -137,7 +136,6 @@ export default function Home() {
   const [isSendingLead, setIsSendingLead] = useState(false);
   const [leadPhoneError, setLeadPhoneError] = useState('');
 
-  // LẤY BỘ LỌC ĐÃ LƯU TRONG BỘ NHỚ KHI BACK LẠI
   useEffect(() => {
     const savedTab = sessionStorage.getItem('savedActiveTab');
     if(savedTab) setActiveTab(savedTab);
@@ -154,7 +152,6 @@ export default function Home() {
     setIsRestored(true);
   }, []);
 
-  // LƯU LẠI BỘ LỌC KHI CÓ SỰ THAY ĐỔI
   useEffect(() => {
     if (isRestored) {
       sessionStorage.setItem('savedActiveTab', activeTab);
@@ -254,7 +251,6 @@ export default function Home() {
     return (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0);
   });
 
-  // TÍNH TOÁN PHÂN TRANG 1, 2, 3
   const totalPages = Math.ceil(sortedProperties.length / itemsPerPage);
   const currentProperties = sortedProperties.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
@@ -315,7 +311,7 @@ export default function Home() {
         </Link>
         <div className="flex items-center gap-3 md:gap-4">
            <Link href="/ky-gui" className="hidden md:flex items-center gap-1.5 bg-blue-50 text-blue-800 px-4 py-2 rounded-md font-bold hover:bg-blue-100 transition text-sm border border-blue-100">
-             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 001 1m-6 0h6"></path></svg>
+             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
              Ký gửi căn hộ
            </Link>
            <a href={`https://zalo.me/${CONTACT_PHONE}`} target="_blank" rel="noreferrer" className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-800 text-white px-5 py-2 rounded-full font-bold hover:opacity-90 transition shadow-md text-sm">
@@ -330,8 +326,8 @@ export default function Home() {
         <div className="relative z-10 max-w-5xl mx-auto w-full">
           <p className="text-sm font-bold text-blue-200 mb-4 uppercase tracking-[0.3em] drop-shadow-md">Vinhomes Smart City</p>
           
-          {/* CÚ PHÁP WHITESPACE-NOWRAP ĐẢM BẢO CHỮ "CHUYỂN NHƯỢNG" LUÔN ĐI LIỀN NHAU */}
-          <h2 className="text-[32px] md:text-[3.5rem] font-bold mb-6 leading-[1.3] md:leading-[1.2] tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white to-blue-100 drop-shadow-lg">
+          {/* SỬ DỤNG FONT-EXTRABOLD CHUẨN TIẾNG VIỆT, KHÔNG BỊ CẮT DẤU */}
+          <h2 className="text-[32px] md:text-[3.5rem] font-extrabold mb-6 leading-[1.3] md:leading-[1.2] tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white to-blue-100 drop-shadow-lg">
             QUỸ CĂN <span className="whitespace-nowrap">CHUYỂN NHƯỢNG</span><br /> & CHO THUÊ
           </h2>
           
@@ -449,7 +445,6 @@ export default function Home() {
                 {currentProperties.map(item => <PropertyCard key={item.id} item={item} contactPhone={CONTACT_PHONE} />)}
               </div>
               
-              {/* KHÔI PHỤC PHÂN TRANG 1, 2, 3 THEO YÊU CẦU */}
               {totalPages > 1 && (
                 <div className="flex justify-center items-center gap-2 mt-4 mb-8">
                   <button onClick={() => { setCurrentPage(p => Math.max(1, p - 1)); window.scrollTo({top: 0, behavior: 'smooth'}); }} disabled={currentPage === 1} className="w-10 h-10 flex items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 hover:bg-gray-50 disabled:opacity-50 transition shadow-sm">‹</button>
@@ -492,7 +487,7 @@ export default function Home() {
         </div>
       </footer>
 
-      {/* POPUP NHỜ TÌM ĐƯỢC ĐẶT Ở NGOÀI CÙNG Z-INDEX CAO NHẤT */}
+      {/* POPUP NHỜ TÌM LỚP CAO NHẤT z-[9999] */}
       {isFindModalOpen && (
         <div className="fixed inset-0 bg-blue-900/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-y-auto max-h-[90vh] animate-fade-in-up">
@@ -560,6 +555,7 @@ export default function Home() {
         </div>
       )}
 
+      {/* POPUP 20S CŨNG NÂNG z-index LÊN CAO NHẤT ĐỂ TRÁNH LỖI */}
       {isLeadPopupOpen && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-fade-in-up text-center relative border-4 border-blue-100">
