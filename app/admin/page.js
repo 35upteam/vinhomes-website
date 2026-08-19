@@ -221,9 +221,35 @@ export default function AdminPage() {
     });
   };
 
-  const handleDelete = async (id) => {
-    if (window.confirm('Cảnh báo: Bạn có chắc chắn muốn xóa căn hộ này khỏi hệ thống?')) {
-      await deleteDoc(doc(db, 'properties', id)); sessionStorage.removeItem('cachedProperties'); alert('Đã xóa thành công!'); fetchProperties();
+  // HÀM XÓA CĂN HỘ TÍCH HỢP XÓA ẢNH SERVER
+  const handleDelete = async (item) => {
+    if (window.confirm(`Cảnh báo: Bạn có chắc chắn muốn xóa căn hộ Mã ${item.maCan} khỏi hệ thống? (Hình ảnh cũng sẽ bị xóa vĩnh viễn)`)) {
+      try {
+        // 1. Dọn rác Cloudinary
+        if (item.images && item.images.length > 0) {
+          const publicIds = item.images.map(url => {
+             const match = url.match(/\/upload\/(?:v\d+\/)?([^.]+)/);
+             return match ? match[1] : null;
+          }).filter(Boolean);
+
+          if (publicIds.length > 0) {
+            await fetch('/api/delete-image', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ publicIds })
+            });
+          }
+        }
+
+        // 2. Dọn rác Firebase
+        await deleteDoc(doc(db, 'properties', item.id)); 
+        sessionStorage.removeItem('cachedProperties'); 
+        alert('Đã xóa thành công dữ liệu và dọn sạch hình ảnh!'); 
+        fetchProperties();
+      } catch (error) {
+        alert('Có lỗi xảy ra khi xóa!');
+        console.error(error);
+      }
     }
   };
 
@@ -577,7 +603,8 @@ export default function AdminPage() {
                         <td className="px-4 py-4 text-right">
                           <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                             <button onClick={() => handleEdit(item)} className="text-blue-600 hover:bg-blue-100 px-3 py-1.5 rounded-md font-bold transition">Sửa</button>
-                            <button onClick={() => handleDelete(item.id)} className="text-red-500 hover:bg-red-50 px-3 py-1.5 rounded-md font-bold transition">Xóa</button>
+                            {/* CẬP NHẬT GỌI HÀM XÓA CÓ THAM SỐ LÀ CẢ OBJECT CĂN HỘ */}
+                            <button onClick={() => handleDelete(item)} className="text-red-500 hover:bg-red-50 px-3 py-1.5 rounded-md font-bold transition">Xóa</button>
                           </div>
                         </td>
                       </tr>
@@ -766,7 +793,7 @@ export default function AdminPage() {
 
              <div className="flex gap-3">
                <button onClick={() => setDuplicateWarning(null)} disabled={isUploading} className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-lg font-bold hover:bg-gray-200 disabled:opacity-50">Hủy bỏ</button>
-               {/* ĐÃ FIX: Khóa nút ngay khi bấm và hiện "Đang lưu..." để chống click liên tục */}
+               {/* Khóa nút ngay khi bấm và hiện "Đang lưu..." để chống click liên tục */}
                <button onClick={() => { setSkipDupCheck(true); executeSave(); }} disabled={isUploading} className="flex-1 bg-red-600 text-white py-3 rounded-lg font-bold shadow-lg hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed">
                  {isUploading ? 'Đang lưu...' : 'Vẫn lưu bài mới'}
                </button>

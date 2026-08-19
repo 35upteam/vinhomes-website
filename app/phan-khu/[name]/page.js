@@ -87,14 +87,12 @@ export default function SubdivisionLandingPage() {
   const [activeTab, setActiveTab] = useState('Cho thuê');
   const [sortBy, setSortBy] = useState('newest');
   
-  // ĐÃ CHUYỂN SANG PHÂN TRANG (PAGINATION) - 6 CĂN/TRANG
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 6; 
   
   const CONTACT_PHONE = "0912791925";
   const scrollRef = useRef(null);
 
-  // STATE DÀNH CHO POPUP NHỜ TÌM CĂN
   const [isFindModalOpen, setIsFindModalOpen] = useState(false);
   const [isSendingFind, setIsSendingFind] = useState(false);
   const [findPhoneError, setFindPhoneError] = useState('');
@@ -123,14 +121,13 @@ export default function SubdivisionLandingPage() {
     fetchData();
   }, [exactName]);
 
-  // TỰ ĐỘNG CUỘN ẢNH SLIDER PHÂN KHU (3 GIÂY/LẦN)
   useEffect(() => {
     if (pkConfig?.images?.length > 1) {
       const interval = setInterval(() => {
         if (scrollRef.current) {
           const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current;
           if (scrollLeft + clientWidth >= scrollWidth - 10) {
-            scrollRef.current.scrollTo({ left: 0, behavior: 'smooth' }); // Cuộn về đầu nếu hết
+            scrollRef.current.scrollTo({ left: 0, behavior: 'smooth' }); 
           } else {
             scrollRef.current.scrollBy({ left: 350, behavior: 'smooth' });
           }
@@ -147,7 +144,6 @@ export default function SubdivisionLandingPage() {
     return b.createdAt - a.createdAt;
   });
 
-  // TÍNH TOÁN DỮ LIỆU HIỂN THỊ THEO TRANG (1, 2, 3...)
   const totalPages = Math.ceil(filteredProperties.length / itemsPerPage);
   const currentProperties = filteredProperties.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
@@ -254,7 +250,6 @@ export default function SubdivisionLandingPage() {
 
         <hr className="border-gray-200 mb-10" />
 
-        {/* ĐÃ FIX: ĐỔI THÀNH QUỸ CĂN + ĐẢM BẢO ITEMS-START ĐỂ KHÔNG BỊ LỆCH PHẢI TRÊN ĐIỆN THOẠI */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4 border-b pb-4 sm:border-0 sm:pb-0 border-gray-200">
            <div>
              <h2 className="text-2xl font-black text-blue-950 uppercase tracking-tight">Quỹ căn {exactName}</h2>
@@ -283,7 +278,6 @@ export default function SubdivisionLandingPage() {
               {currentProperties.map(item => <PropertyCard key={item.id} item={item} contactPhone={CONTACT_PHONE} />)}
             </div>
             
-            {/* ĐÃ FIX: THÊM TÍNH NĂNG PHÂN TRANG (1, 2, 3...) CHO TRANG PHÂN KHU */}
             {totalPages > 1 && (
               <div className="flex justify-center items-center gap-2 mt-4 mb-8">
                 <button onClick={() => { setCurrentPage(p => Math.max(1, p - 1)); window.scrollTo({top: 0, behavior: 'smooth'}); }} disabled={currentPage === 1} className="w-10 h-10 flex items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 hover:bg-gray-50 disabled:opacity-50 transition shadow-sm">‹</button>
@@ -294,7 +288,6 @@ export default function SubdivisionLandingPage() {
               </div>
             )}
 
-            {/* ĐÃ FIX: NHÚNG BOX YÊU CẦU "NHỜ TÌM CĂN" VÀO CUỐI TRANG PHÂN KHU */}
             <div className="bg-white border border-gray-200 rounded-xl p-6 md:p-8 flex flex-col md:flex-row justify-between items-center gap-6 shadow-sm mb-10 w-full mt-4">
               <div>
                   <h4 className="text-xl font-bold text-blue-900 mb-2">Không cần tự lướt hết quỹ căn</h4>
@@ -308,11 +301,25 @@ export default function SubdivisionLandingPage() {
         )}
       </main>
 
-      <footer className="bg-white border-t border-gray-200 py-8 px-4 text-center text-sm text-gray-500">
-         © 2026 Quỹ Căn Smart City. All rights reserved.
+      {/* FOOTER ĐÃ ĐƯỢC ĐỒNG BỘ 100% VỚI TRANG KHÁCH CHÍNH */}
+      <footer className="bg-white border-t border-gray-200 py-12 px-4 md:px-12 w-full mt-auto">
+        <div className="max-w-[1400px] mx-auto grid grid-cols-1 md:grid-cols-2 gap-12 text-sm text-gray-600">
+           <div className="md:pr-10">
+             <div className="flex items-center mb-6"><img src="/logo.png" alt="Quỹ Căn Smart City Logo" className="h-10 md:h-12 w-auto object-contain" /></div>
+             <p className="leading-relaxed font-medium mb-4">Quỹ Căn Smart City – Chuyên trang tổng hợp nguồn hàng mua bán, chuyển nhượng, cho thuê căn hộ tại Vinhomes Smart City Tây Mỗ. Cập nhật quỹ căn mới mỗi ngày tại mọi phân khu.</p>
+             <p className="text-xs text-gray-400 font-medium">© 2026 Quỹ Căn Smart City.</p>
+           </div>
+           <div className="md:pl-10 md:border-l border-gray-100">
+             <h3 className="font-extrabold text-blue-900 mb-5 text-lg uppercase tracking-wider">Liên hệ tư vấn</h3>
+             <div className="space-y-4 font-medium text-[15px]">
+               <p className="flex items-center gap-3">👤 <strong className="text-gray-800">Nguyễn An Ninh</strong></p>
+               <p className="flex items-center gap-3">📞 <a href={`tel:${CONTACT_PHONE}`} className="font-bold text-blue-600 hover:text-blue-800 transition text-lg">{CONTACT_PHONE.replace(/(\d{4})(\d{3})(\d{3})/, '$1 $2 $3')}</a> <span className="text-gray-400 text-xs ml-1">(SĐT / Zalo)</span></p>
+               <p className="flex items-center gap-3">📍 Vinhomes Smart City, Tây Mỗ, Nam Từ Liêm, Hà Nội</p>
+             </div>
+           </div>
+        </div>
       </footer>
 
-      {/* POPUP NHỜ TÌM DÀNH CHO TRANG PHÂN KHU */}
       {isFindModalOpen && (
         <div className="fixed inset-0 bg-blue-900/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-y-auto max-h-[90vh] animate-fade-in-up">
