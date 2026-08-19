@@ -34,7 +34,6 @@ export default function AdminPage() {
   const [tempPKData, setTempPKData] = useState({ phi: '', tongQuan: '', uuDiem: '' });
   const [isSavingPK, setIsSavingPK] = useState(false);
 
-  // ĐÃ BỔ SUNG TRƯỜNG phapLy VÀ vaoLuon
   const initialForm = { listingType: 'Cho thuê', phanKhu: 'Sapphire', loaiCan: 'Studio', toaNha: '', khoangTang: 'Tầng trung', huongBanCong: 'Đông Nam', noiThat: 'Đầy đủ nội thất', area: '', price: '', ngayNhanNha: '', vaoLuon: false, phapLy: 'Sổ đỏ', moTa: '', nhanDan: 'Không có' };
   const [formData, setFormData] = useState(initialForm);
   const [images, setImages] = useState([]);
@@ -225,7 +224,10 @@ export default function AdminPage() {
 
   const handleDelete = async (id) => {
     if (window.confirm('Cảnh báo: Bạn có chắc chắn muốn xóa căn hộ này khỏi hệ thống?')) {
-      await deleteDoc(doc(db, 'properties', id)); alert('Đã xóa thành công!'); fetchProperties();
+      await deleteDoc(doc(db, 'properties', id)); 
+      sessionStorage.removeItem('cachedProperties'); // Xóa bộ nhớ đệm
+      alert('Đã xóa thành công!'); 
+      fetchProperties();
     }
   };
 
@@ -277,6 +279,7 @@ export default function AdminPage() {
         await addDoc(collection(db, 'properties'), { ...dataToSave, createdAt: serverTimestamp() }); alert(`Đã đăng thành công căn ${formData.listingType} với Mã: ${finalMaCan}`);
       }
 
+      sessionStorage.removeItem('cachedProperties'); // ÉP KHÁCH LÀM MỚI KHI ADMIN CẬP NHẬT
       setFormData(initialForm); setEditingId(null); setImages([]); fetchProperties();
     } catch (error) { alert('Có lỗi xảy ra, vui lòng thử lại!'); }
     setIsUploading(false);

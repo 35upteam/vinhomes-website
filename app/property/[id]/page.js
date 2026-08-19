@@ -7,7 +7,6 @@ import { useParams } from 'next/navigation';
 
 const optimizeImg = (url) => url?.includes('cloudinary.com') ? url.replace('/upload/', '/upload/w_1000,c_limit,q_auto,f_auto/') : url;
 
-// HIỆU ỨNG SKELETON (KHUNG XÁM NHẤP NHÁY) CHỜ TẢI DỮ LIỆU ĐỂ TRÁNH LỖI SẬP TRANG
 const SkeletonDetail = () => (
   <div className="animate-pulse w-full flex flex-col lg:flex-row gap-8">
     <div className="flex-1 w-full">
@@ -68,37 +67,67 @@ export default function PropertyDetail() {
 
   useEffect(() => {
     const fetchData = async () => {
+      let foundInCache = false;
+
+      // 1. LẤY NHANH TỪ RAM (CACHE) NẾU ĐÃ TẢI Ở TRANG CHỦ MÀ KHÔNG PHẢI ĐỢI
+      const cachedStr = sessionStorage.getItem('cachedProperties');
+      if (cachedStr) {
+        try {
+          const cachedProps = JSON.parse(cachedStr);
+          const cachedProp = cachedProps.find(p => p.id === id);
+          if (cachedProp) {
+            setProperty(cachedProp);
+            document.title = `[${cachedProp.listingType}] Căn ${cachedProp.loaiCan} - ${cachedProp.phanKhu} | Quỹ Căn Smart City`;
+            setLoading(false);
+            foundInCache = true;
+            
+            // Xử lý luôn mảng Căn tương tự từ bộ nhớ đệm
+            let sims = cachedProps.filter(p => p.id !== id && p.listingType === cachedProp.listingType);
+            sims.sort((a, b) => {
+              if (a.loaiCan === cachedProp.loaiCan && b.loaiCan !== cachedProp.loaiCan) return -1;
+              if (a.loaiCan !== cachedProp.loaiCan && b.loaiCan === cachedProp.loaiCan) return 1;
+              if (a.phanKhu === cachedProp.phanKhu && b.phanKhu !== cachedProp.phanKhu) return -1;
+              if (a.phanKhu !== cachedProp.phanKhu && b.phanKhu === cachedProp.phanKhu) return 1;
+              return 0;
+            });
+            setSimilarProps(sims.slice(0, 6));
+          }
+        } catch(e) {}
+      }
+
+      // 2. NẾU KHÔNG CÓ TRONG CACHE HOẶC ĐỂ CHUẨN HÓA LẠI, VẪN GỌI FIREBASE (SẼ CHẠY NGẦM RẤT MƯỢT)
       try {
         const docRef = doc(db, 'properties', id);
         const docSnap = await getDoc(docRef);
         
         if (docSnap.exists()) {
           const propData = { id: docSnap.id, ...docSnap.data() };
-          setProperty(propData);
-          document.title = `[${propData.listingType}] Căn ${propData.loaiCan} - ${propData.phanKhu} | Quỹ Căn Smart City`;
+          if (!foundInCache) {
+            setProperty(propData);
+            document.title = `[${propData.listingType}] Căn ${propData.loaiCan} - ${propData.phanKhu} | Quỹ Căn Smart City`;
+            setLoading(false);
+          }
           
-          setLoading(false); // Dữ liệu chính đã xong thì tắt loading
-
-          // Tải dữ liệu phân khu ngầm
           const pkDoc = await getDoc(doc(db, 'settings', 'phanKhuConfig'));
           if (pkDoc.exists() && pkDoc.data()[propData.phanKhu]) {
             setPkConfig(pkDoc.data()[propData.phanKhu]);
           }
 
-          // Tải 30 căn tương tự ngầm
-          const q = query(collection(db, 'properties'), where('listingType', '==', propData.listingType), limit(30));
-          const allPropsSnap = await getDocs(q);
-          const allProps = allPropsSnap.docs.map(d => ({id: d.id, ...d.data()}));
-          
-          let sims = allProps.filter(p => p.id !== docSnap.id);
-          sims.sort((a, b) => {
-            if (a.loaiCan === propData.loaiCan && b.loaiCan !== propData.loaiCan) return -1;
-            if (a.loaiCan !== propData.loaiCan && b.loaiCan === propData.loaiCan) return 1;
-            if (a.phanKhu === propData.phanKhu && b.phanKhu !== propData.phanKhu) return -1;
-            if (a.phanKhu !== propData.phanKhu && b.phanKhu === propData.phanKhu) return 1;
-            return 0;
-          });
-          setSimilarProps(sims.slice(0, 6));
+          if (!foundInCache) {
+            const q = query(collection(db, 'properties'), where('listingType', '==', propData.listingType), limit(30));
+            const allPropsSnap = await getDocs(q);
+            const allProps = allPropsSnap.docs.map(d => ({id: d.id, ...d.data()}));
+            
+            let sims = allProps.filter(p => p.id !== docSnap.id);
+            sims.sort((a, b) => {
+              if (a.loaiCan === propData.loaiCan && b.loaiCan !== propData.loaiCan) return -1;
+              if (a.loaiCan !== propData.loaiCan && b.loaiCan === propData.loaiCan) return 1;
+              if (a.phanKhu === propData.phanKhu && b.phanKhu !== propData.phanKhu) return -1;
+              if (a.phanKhu !== propData.phanKhu && b.phanKhu === propData.phanKhu) return 1;
+              return 0;
+            });
+            setSimilarProps(sims.slice(0, 6));
+          }
         } else {
           setLoading(false);
         }
@@ -165,7 +194,6 @@ export default function PropertyDetail() {
     alert("Đã gửi yêu cầu thành công! Chuyên viên An Ninh sẽ liên hệ Zalo anh/chị ngay nhé!");
   };
 
-  // CHẶN HIỂN THỊ KHI DỮ LIỆU ĐANG RỖNG, TRẢ VỀ KHUNG XƯƠNG ĐỂ KHÔNG BỊ SẬP TRANG
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 text-gray-800 flex flex-col relative pb-20 md:pb-0">
@@ -181,7 +209,6 @@ export default function PropertyDetail() {
 
   if (!property) return <div className="text-center py-20 font-bold text-gray-500">Không tìm thấy căn hộ!</div>;
 
-  // CÁC THÔNG SỐ ĐƯỢC TÍNH TOÁN KHI ĐÃ CÓ DỮ LIỆU PROPERTY
   const images = property.images || [];
   let formattedDate = 'Đang cập nhật';
   if (property.ngayNhanNha) {
@@ -192,6 +219,7 @@ export default function PropertyDetail() {
   const displayId = property.maCan || property.id.substring(0, 5).toUpperCase();
   const titleString = `${property.listingType === 'Cho thuê' ? 'Cho thuê' : 'Bán'} căn hộ ${property.loaiCan || property.type}, tòa ${property.toaNha || property.building}, phân khu ${property.phanKhu}`;
 
+  // ĐỊNH NGHĨA DANH SÁCH THÔNG SỐ ĐÚNG CHUẨN THỨ TỰ CỦA BẠN (CÓ ICON)
   const specs = property.listingType === 'Cho thuê' ? [
     { label: 'Loại căn', val: property.loaiCan || property.type, icon: '🏠' },
     { label: 'Diện tích', val: `${property.area} m²`, icon: '📐' },
@@ -224,13 +252,13 @@ export default function PropertyDetail() {
         </div>
       </header>
 
-      {isLightboxOpen && (
+      {isLightboxOpen && property && (
         <div className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center">
            <button onClick={() => setIsLightboxOpen(false)} className="absolute top-6 right-6 text-white hover:text-gray-300 p-2 z-10"><svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
-           <button onClick={() => setLightboxImg(p => p > 0 ? p - 1 : images.length - 1)} className="absolute left-4 top-1/2 -translate-y-1/2 text-white p-4 hover:bg-white/10 rounded-full z-10"><svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path></svg></button>
-           <img src={optimizeImg(images[lightboxImg])} alt="Full" className="max-w-full max-h-[90vh] object-contain" />
-           <button onClick={() => setLightboxImg(p => p < images.length - 1 ? p + 1 : 0)} className="absolute right-4 top-1/2 -translate-y-1/2 text-white p-4 hover:bg-white/10 rounded-full z-10"><svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg></button>
-           <div className="absolute bottom-6 text-white text-sm font-medium">{lightboxImg + 1} / {images.length}</div>
+           <button onClick={() => setLightboxImg(p => p > 0 ? p - 1 : (property.images?.length || 1) - 1)} className="absolute left-4 top-1/2 -translate-y-1/2 text-white p-4 hover:bg-white/10 rounded-full z-10"><svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path></svg></button>
+           <img src={optimizeImg(property.images[lightboxImg])} alt="Full" className="max-w-full max-h-[90vh] object-contain" />
+           <button onClick={() => setLightboxImg(p => p < (property.images?.length || 1) - 1 ? p + 1 : 0)} className="absolute right-4 top-1/2 -translate-y-1/2 text-white p-4 hover:bg-white/10 rounded-full z-10"><svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg></button>
+           <div className="absolute bottom-6 text-white text-sm font-medium">{lightboxImg + 1} / {property.images?.length || 1}</div>
         </div>
       )}
 
@@ -367,7 +395,7 @@ export default function PropertyDetail() {
               
               <div className="space-y-3">
                 <a href={`tel:${CONTACT_PHONE}`} className="flex items-center justify-center gap-2 w-full bg-blue-600 text-white py-3.5 rounded-xl font-bold hover:bg-blue-700 transition shadow-md shadow-blue-600/20">📞 Gọi {CONTACT_PHONE.replace(/(\d{4})(\d{3})(\d{3})/, '$1 $2 $3')}</a>
-                <a href={`https://zalo.me/${CONTACT_PHONE}?text=${encodeURIComponent(`Xin chào, tôi quan tâm căn Mã ${displayId} (${property.listingType} ${property.loaiCan} tòa ${property.toaNha}) trên web.`)}`} target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 w-full bg-white border-2 border-blue-100 text-blue-800 py-3 rounded-xl font-bold hover:bg-blue-50 transition">💬 Nhận tư vấn căn này</a>
+                <a href={`https://zalo.me/${CONTACT_PHONE}?text=${encodeURIComponent(`Xin chào, tôi quan tâm căn Mã ${displayId} (${property?.listingType} ${property?.loaiCan} tòa ${property?.toaNha}) trên web.`)}`} target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 w-full bg-white border-2 border-blue-100 text-blue-800 py-3 rounded-xl font-bold hover:bg-blue-50 transition">💬 Nhận tư vấn căn này</a>
                 <button onClick={handleShare} className="flex items-center justify-center gap-2 w-full bg-gray-50 border border-gray-200 text-gray-700 py-3 rounded-xl font-bold hover:bg-gray-100 transition mt-2">🔗 Chia sẻ thông tin căn</button>
               </div>
               <div className="mt-6 bg-gray-50 p-4 rounded-xl border border-gray-100 text-center">
@@ -379,24 +407,7 @@ export default function PropertyDetail() {
         </div>
       </main>
 
-      <footer className="bg-white border-t border-gray-200 py-12 px-4 md:px-12 w-full mt-auto">
-        <div className="max-w-[1400px] mx-auto grid grid-cols-1 md:grid-cols-2 gap-12 text-sm text-gray-600">
-           <div className="md:pr-10">
-             <div className="flex items-center mb-6"><img src="/logo.png" alt="Quỹ Căn Smart City Logo" className="h-10 md:h-12 w-auto object-contain" /></div>
-             <p className="leading-relaxed font-light mb-4">Quỹ Căn Smart City – Chuyên trang tổng hợp nguồn hàng mua bán, chuyển nhượng, cho thuê căn hộ tại Vinhomes Smart City Tây Mỗ. Cập nhật quỹ căn mới mỗi ngày tại mọi phân khu.</p>
-             <p className="text-xs text-gray-400">© 2026 Quỹ Căn Smart City.</p>
-           </div>
-           <div className="md:pl-10 md:border-l border-gray-100">
-             <h3 className="font-extrabold text-blue-900 mb-5 text-lg uppercase tracking-wider">Liên hệ tư vấn</h3>
-             <div className="space-y-4 font-light text-[15px]">
-               <p className="flex items-center gap-3">👤 <strong className="text-gray-800">Nguyễn An Ninh</strong></p>
-               <p className="flex items-center gap-3">📞 <a href={`tel:${CONTACT_PHONE}`} className="font-bold text-blue-600 hover:text-blue-800 transition text-lg">{CONTACT_PHONE.replace(/(\d{4})(\d{3})(\d{3})/, '$1 $2 $3')}</a> <span className="text-gray-400 text-xs ml-1">(SĐT / Zalo)</span></p>
-               <p className="flex items-center gap-3">📍 Vinhomes Smart City, Tây Mỗ, Nam Từ Liêm, Hà Nội</p>
-             </div>
-           </div>
-        </div>
-      </footer>
-
+      {/* POPUP NHỜ TÌM (ĐÃ CHUYỂN RA NGOÀI CÙNG ĐỂ CHẠY CHUẨN) */}
       {isFindModalOpen && (
         <div className="fixed inset-0 bg-blue-900/60 backdrop-blur-sm z-[150] flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-y-auto max-h-[90vh] animate-fade-in-up">

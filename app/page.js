@@ -6,7 +6,6 @@ import Link from 'next/link';
 
 const optimizeImg = (url) => url?.includes('cloudinary.com') ? url.replace('/upload/', '/upload/w_800,c_limit,q_auto,f_auto/') : url;
 
-// HIỆU ỨNG SKELETON (KHUNG XÁM NHẤP NHÁY) KHI CHỜ DỮ LIỆU
 const SkeletonCard = () => (
   <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden animate-pulse">
     <div className="h-56 bg-gray-200"></div>
@@ -114,8 +113,6 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('Cho thuê');
   const [sortBy, setSortBy] = useState('newest');
-  
-  // TỐI ƯU PHÂN TRANG (PAGINATION) DÀNH CHO MOBILE
   const [visibleCount, setVisibleCount] = useState(9);
   
   const [filters, setFilters] = useState({ phanKhu: 'Tất cả phân khu', loaiCan: [], khoangTang: 'Tất cả tầng', huongBanCong: 'Tất cả hướng', noiThat: 'Tất cả nội thất', mucGia: 'Tất cả mức giá' });
@@ -138,14 +135,35 @@ export default function Home() {
 
   useEffect(() => {
     document.title = "Quỹ Căn Smart City - Bán & Cho Thuê Giá Tốt Nhất";
+    
     const fetchProperties = async () => {
+      // BƯỚC 1: KIỂM TRA BỘ NHỚ ĐỆM ĐỂ HIỂN THỊ NGAY TỨC THÌ
+      const cachedStr = sessionStorage.getItem('cachedProperties');
+      if (cachedStr) {
+        try {
+          setProperties(JSON.parse(cachedStr));
+          setLoading(false); // Hiện dữ liệu liền!
+        } catch(e) {}
+      }
+
+      // BƯỚC 2: TẢI DỮ LIỆU TỪ FIREBASE ĐỂ LÀM MỚI BỘ NHỚ ĐỆM
       try {
         const q = query(collection(db, 'properties'), orderBy('createdAt', 'desc'));
         const querySnapshot = await getDocs(q);
-        setProperties(querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-      } catch (error) { console.error("Lỗi:", error); }
-      setLoading(false);
+        const data = querySnapshot.docs.map(doc => {
+          const d = doc.data();
+          return { id: doc.id, ...d, createdAt: d.createdAt ? { seconds: d.createdAt.seconds } : null };
+        });
+        
+        setProperties(data);
+        sessionStorage.setItem('cachedProperties', JSON.stringify(data)); // Lưu lại vào RAM
+        setLoading(false);
+      } catch (error) { 
+        console.error("Lỗi:", error); 
+        setLoading(false); 
+      }
     };
+    
     fetchProperties();
 
     const timer = setTimeout(() => {
@@ -226,7 +244,7 @@ export default function Home() {
     if (!phoneRegex.test(findData.soDienThoai)) { setFindPhoneError("Số điện thoại không hợp lệ!"); return; }
 
     setIsSendingFind(true);
-    try { await addDoc(collection(db, 'nho_tim_can'), { ...findData, source: 'Nút Nhờ Tìm', createdAt: serverTimestamp(), status: 'Chưa xử lý' }); } catch(err) {}
+    try { await addDoc(collection(db, 'nho_tim_can'), { ...findData, source: 'Nút Nhờ Tìm (Trang chủ)', createdAt: serverTimestamp(), status: 'Chưa xử lý' }); } catch(err) {}
 
     const BOT_TOKEN = "7295171731:AAEUgA3z1y3D6o_cK8t6W42aXfN-6I"; 
     const CHAT_ID = "6190858172";
@@ -246,12 +264,12 @@ export default function Home() {
     if (!phoneRegex.test(leadData.soDienThoai)) { setLeadPhoneError("Số điện thoại không hợp lệ!"); return; }
 
     setIsSendingLead(true);
-    try { await addDoc(collection(db, 'nho_tim_can'), { ...leadData, source: 'Popup 10s', createdAt: serverTimestamp(), status: 'Chưa xử lý' }); } catch(err) {}
+    try { await addDoc(collection(db, 'nho_tim_can'), { ...leadData, source: 'Popup Tự Động', createdAt: serverTimestamp(), status: 'Chưa xử lý' }); } catch(err) {}
 
     const BOT_TOKEN = "7295171731:AAEUgA3z1y3D6o_cK8t6W42aXfN-6I"; 
     const CHAT_ID = "6190858172";
     if (BOT_TOKEN && CHAT_ID) {
-      const message = `🚨 <b>KHÁCH TỪ POPUP 20S</b>\n\n👤 <b>Tên khách:</b> ${leadData.ten}\n📞 <b>Số điện thoại:</b> <code>${leadData.soDienThoai}</code>\n📌 <b>Nhu cầu:</b> Tìm ${leadData.nhuCau}\n💰 <b>Tài chính:</b> ${leadData.taiChinh || 'Không ghi'}\n📝 <b>Ghi chú thêm:</b> ${leadData.ghiChu || 'Không có'}`;
+      const message = `🚨 <b>KHÁCH TỪ POPUP TỰ ĐỘNG</b>\n\n👤 <b>Tên khách:</b> ${leadData.ten}\n📞 <b>Số điện thoại:</b> <code>${leadData.soDienThoai}</code>\n📌 <b>Nhu cầu:</b> Tìm ${leadData.nhuCau}\n💰 <b>Tài chính:</b> ${leadData.taiChinh || 'Không ghi'}\n📝 <b>Ghi chú thêm:</b> ${leadData.ghiChu || 'Không có'}`;
       try { fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: CHAT_ID, text: message, parse_mode: 'HTML' }) }); } catch (error) {}
     }
     setIsSendingLead(false); setIsLeadPopupOpen(false);
@@ -260,14 +278,13 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-800 flex flex-col relative pb-20 md:pb-0">
-      {/* HEADER VÀ BANNER HIỂN THỊ NGAY LẬP TỨC */}
       <header className="bg-white sticky top-0 z-50 px-4 md:px-8 py-3 flex justify-between items-center shadow-sm">
         <Link href="/" className="flex items-center hover:opacity-80 transition">
           <img src="/logo.png" alt="Quỹ Căn Smart City" className="h-10 md:h-12 w-auto object-contain" />
         </Link>
         <div className="flex items-center gap-3 md:gap-4">
            <Link href="/ky-gui" className="hidden md:flex items-center gap-1.5 bg-blue-50 text-blue-800 px-4 py-2 rounded-md font-bold hover:bg-blue-100 transition text-sm border border-blue-100">
-             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 001 1m-6 0h6"></path></svg>
              Ký gửi căn hộ
            </Link>
            <a href={`https://zalo.me/${CONTACT_PHONE}`} target="_blank" rel="noreferrer" className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-800 text-white px-5 py-2 rounded-full font-bold hover:opacity-90 transition shadow-md text-sm">
@@ -384,7 +401,6 @@ export default function Home() {
              </div>
           </div>
 
-          {/* HIỂN THỊ SKELETON LÚC LOAD ĐỂ KHÔNG TRẮNG MÀN HÌNH */}
           {loading ? (
              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6 mb-8">
                {[1,2,3,4,5,6].map(i => <SkeletonCard key={i} />)}
@@ -397,7 +413,6 @@ export default function Home() {
                 {currentProperties.map(item => <PropertyCard key={item.id} item={item} contactPhone={CONTACT_PHONE} />)}
               </div>
               
-              {/* NÚT TẢI THÊM (PAGINATION TỐI ƯU MOBILE) */}
               {visibleCount < sortedProperties.length && (
                 <div className="flex justify-center mb-8">
                   <button onClick={() => setVisibleCount(prev => prev + 9)} className="bg-white border-2 border-blue-600 text-blue-700 hover:bg-blue-50 px-8 py-3 rounded-full font-bold transition shadow-sm">
@@ -437,8 +452,8 @@ export default function Home() {
            </div>
         </div>
       </footer>
-
-      {/* POPUP NHỜ TÌM (ĐÃ CHUYỂN RA NGOÀI CÙNG ĐỂ HOẠT ĐỘNG CHUẨN XÁC) */}
+      
+      {/* POPUP NHỜ TÌM BÊN NGOÀI ĐỂ KHÔNG BỊ CHẶN SỰ KIỆN CLICK */}
       {isFindModalOpen && (
         <div className="fixed inset-0 bg-blue-900/60 backdrop-blur-sm z-[150] flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-y-auto max-h-[90vh] animate-fade-in-up">
@@ -506,7 +521,6 @@ export default function Home() {
         </div>
       )}
 
-      {/* POPUP BẮT LEAD 20S */}
       {isLeadPopupOpen && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[150] flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-fade-in-up text-center relative border-4 border-blue-100">
