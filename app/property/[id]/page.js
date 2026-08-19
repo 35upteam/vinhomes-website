@@ -1,17 +1,19 @@
 'use client';
 import { useEffect, useState, useRef } from 'react';
 import { db } from '../../../firebase';
-import { doc, getDoc, collection, query, orderBy, getDocs, addDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, collection, query, orderBy, getDocs, addDoc, serverTimestamp, where, limit } from 'firebase/firestore';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 
 const optimizeImg = (url) => url?.includes('cloudinary.com') ? url.replace('/upload/', '/upload/w_1000,c_limit,q_auto,f_auto/') : url;
 
-// HIỆU ỨNG SKELETON CHỜ TẢI DỮ LIỆU CĂN TƯƠNG TỰ
-const SkeletonMiniCard = () => (
-  <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden w-[260px] max-w-[80vw] snap-start flex-shrink-0 animate-pulse">
-    <div className="h-40 bg-gray-200"></div>
-    <div className="p-4"><div className="h-4 bg-gray-200 rounded w-1/2 mb-2"></div><div className="h-6 bg-gray-200 rounded w-3/4"></div></div>
+// HIỆU ỨNG CHỜ GIAO DIỆN (SKELETON) - GIÚP TĂNG TRẢI NGHIỆM TỐC ĐỘ TRÊN MOBILE
+const SkeletonDetail = () => (
+  <div className="animate-pulse w-full">
+    <div className="h-[400px] md:h-[500px] bg-gray-200 rounded-2xl mb-8"></div>
+    <div className="h-8 bg-gray-200 w-3/4 rounded mb-4"></div>
+    <div className="h-12 bg-gray-200 w-1/3 rounded mb-8"></div>
+    <div className="bg-white rounded-2xl border border-gray-100 p-8 shadow-sm h-64 mb-8"></div>
   </div>
 );
 
@@ -68,19 +70,23 @@ export default function PropertyDetail() {
         if (docSnap.exists()) {
           const propData = { id: docSnap.id, ...docSnap.data() };
           setProperty(propData);
-          
           document.title = `[${propData.listingType}] Căn ${propData.loaiCan} - ${propData.phanKhu} | Quỹ Căn Smart City`;
           
+          // TẮT LOADING NGAY LẬP TỨC ĐỂ KHÁCH XEM ĐƯỢC THÔNG TIN CĂN LIỀN, KHÔNG BỊ TREO
+          setLoading(false);
+
+          // PHẦN DƯỚI NÀY SẼ CHẠY NGẦM SAU LƯNG ĐỂ KHÔNG CHẶN GIAO DIỆN
           const pkDoc = await getDoc(doc(db, 'settings', 'phanKhuConfig'));
           if (pkDoc.exists() && pkDoc.data()[propData.phanKhu]) {
             setPkConfig(pkDoc.data()[propData.phanKhu]);
           }
 
-          const q = query(collection(db, 'properties'), orderBy('createdAt', 'desc'));
+          // TỐI ƯU TRUY VẤN: Chỉ lôi 30 căn cùng loại về thay vì kéo toàn bộ DB hàng ngàn căn
+          const q = query(collection(db, 'properties'), where('listingType', '==', propData.listingType), limit(30));
           const allPropsSnap = await getDocs(q);
           const allProps = allPropsSnap.docs.map(d => ({id: d.id, ...d.data()}));
           
-          let sims = allProps.filter(p => p.id !== docSnap.id && p.listingType === propData.listingType);
+          let sims = allProps.filter(p => p.id !== docSnap.id);
           sims.sort((a, b) => {
             if (a.loaiCan === propData.loaiCan && b.loaiCan !== propData.loaiCan) return -1;
             if (a.loaiCan !== propData.loaiCan && b.loaiCan === propData.loaiCan) return 1;
@@ -89,9 +95,13 @@ export default function PropertyDetail() {
             return 0;
           });
           setSimilarProps(sims.slice(0, 6));
+        } else {
+          setLoading(false);
         }
-      } catch (error) { console.error("Lỗi:", error); }
-      setLoading(false);
+      } catch (error) { 
+        console.error("Lỗi:", error); 
+        setLoading(false);
+      }
     };
     fetchData();
   }, [id]);
@@ -150,51 +160,6 @@ export default function PropertyDetail() {
     alert("Đã gửi yêu cầu thành công! Chuyên viên An Ninh sẽ liên hệ Zalo anh/chị ngay nhé!");
   };
 
-  // KHÔNG CHẶN TOÀN MÀN HÌNH BẰNG SPINNER NỮA
-  if (loading) return (
-    <div className="min-h-screen bg-gray-50 flex flex-col relative pb-20 md:pb-0">
-      <header className="bg-white sticky top-0 z-50 px-4 md:px-8 py-3 flex justify-between items-center shadow-sm">
-        <Link href="/"><img src="/logo.png" alt="Quỹ Căn Smart City" className="h-10 md:h-12 w-auto object-contain" /></Link>
-      </header>
-      <div className="flex justify-center items-center h-96"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-900"></div></div>
-    </div>
-  );
-
-  if (!property) return <div className="text-center py-20">Không tìm thấy căn hộ!</div>;
-
-  const images = property.images || [];
-  let formattedDate = 'Đang cập nhật';
-  if (property.ngayNhanNha) {
-    const d = new Date(property.ngayNhanNha);
-    formattedDate = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
-  }
-
-  const displayId = property.maCan || property.id.substring(0, 5).toUpperCase();
-  const titleString = `${property.listingType === 'Cho thuê' ? 'Cho thuê' : 'Bán'} căn hộ ${property.loaiCan || property.type}, tòa ${property.toaNha || property.building}, phân khu ${property.phanKhu}`;
-
-  // ĐỊNH NGHĨA TRƯỜNG THÔNG TIN CHI TIẾT THEO YÊU CẦU: Tách riêng Tòa nhà/Khoảng tầng, thêm Pháp lý/Vào luôn
-  const specs = property.listingType === 'Cho thuê' ? [
-    { label: 'Loại căn', val: property.loaiCan || property.type, icon: '🏠' },
-    { label: 'Diện tích', val: `${property.area} m²`, icon: '📐' },
-    { label: 'Tòa nhà', val: `Tòa ${property.toaNha || property.building}`, icon: '🏢' },
-    { label: 'Phân khu', val: property.phanKhu, icon: '📍' },
-    { label: 'Khoảng tầng', val: property.khoangTang, icon: '🏢' },
-    { label: 'Hướng ban công', val: property.huongBanCong || 'Đang cập nhật', icon: '🧭' },
-    { label: 'Nội thất', val: property.noiThat || 'Đang cập nhật', icon: '🛋️' },
-    { label: 'Ngày chuyển vào', val: property.vaoLuon ? 'Vào luôn' : formattedDate, icon: '📅', color: property.vaoLuon ? 'text-green-600 font-black' : '' },
-    { label: 'Phí dịch vụ', val: pkConfig.phi || 'Đang cập nhật', icon: '💰' },
-  ] : [
-    { label: 'Loại căn', val: property.loaiCan || property.type, icon: '🏠' },
-    { label: 'Diện tích', val: `${property.area} m²`, icon: '📐' },
-    { label: 'Tòa nhà', val: `Tòa ${property.toaNha || property.building}`, icon: '🏢' },
-    { label: 'Phân khu', val: property.phanKhu, icon: '📍' },
-    { label: 'Khoảng tầng', val: property.khoangTang, icon: '🏢' },
-    { label: 'Hướng ban công', val: property.huongBanCong || 'Đang cập nhật', icon: '🧭' },
-    { label: 'Nội thất', val: property.noiThat || 'Đang cập nhật', icon: '🛋️' },
-    { label: 'Pháp lý', val: property.phapLy || 'Sổ đỏ', icon: '📜', color: 'text-blue-700' },
-    { label: 'Phí dịch vụ', val: pkConfig.phi || 'Đang cập nhật', icon: '💰' },
-  ];
-
   return (
     <div className="min-h-screen bg-gray-50 text-gray-800 font-sans flex flex-col relative pb-20 md:pb-0">
       <header className="bg-white sticky top-0 z-50 px-4 md:px-8 py-3 flex justify-between items-center shadow-sm">
@@ -205,13 +170,13 @@ export default function PropertyDetail() {
         </div>
       </header>
 
-      {isLightboxOpen && (
+      {isLightboxOpen && property && (
         <div className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center">
            <button onClick={() => setIsLightboxOpen(false)} className="absolute top-6 right-6 text-white hover:text-gray-300 p-2 z-10"><svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
-           <button onClick={() => setLightboxImg(p => p > 0 ? p - 1 : images.length - 1)} className="absolute left-4 top-1/2 -translate-y-1/2 text-white p-4 hover:bg-white/10 rounded-full z-10"><svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path></svg></button>
-           <img src={optimizeImg(images[lightboxImg])} alt="Full" className="max-w-full max-h-[90vh] object-contain" />
-           <button onClick={() => setLightboxImg(p => p < images.length - 1 ? p + 1 : 0)} className="absolute right-4 top-1/2 -translate-y-1/2 text-white p-4 hover:bg-white/10 rounded-full z-10"><svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg></button>
-           <div className="absolute bottom-6 text-white text-sm font-medium">{lightboxImg + 1} / {images.length}</div>
+           <button onClick={() => setLightboxImg(p => p > 0 ? p - 1 : (property.images?.length || 1) - 1)} className="absolute left-4 top-1/2 -translate-y-1/2 text-white p-4 hover:bg-white/10 rounded-full z-10"><svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path></svg></button>
+           <img src={optimizeImg(property.images[lightboxImg])} alt="Full" className="max-w-full max-h-[90vh] object-contain" />
+           <button onClick={() => setLightboxImg(p => p < (property.images?.length || 1) - 1 ? p + 1 : 0)} className="absolute right-4 top-1/2 -translate-y-1/2 text-white p-4 hover:bg-white/10 rounded-full z-10"><svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg></button>
+           <div className="absolute bottom-6 text-white text-sm font-medium">{lightboxImg + 1} / {property.images?.length || 1}</div>
         </div>
       )}
 
@@ -220,126 +185,153 @@ export default function PropertyDetail() {
 
         <div className="flex flex-col lg:flex-row gap-8 items-start">
           <div className="flex-1 w-full min-w-0">
-            <div className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-200 mb-8 relative">
-              {property.nhanDan && property.nhanDan !== 'Không có' && (
-                <div className="absolute top-4 right-4 bg-red-600 text-white px-4 py-1.5 rounded-md text-sm font-black uppercase shadow-lg z-10 flex items-center gap-1.5">
-                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M17.5 12a5.5 5.5 0 11-11 0 5.5 5.5 0 0111 0zM21 12c0-4.97-4.03-9-9-9s-9 4.03-9 9 4.03 9 9 9 9-4.03 9-9zm-9-7.5a7.5 7.5 0 100 15 7.5 7.5 0 000-15zm1 11.5h-2v-2h2v2zm0-3.5h-2v-5h2v5z"></path></svg>
-                  {property.nhanDan}
-                </div>
-              )}
-              <div className="relative h-[400px] md:h-[500px] bg-gray-200 group cursor-zoom-in" onClick={() => { setLightboxImg(currentImg); setIsLightboxOpen(true); }}>
-                {images.length > 0 ? (
-                  <>
-                    <img src={optimizeImg(images[currentImg])} alt="Căn hộ" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.02]" />
-                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition flex items-center justify-center">
-                       <svg className="w-12 h-12 text-white opacity-0 group-hover:opacity-100 transition shadow-sm drop-shadow-md" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"></path></svg>
+            {/* THAY THẾ HIỆU ỨNG SKELETON */}
+            {loading || !property ? <SkeletonDetail /> : (
+              <>
+                <div className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-200 mb-8 relative">
+                  {property.nhanDan && property.nhanDan !== 'Không có' && (
+                    <div className="absolute top-4 right-4 bg-red-600 text-white px-4 py-1.5 rounded-md text-sm font-black uppercase shadow-lg z-10 flex items-center gap-1.5">
+                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M17.5 12a5.5 5.5 0 11-11 0 5.5 5.5 0 0111 0zM21 12c0-4.97-4.03-9-9-9s-9 4.03-9 9 4.03 9 9 9 9-4.03 9-9zm-9-7.5a7.5 7.5 0 100 15 7.5 7.5 0 000-15zm1 11.5h-2v-2h2v2zm0-3.5h-2v-5h2v5z"></path></svg>
+                      {property.nhanDan}
                     </div>
-                  </>
-                ) : <div className="flex items-center justify-center h-full text-gray-400">Chưa có ảnh</div>}
-                
-                {images.length > 1 && (
-                  <>
-                    <button onClick={(e) => {e.stopPropagation(); setCurrentImg(prev => prev > 0 ? prev - 1 : prev)}} className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white text-blue-900 w-10 h-10 rounded-full shadow-lg flex items-center justify-center transition backdrop-blur-sm">‹</button>
-                    <button onClick={(e) => {e.stopPropagation(); setCurrentImg(prev => prev < images.length - 1 ? prev + 1 : prev)}} className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white text-blue-900 w-10 h-10 rounded-full shadow-lg flex items-center justify-center transition backdrop-blur-sm">›</button>
-                    <div className="absolute top-4 left-4 bg-black/60 text-white px-3 py-1 rounded-full text-xs font-medium tracking-widest backdrop-blur-md">{currentImg + 1} / {images.length}</div>
-                  </>
-                )}
-              </div>
-              
-              <div className="flex bg-gray-50 border-t border-gray-100 p-2 gap-2 min-h-[80px]">
-                <div className="flex-1 flex gap-2 overflow-x-auto hide-scrollbar snap-x">
-                  {images.map((img, idx) => (
-                    <div key={idx} onClick={() => setCurrentImg(idx)} className={`snap-center flex-shrink-0 w-24 h-16 rounded-md cursor-pointer overflow-hidden border-2 transition-all ${currentImg === idx ? 'border-blue-600 shadow-md scale-105' : 'border-transparent opacity-60 hover:opacity-100'}`}>
-                      <img src={optimizeImg(img)} loading="lazy" className="w-full h-full object-cover" />
+                  )}
+                  <div className="relative h-[400px] md:h-[500px] bg-gray-200 group cursor-zoom-in" onClick={() => { setLightboxImg(currentImg); setIsLightboxOpen(true); }}>
+                    {property.images && property.images.length > 0 ? (
+                      <>
+                        <img src={optimizeImg(property.images[currentImg])} alt="Căn hộ" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.02]" />
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition flex items-center justify-center">
+                           <svg className="w-12 h-12 text-white opacity-0 group-hover:opacity-100 transition shadow-sm drop-shadow-md" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"></path></svg>
+                        </div>
+                      </>
+                    ) : <div className="flex items-center justify-center h-full text-gray-400">Chưa có ảnh</div>}
+                    
+                    {property.images && property.images.length > 1 && (
+                      <>
+                        <button onClick={(e) => {e.stopPropagation(); setCurrentImg(prev => prev > 0 ? prev - 1 : prev)}} className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white text-blue-900 w-10 h-10 rounded-full shadow-lg flex items-center justify-center transition backdrop-blur-sm">‹</button>
+                        <button onClick={(e) => {e.stopPropagation(); setCurrentImg(prev => prev < property.images.length - 1 ? prev + 1 : prev)}} className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white text-blue-900 w-10 h-10 rounded-full shadow-lg flex items-center justify-center transition backdrop-blur-sm">›</button>
+                        <div className="absolute top-4 left-4 bg-black/60 text-white px-3 py-1 rounded-full text-xs font-medium tracking-widest backdrop-blur-md">{currentImg + 1} / {property.images.length}</div>
+                      </>
+                    )}
+                  </div>
+                  
+                  <div className="flex bg-gray-50 border-t border-gray-100 p-2 gap-2 min-h-[80px]">
+                    <div className="flex-1 flex gap-2 overflow-x-auto hide-scrollbar snap-x">
+                      {property.images?.map((img, idx) => (
+                        <div key={idx} onClick={() => setCurrentImg(idx)} className={`snap-center flex-shrink-0 w-24 h-16 rounded-md cursor-pointer overflow-hidden border-2 transition-all ${currentImg === idx ? 'border-blue-600 shadow-md scale-105' : 'border-transparent opacity-60 hover:opacity-100'}`}>
+                          <img src={optimizeImg(img)} loading="lazy" className="w-full h-full object-cover" />
+                        </div>
+                      ))}
+                      {(!property.images || property.images.length === 0) && <div className="text-sm text-gray-400 flex items-center px-4 w-full h-16">Chưa có ảnh chi tiết</div>}
                     </div>
-                  ))}
-                  {images.length === 0 && <div className="text-sm text-gray-400 flex items-center px-4 w-full h-16">Chưa có ảnh chi tiết</div>}
+                    
+                    <div className="w-[110px] md:w-[130px] shrink-0 bg-blue-50/50 hover:bg-blue-100/50 border border-blue-100 rounded-lg flex flex-col items-center justify-center p-2 cursor-pointer transition relative" onClick={handleCopyCode}>
+                       <span className="text-[10px] text-blue-600 font-bold uppercase mb-1">Mã Căn</span>
+                       <div className="flex items-center gap-1.5 text-blue-900">
+                         <span className="font-black text-sm md:text-base truncate max-w-[80px]">{displayId}</span>
+                         <svg className="w-4 h-4 shrink-0 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                       </div>
+                       {copied && <span className="absolute -top-3 right-2 bg-green-500 text-white text-[9px] px-2 py-0.5 rounded shadow">Đã copy!</span>}
+                    </div>
+                  </div>
                 </div>
-                
-                <div className="w-[110px] md:w-[130px] shrink-0 bg-blue-50/50 hover:bg-blue-100/50 border border-blue-100 rounded-lg flex flex-col items-center justify-center p-2 cursor-pointer transition relative" onClick={handleCopyCode}>
-                   <span className="text-[10px] text-blue-600 font-bold uppercase mb-1">Mã Căn</span>
-                   <div className="flex items-center gap-1.5 text-blue-900">
-                     <span className="font-black text-sm md:text-base truncate max-w-[80px]">{displayId}</span>
-                     <svg className="w-4 h-4 shrink-0 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
-                   </div>
-                   {copied && <span className="absolute -top-3 right-2 bg-green-500 text-white text-[9px] px-2 py-0.5 rounded shadow">Đã copy!</span>}
+
+                <div className="mb-8 border-b border-gray-200 pb-6">
+                  <h1 className="text-2xl md:text-3xl font-bold text-blue-950 mb-6 leading-tight">{titleString}</h1>
+                  
+                  <div className="flex justify-between items-center bg-white">
+                     <div className="flex items-baseline gap-2">
+                        <span className="text-sm font-semibold text-gray-500 uppercase tracking-wide">{property.listingType === 'Chuyển nhượng' ? 'Giá bán:' : 'Giá thuê:'}</span>
+                        <span className="text-4xl md:text-5xl font-black text-blue-700 tracking-tight">{property.price}</span>
+                        <span className="text-lg font-bold text-blue-700/80">{property.listingType === 'Chuyển nhượng' ? 'Tỷ' : 'Triệu/tháng'}</span>
+                     </div>
+                     <button onClick={handleShare} className="flex items-center gap-1.5 text-blue-600 hover:text-blue-800 font-semibold text-sm transition bg-blue-50 hover:bg-blue-100 px-4 py-2 rounded-full shadow-sm">
+                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path></svg>
+                       Chia sẻ
+                     </button>
+                  </div>
                 </div>
-              </div>
-            </div>
 
-            <div className="mb-8 border-b border-gray-200 pb-6">
-              <h1 className="text-2xl md:text-3xl font-bold text-blue-950 mb-6 leading-tight">{titleString}</h1>
-              
-              <div className="flex justify-between items-center bg-white">
-                 <div className="flex items-baseline gap-2">
-                    <span className="text-sm font-semibold text-gray-500 uppercase tracking-wide">{property.listingType === 'Chuyển nhượng' ? 'Giá bán:' : 'Giá thuê:'}</span>
-                    <span className="text-4xl md:text-5xl font-black text-blue-700 tracking-tight">{property.price}</span>
-                    <span className="text-lg font-bold text-blue-700/80">{property.listingType === 'Chuyển nhượng' ? 'Tỷ' : 'Triệu/tháng'}</span>
-                 </div>
-                 <button onClick={handleShare} className="flex items-center gap-1.5 text-blue-600 hover:text-blue-800 font-semibold text-sm transition bg-blue-50 hover:bg-blue-100 px-4 py-2 rounded-full shadow-sm">
-                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path></svg>
-                   Chia sẻ
-                 </button>
-              </div>
-            </div>
+                <div className="bg-white rounded-2xl border border-gray-100 p-6 md:p-8 shadow-sm mb-8">
+                  <h3 className="font-bold text-blue-900 mb-6 text-lg border-b border-gray-100 pb-3">Thông tin chi tiết</h3>
+                  <ul className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-0 text-[13px] md:text-sm">
+                    {(() => {
+                      const specs = property.listingType === 'Cho thuê' ? [
+                        { label: 'Loại căn', val: property.loaiCan || property.type, icon: '🏠' },
+                        { label: 'Diện tích', val: `${property.area} m²`, icon: '📐' },
+                        { label: 'Tòa nhà', val: `Tòa ${property.toaNha || property.building}`, icon: '🏢' },
+                        { label: 'Phân khu', val: property.phanKhu, icon: '📍' },
+                        { label: 'Khoảng tầng', val: property.khoangTang, icon: '🏢' },
+                        { label: 'Hướng ban công', val: property.huongBanCong || 'Đang cập nhật', icon: '🧭' },
+                        { label: 'Nội thất', val: property.noiThat || 'Đang cập nhật', icon: '🛋️' },
+                        { label: 'Ngày chuyển vào', val: property.vaoLuon ? 'Vào luôn' : formattedDate, icon: '📅', color: property.vaoLuon ? 'text-green-600 font-black' : '' },
+                        { label: 'Phí dịch vụ', val: pkConfig.phi || 'Đang cập nhật', icon: '💰' },
+                      ] : [
+                        { label: 'Loại căn', val: property.loaiCan || property.type, icon: '🏠' },
+                        { label: 'Diện tích', val: `${property.area} m²`, icon: '📐' },
+                        { label: 'Tòa nhà', val: `Tòa ${property.toaNha || property.building}`, icon: '🏢' },
+                        { label: 'Phân khu', val: property.phanKhu, icon: '📍' },
+                        { label: 'Khoảng tầng', val: property.khoangTang, icon: '🏢' },
+                        { label: 'Hướng ban công', val: property.huongBanCong || 'Đang cập nhật', icon: '🧭' },
+                        { label: 'Nội thất', val: property.noiThat || 'Đang cập nhật', icon: '🛋️' },
+                        { label: 'Pháp lý', val: property.phapLy || 'Sổ đỏ', icon: '📜', color: 'text-blue-700' },
+                        { label: 'Phí dịch vụ', val: pkConfig.phi || 'Đang cập nhật', icon: '💰' },
+                      ];
 
-            {/* BẢNG THÔNG TIN CHI TIẾT 2 CỘT GỌN GÀNG, ĐỦ ICON */}
-            <div className="bg-white rounded-2xl border border-gray-100 p-6 md:p-8 shadow-sm mb-8">
-              <h3 className="font-bold text-blue-900 mb-6 text-lg border-b border-gray-100 pb-3">Thông tin chi tiết</h3>
-              <ul className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-0 text-[13px] md:text-sm">
-                {specs.map((s, i) => (
-                  <li key={i} className="flex py-3.5 border-b border-gray-100 items-center justify-between md:justify-start md:gap-8">
-                    <span className="text-gray-500 font-medium flex items-center gap-2.5 md:w-1/2">
-                      <span className="text-lg w-5 text-center">{s.icon}</span> {s.label}
-                    </span>
-                    <span className={`font-bold text-right md:text-left ${s.color || 'text-gray-900'} md:w-1/2`}>
-                      {s.val}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {(pkConfig.tongQuan || pkConfig.uuDiem) && (
-              <div className="bg-blue-50/50 rounded-2xl p-6 md:p-8 border border-blue-100 mb-8">
-                <h3 className="font-bold text-blue-900 text-lg mb-4">Vì sao nên chọn {property.phanKhu}?</h3>
-                {pkConfig.tongQuan && <p className="text-sm text-gray-700 leading-relaxed mb-4">{pkConfig.tongQuan}</p>}
-                {pkConfig.uuDiem && (
-                  <ul className="grid sm:grid-cols-2 gap-3">
-                    {pkConfig.uuDiem.split(';').filter(Boolean).map((line, i) => (
-                      <li key={i} className="flex items-start gap-2 text-sm text-gray-800 font-medium">
-                         <svg className="w-5 h-5 text-green-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>
-                         {line.trim()}
-                      </li>
-                    ))}
+                      return specs.map((s, i) => (
+                        <li key={i} className="flex py-3.5 border-b border-gray-100 items-center justify-between md:justify-start md:gap-8">
+                          <span className="text-gray-500 font-medium flex items-center gap-2.5 md:w-1/2">
+                            <span className="text-lg w-5 text-center">{s.icon}</span> {s.label}
+                          </span>
+                          <span className={`font-bold text-right md:text-left ${s.color || 'text-gray-900'} md:w-1/2`}>
+                            {s.val}
+                          </span>
+                        </li>
+                      ));
+                    })()}
                   </ul>
-                )}
-              </div>
-            )}
-
-            {/* ĐÃ FIX HIỂN THỊ CÁC CĂN TƯƠNG TỰ TRÊN MOBILE KHÔNG BỊ TRÀN */}
-            {similarProps.length > 0 && (
-              <div className="mb-8 relative group w-full overflow-hidden">
-                <h3 className="font-bold text-blue-900 mb-4 text-lg">Các căn {property.listingType} tương tự</h3>
-                <button onClick={() => scrollSimilar('left')} className="absolute left-0 top-1/2 w-10 h-10 bg-white border border-gray-200 rounded-full shadow-lg flex items-center justify-center z-10 hidden md:flex text-blue-900 hover:bg-blue-50 font-bold text-xl">‹</button>
-                
-                <div ref={scrollRef} className="flex gap-4 overflow-x-auto pb-4 snap-x relative scroll-smooth hide-scrollbar w-full" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-                  {similarProps.map(item => <MiniPropertyCard key={item.id} item={item} />)}
                 </div>
-                
-                <button onClick={() => scrollSimilar('right')} className="absolute right-0 top-1/2 w-10 h-10 bg-white border border-gray-200 rounded-full shadow-lg flex items-center justify-center z-10 hidden md:flex text-blue-900 hover:bg-blue-50 font-bold text-xl">›</button>
-              </div>
-            )}
 
-            <div className="bg-gradient-to-r from-blue-50 to-white border border-blue-100 rounded-2xl p-6 md:p-8 flex flex-col md:flex-row justify-between items-center gap-6 shadow-sm mb-10 w-full mt-8">
-              <div>
-                <h4 className="text-xl font-bold text-blue-900 mb-2">Không cần tự lướt hết quỹ căn</h4>
-                <p className="text-sm text-gray-600">Gửi nhu cầu của bạn, chúng tôi sẽ chọn 3-5 căn phù hợp nhất để gửi lại bạn nhanh nhất.</p>
-              </div>
-              <button onClick={() => { setFindData({...findData, nhuCau: property.listingType, loaiCan: property.loaiCan || property.type}); setIsFindModalOpen(true); }} className="bg-blue-800 hover:bg-blue-900 text-white px-8 py-3.5 rounded-xl font-bold whitespace-nowrap transition shadow-lg shadow-blue-900/20 flex items-center gap-2 w-full md:w-auto justify-center">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg> Nhờ tìm căn phù hợp
-              </button>
-            </div>
+                {(pkConfig.tongQuan || pkConfig.uuDiem) && (
+                  <div className="bg-blue-50/50 rounded-2xl p-6 md:p-8 border border-blue-100 mb-8">
+                    <h3 className="font-bold text-blue-900 text-lg mb-4">Vì sao nên chọn {property.phanKhu}?</h3>
+                    {pkConfig.tongQuan && <p className="text-sm text-gray-700 leading-relaxed mb-4">{pkConfig.tongQuan}</p>}
+                    {pkConfig.uuDiem && (
+                      <ul className="grid sm:grid-cols-2 gap-3">
+                        {pkConfig.uuDiem.split(';').filter(Boolean).map((line, i) => (
+                          <li key={i} className="flex items-start gap-2 text-sm text-gray-800 font-medium">
+                             <svg className="w-5 h-5 text-green-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>
+                             {line.trim()}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                )}
+
+                {similarProps.length > 0 && (
+                  <div className="mb-8 relative group w-full overflow-hidden">
+                    <h3 className="font-bold text-blue-900 mb-4 text-lg">Các căn {property.listingType} tương tự</h3>
+                    <button onClick={() => scrollSimilar('left')} className="absolute left-0 top-1/2 w-10 h-10 bg-white border border-gray-200 rounded-full shadow-lg flex items-center justify-center z-10 hidden md:flex text-blue-900 hover:bg-blue-50 font-bold text-xl">‹</button>
+                    
+                    <div ref={scrollRef} className="flex gap-4 overflow-x-auto pb-4 snap-x relative scroll-smooth hide-scrollbar w-full" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                      {similarProps.map(item => <MiniPropertyCard key={item.id} item={item} />)}
+                    </div>
+                    
+                    <button onClick={() => scrollSimilar('right')} className="absolute right-0 top-1/2 w-10 h-10 bg-white border border-gray-200 rounded-full shadow-lg flex items-center justify-center z-10 hidden md:flex text-blue-900 hover:bg-blue-50 font-bold text-xl">›</button>
+                  </div>
+                )}
+
+                <div className="bg-gradient-to-r from-blue-50 to-white border border-blue-100 rounded-2xl p-6 md:p-8 flex flex-col md:flex-row justify-between items-center gap-6 shadow-sm mb-10 w-full mt-8">
+                  <div>
+                    <h4 className="text-xl font-bold text-blue-900 mb-2">Không cần tự lướt hết quỹ căn</h4>
+                    <p className="text-sm text-gray-600">Gửi nhu cầu của bạn, chúng tôi sẽ chọn 3-5 căn phù hợp nhất để gửi lại bạn nhanh nhất.</p>
+                  </div>
+                  <button onClick={() => { setFindData({...findData, nhuCau: property.listingType, loaiCan: property.loaiCan || property.type}); setIsFindModalOpen(true); }} className="bg-blue-800 hover:bg-blue-900 text-white px-8 py-3.5 rounded-xl font-bold whitespace-nowrap transition shadow-lg shadow-blue-900/20 flex items-center gap-2 w-full md:w-auto justify-center">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg> Nhờ tìm căn phù hợp
+                  </button>
+                </div>
+              </>
+            )}
           </div>
 
           <aside className="w-full lg:w-[320px] flex-shrink-0 self-start sticky top-24">
@@ -352,7 +344,7 @@ export default function PropertyDetail() {
               
               <div className="space-y-3">
                 <a href={`tel:${CONTACT_PHONE}`} className="flex items-center justify-center gap-2 w-full bg-blue-600 text-white py-3.5 rounded-xl font-bold hover:bg-blue-700 transition shadow-md shadow-blue-600/20">📞 Gọi {CONTACT_PHONE.replace(/(\d{4})(\d{3})(\d{3})/, '$1 $2 $3')}</a>
-                <a href={`https://zalo.me/${CONTACT_PHONE}?text=${encodeURIComponent(`Xin chào, tôi quan tâm căn Mã ${displayId} (${property.listingType} ${property.loaiCan} tòa ${property.toaNha}) trên web.`)}`} target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 w-full bg-white border-2 border-blue-100 text-blue-800 py-3 rounded-xl font-bold hover:bg-blue-50 transition">💬 Nhận tư vấn căn này</a>
+                <a href={`https://zalo.me/${CONTACT_PHONE}?text=${encodeURIComponent(`Xin chào, tôi quan tâm căn Mã ${displayId} (${property?.listingType} ${property?.loaiCan} tòa ${property?.toaNha}) trên web.`)}`} target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 w-full bg-white border-2 border-blue-100 text-blue-800 py-3 rounded-xl font-bold hover:bg-blue-50 transition">💬 Nhận tư vấn căn này</a>
                 <button onClick={handleShare} className="flex items-center justify-center gap-2 w-full bg-gray-50 border border-gray-200 text-gray-700 py-3 rounded-xl font-bold hover:bg-gray-100 transition mt-2">🔗 Chia sẻ thông tin căn</button>
               </div>
               <div className="mt-6 bg-gray-50 p-4 rounded-xl border border-gray-100 text-center">
@@ -382,7 +374,7 @@ export default function PropertyDetail() {
         </div>
       </footer>
 
-      {/* MODAL BẬT TỪ NÚT ĐÃ ĐƯỢC KÉO RA NGOÀI CÙNG ĐỂ CHẠY CHUẨN */}
+      {/* POPUP NHỜ TÌM (ĐÃ CHUYỂN RA NGOÀI CÙNG) */}
       {isFindModalOpen && (
         <div className="fixed inset-0 bg-blue-900/60 backdrop-blur-sm z-[150] flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-y-auto max-h-[90vh] animate-fade-in-up">
