@@ -136,6 +136,20 @@ export default function Home() {
   const [isSendingLead, setIsSendingLead] = useState(false);
   const [leadPhoneError, setLeadPhoneError] = useState('');
 
+  // HÀM XÓA BỘ LỌC KHI KÍCH VÀO LOGO
+  const clearFilterCacheAndReset = () => {
+    sessionStorage.removeItem('savedActiveTab');
+    sessionStorage.removeItem('savedFilters');
+    sessionStorage.removeItem('savedCurrentPage');
+    sessionStorage.removeItem('savedSortBy');
+    
+    // Đặt lại state hiển thị ngay lập tức
+    setActiveTab('Cho thuê');
+    setFilters({ phanKhu: 'Tất cả phân khu', loaiCan: [], khoangTang: 'Tất cả tầng', huongBanCong: 'Tất cả hướng', noiThat: 'Tất cả nội thất', mucGia: 'Tất cả mức giá' });
+    setCurrentPage(1);
+    setSortBy('newest');
+  };
+
   useEffect(() => {
     const savedTab = sessionStorage.getItem('savedActiveTab');
     if(savedTab) setActiveTab(savedTab);
@@ -306,7 +320,8 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gray-50 text-gray-800 flex flex-col relative pb-20 md:pb-0">
       <header className="bg-white sticky top-0 z-50 px-4 md:px-8 py-3 flex justify-between items-center shadow-sm">
-        <Link href="/" className="flex items-center hover:opacity-80 transition">
+        {/* CLICK VÀO LOGO LÀ GỌI HÀM XÓA BỘ LỌC ĐỂ VỀ TRANG CHỦ GỐC */}
+        <Link href="/" onClick={clearFilterCacheAndReset} className="flex items-center hover:opacity-80 transition">
           <img src="/logo.png" alt="Quỹ Căn Smart City" className="h-10 md:h-12 w-auto object-contain" />
         </Link>
         <div className="flex items-center gap-3 md:gap-4">
@@ -326,8 +341,8 @@ export default function Home() {
         <div className="relative z-10 max-w-5xl mx-auto w-full">
           <p className="text-sm font-bold text-blue-200 mb-4 uppercase tracking-[0.3em] drop-shadow-md">Vinhomes Smart City</p>
           
-          {/* SỬ DỤNG FONT-EXTRABOLD CHUẨN TIẾNG VIỆT, KHÔNG BỊ CẮT DẤU */}
-          <h2 className="text-[32px] md:text-[3.5rem] font-extrabold mb-6 leading-[1.3] md:leading-[1.2] tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white to-blue-100 drop-shadow-lg">
+          {/* ĐÃ TĂNG padding-y LÊN VÀ TĂNG leading (line-height) ĐỂ DẤU CHỮ Ể BUNG RA TOÀN VẸN TRÊN MÁY TÍNH */}
+          <h2 className="text-[32px] md:text-[3.5rem] font-extrabold mb-6 leading-[1.3] md:leading-[1.4] py-2 tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white to-blue-100 drop-shadow-lg">
             QUỸ CĂN <span className="whitespace-nowrap">CHUYỂN NHƯỢNG</span><br /> & CHO THUÊ
           </h2>
           
@@ -487,7 +502,6 @@ export default function Home() {
         </div>
       </footer>
 
-      {/* POPUP NHỜ TÌM LỚP CAO NHẤT z-[9999] */}
       {isFindModalOpen && (
         <div className="fixed inset-0 bg-blue-900/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-y-auto max-h-[90vh] animate-fade-in-up">
@@ -555,7 +569,6 @@ export default function Home() {
         </div>
       )}
 
-      {/* POPUP 20S CŨNG NÂNG z-index LÊN CAO NHẤT ĐỂ TRÁNH LỖI */}
       {isLeadPopupOpen && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-fade-in-up text-center relative border-4 border-blue-100">

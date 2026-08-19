@@ -65,6 +65,14 @@ export default function PropertyDetail() {
 
   const CONTACT_PHONE = "0912791925";
 
+  // HÀM XÓA BỘ LỌC KHI KÍCH VÀO LOGO
+  const clearFilterCacheAndReset = () => {
+    sessionStorage.removeItem('savedActiveTab');
+    sessionStorage.removeItem('savedFilters');
+    sessionStorage.removeItem('savedCurrentPage');
+    sessionStorage.removeItem('savedSortBy');
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       let foundInCache = false;
@@ -216,7 +224,7 @@ export default function PropertyDetail() {
   const displayId = property.maCan || property.id.substring(0, 5).toUpperCase();
   const titleString = `${property.listingType === 'Cho thuê' ? 'Cho thuê' : 'Bán'} căn hộ ${property.loaiCan || property.type}, tòa ${property.toaNha || property.building}, phân khu ${property.phanKhu}`;
 
-  // ĐÃ SẮP XẾP LẠI THỨ TỰ, ĐẢO NGƯỢC IN ĐẬM VÀ TÁCH TÒA NHÀ & TẦNG RIÊNG
+  // ĐÃ SỬA: BỎ IN ĐẬM/MÀU Ở TRƯỜNG PHÁP LÝ (Bỏ thuộc tính color đi)
   const specs = property.listingType === 'Cho thuê' ? [
     { label: 'Loại căn', val: property.loaiCan || property.type, icon: '🏠' },
     { label: 'Diện tích', val: `${property.area} m²`, icon: '📐' },
@@ -235,14 +243,17 @@ export default function PropertyDetail() {
     { label: 'Khoảng tầng', val: property.khoangTang, icon: '🏢' },
     { label: 'Hướng ban công', val: property.huongBanCong || 'Đang cập nhật', icon: '🧭' },
     { label: 'Nội thất', val: property.noiThat || 'Đang cập nhật', icon: '🛋️' },
-    { label: 'Pháp lý', val: property.phapLy || 'Sổ đỏ', icon: '📜', color: 'text-blue-700 font-bold' },
+    { label: 'Pháp lý', val: property.phapLy || 'Sổ đỏ', icon: '📜' }, 
     { label: 'Phí dịch vụ', val: pkConfig.phi || 'Đang cập nhật', icon: '💰' },
   ];
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-800 flex flex-col relative pb-20 md:pb-0">
       <header className="bg-white sticky top-0 z-50 px-4 md:px-8 py-3 flex justify-between items-center shadow-sm">
-        <Link href="/" className="flex items-center hover:opacity-80 transition"><img src="/logo.png" alt="Quỹ Căn Smart City" className="h-10 md:h-12 w-auto object-contain" /></Link>
+        {/* CLICK LOGO DỌN DẸP BỘ NHỚ LỌC VÀ QUAY VỀ TRANG CHỦ GỐC */}
+        <Link href="/" onClick={clearFilterCacheAndReset} className="flex items-center hover:opacity-80 transition">
+          <img src="/logo.png" alt="Quỹ Căn Smart City" className="h-10 md:h-12 w-auto object-contain" />
+        </Link>
         <div className="flex items-center gap-3 md:gap-4">
            <Link href="/ky-gui" className="hidden md:flex items-center gap-1.5 bg-blue-50 text-blue-800 px-4 py-2 rounded-md font-bold hover:bg-blue-100 transition text-sm border border-blue-100"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg> Ký gửi căn hộ</Link>
            <a href={`tel:${CONTACT_PHONE}`} className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-800 text-white px-5 py-2 rounded-full font-bold hover:opacity-90 transition shadow-md text-sm"><svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M20 15.5c-1.2 0-2.4-.2-3.6-.6-.3-.1-.7 0-1 .2l-2.2 2.2c-2.8-1.4-5.1-3.8-6.6-6.6l2.2-2.2c.3-.3.4-.7.2-1-.4-1.2-.6-2.4-.6-3.6 0-.6-.4-1-1-1H4c-.6 0-1 .4-1 1 0 9.4 7.6 17 17 17 .6 0 1-.4 1-1v-3.5c0-.6-.4-1-1-1zM19 12h2a9 9 0 00-9-9v2c3.9 0 7.1 3.2 7.1 7.1zM15 12h2c0-2.8-2.2-5-5-5v2c1.7 0 3 1.3 3 3z"/></svg> <span className="hidden sm:inline">Liên hệ tư vấn</span><span className="sm:hidden">Liên hệ</span></a>
@@ -330,7 +341,6 @@ export default function PropertyDetail() {
             <div className="bg-white rounded-2xl border border-gray-100 p-6 md:p-8 shadow-sm mb-8">
               <h3 className="font-bold text-blue-900 mb-6 text-lg border-b border-gray-100 pb-3">Thông tin chi tiết</h3>
               
-              {/* ĐẢO NGƯỢC IN ĐẬM VÀ IN THƯỜNG Ở ĐÂY NHÉ */}
               <ul className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-0 text-[13px] md:text-sm">
                 {specs.map((s, i) => (
                   <li key={i} className="flex py-3.5 border-b border-gray-100 items-center justify-between md:justify-start md:gap-8">
@@ -405,6 +415,24 @@ export default function PropertyDetail() {
           </aside>
         </div>
       </main>
+
+      <footer className="bg-white border-t border-gray-200 py-12 px-4 md:px-12 w-full mt-auto">
+        <div className="max-w-[1400px] mx-auto grid grid-cols-1 md:grid-cols-2 gap-12 text-sm text-gray-600">
+           <div className="md:pr-10">
+             <div className="flex items-center mb-6"><img src="/logo.png" alt="Quỹ Căn Smart City Logo" className="h-10 md:h-12 w-auto object-contain" /></div>
+             <p className="leading-relaxed font-medium mb-4">Quỹ Căn Smart City – Chuyên trang tổng hợp nguồn hàng mua bán, chuyển nhượng, cho thuê căn hộ tại Vinhomes Smart City Tây Mỗ. Cập nhật quỹ căn mới mỗi ngày tại mọi phân khu.</p>
+             <p className="text-xs text-gray-400 font-medium">© 2026 Quỹ Căn Smart City.</p>
+           </div>
+           <div className="md:pl-10 md:border-l border-gray-100">
+             <h3 className="font-extrabold text-blue-900 mb-5 text-lg uppercase tracking-wider">Liên hệ tư vấn</h3>
+             <div className="space-y-4 font-medium text-[15px]">
+               <p className="flex items-center gap-3">👤 <strong className="text-gray-800">Nguyễn An Ninh</strong></p>
+               <p className="flex items-center gap-3">📞 <a href={`tel:${CONTACT_PHONE}`} className="font-bold text-blue-600 hover:text-blue-800 transition text-lg">{CONTACT_PHONE.replace(/(\d{4})(\d{3})(\d{3})/, '$1 $2 $3')}</a> <span className="text-gray-400 text-xs ml-1">(SĐT / Zalo)</span></p>
+               <p className="flex items-center gap-3">📍 Vinhomes Smart City, Tây Mỗ, Nam Từ Liêm, Hà Nội</p>
+             </div>
+           </div>
+        </div>
+      </footer>
 
       {/* POPUP NHỜ TÌM ĐƯỢC CHUYỂN RA ROOT MỚI BẤM ĐƯỢC */}
       {isFindModalOpen && (
