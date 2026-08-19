@@ -1,15 +1,13 @@
-import { Inter } from "next/font/google";
 import "./globals.css";
-
-// KHÔI PHỤC LẠI FONT INTER GỐC CỦA BẠN (CÓ HỖ TRỢ TIẾNG VIỆT)
-const inter = Inter({ subsets: ["latin", "vietnamese"] });
 
 export const metadata = {
   title: 'Quỹ Căn Smart City - Bán & Cho Thuê Giá Tốt Nhất',
   description: 'Chuyên trang tổng hợp nguồn hàng mua bán, chuyển nhượng, cho thuê căn hộ tại Vinhomes Smart City Tây Mỗ. Cập nhật quỹ căn mới mỗi ngày tại mọi phân khu.',
+  // ĐỔI ĐƯỜNG DẪN SANG TÊN FILE HOÀN TOÀN MỚI ĐỂ TRÌNH DUYỆT BỊ ÉP TẢI LẠI
   icons: {
-    icon: '/icon.png?v=9999',
-    apple: '/icon.png?v=9999',
+    icon: '/logo-icon.png',
+    shortcut: '/logo-icon.png',
+    apple: '/logo-icon.png',
   },
   openGraph: {
     title: 'Quỹ Căn Smart City - Bán & Cho Thuê Giá Tốt Nhất',
@@ -25,7 +23,7 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="vi">
-      <body className={`${inter.className} bg-gray-50 text-gray-800 antialiased`}>
+      <body className="font-sans bg-gray-50 text-gray-800 antialiased">
         {children}
       </body>
     </html>
