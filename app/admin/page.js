@@ -36,10 +36,9 @@ export default function AdminPage() {
 
   const initialForm = { listingType: 'Cho thuê', phanKhu: 'Sapphire', loaiCan: 'Studio', toaNha: '', khoangTang: 'Tầng trung', huongBanCong: 'Đông Nam', noiThat: 'Đầy đủ nội thất', area: '', price: '', ngayNhanNha: '', vaoLuon: false, phapLy: 'Sổ đỏ', moTa: '', nhanDan: 'Không có' };
   const [formData, setFormData] = useState(initialForm);
-  const [images, setImages] = useState([]); // Chứa mảng object [{file, url}]
+  const [images, setImages] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
   
-  // TÍNH NĂNG BÁO TRÙNG LẶP
   const [duplicateWarning, setDuplicateWarning] = useState(null);
   const [skipDupCheck, setSkipDupCheck] = useState(false);
 
@@ -127,7 +126,6 @@ export default function AdminPage() {
   const openPhanKhuModal = () => { setTempPKData({...defaultPkConfig[selectedPK], ...phanKhuData[selectedPK], localImages: []}); setIsPhanKhuModalOpen(true); };
   const handleSelectPKChange = (e) => { const val = e.target.value; setSelectedPK(val); setTempPKData({...defaultPkConfig[val], ...phanKhuData[val], localImages: []}); };
   
-  // TẢI ẢNH PHÂN KHU LÊN CLOUDINARY (KHÔNG WATERMARK)
   const handlePKImageChange = (e) => {
     if (e.target.files) {
       const files = Array.from(e.target.files);
@@ -160,7 +158,7 @@ export default function AdminPage() {
       }
       
       const updatedItem = { ...tempPKData, images: finalImages };
-      delete updatedItem.localImages; // Xóa mảng tạm trước khi lưu DB
+      delete updatedItem.localImages;
       const updatedData = { ...phanKhuData, [selectedPK]: updatedItem };
       
       await setDoc(doc(db, 'settings', 'phanKhuConfig'), updatedData);
@@ -178,7 +176,6 @@ export default function AdminPage() {
     else setFormData({ ...formData, [name]: value });
   };
   
-  // TÍNH NĂNG CHỌN ẢNH BÌA
   const handleImageChange = async (e) => {
     if (e.target.files) {
       const files = Array.from(e.target.files);
@@ -191,7 +188,7 @@ export default function AdminPage() {
   const setCoverImage = (index) => {
     const arr = [...images];
     const item = arr.splice(index, 1)[0];
-    arr.unshift(item); // Đưa lên vị trí số 0
+    arr.unshift(item);
     setImages(arr);
   };
 
@@ -253,7 +250,6 @@ export default function AdminPage() {
     for (let i = 0; i < 5; i++) result += chars.charAt(Math.floor(Math.random() * chars.length)); return prefix + result;
   };
 
-  // TÍNH NĂNG CỐT LÕI: LƯU VÀ KIỂM TRA TRÙNG LẶP DỮ LIỆU
   const executeSave = async () => {
     setIsUploading(true);
     try {
@@ -261,11 +257,11 @@ export default function AdminPage() {
       const CLOUD_NAME = "ibzfmsqp"; const UPLOAD_PRESET = "upload preset";
       
       for (const img of images) {
-        if (img.file) { // Ảnh mới tải lên
+        if (img.file) { 
           const data = new FormData(); data.append('file', img.file); data.append('upload_preset', UPLOAD_PRESET);
           const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, { method: 'POST', body: data });
           const uploadedImage = await res.json(); imageUrls.push(uploadedImage.secure_url);
-        } else { // Ảnh cũ đang sửa
+        } else {
           imageUrls.push(img.url);
         }
       }
@@ -289,7 +285,6 @@ export default function AdminPage() {
     if(e) e.preventDefault();
     if (images.length === 0 && !editingId) return alert('Vui lòng chọn ít nhất 1 ảnh!');
     
-    // KIỂM TRA TRÙNG LẶP NẾU LÀ ĐĂNG MỚI VÀ CHƯA YÊU CẦU BỎ QUA
     if (!editingId && !skipDupCheck) {
       setIsUploading(true);
       const dupQuery = query(collection(db, 'properties'),
@@ -306,11 +301,10 @@ export default function AdminPage() {
       if (!dupSnap.empty) {
         const dupDoc = dupSnap.docs[0];
         setDuplicateWarning({ id: dupDoc.id, maCan: dupDoc.data().maCan });
-        return; // Dừng việc lưu để chờ Admin ra quyết định
+        return; 
       }
     }
     
-    // Nếu không trùng hoặc đã bấm bỏ qua, tiến hành lưu
     executeSave();
   };
 
@@ -379,7 +373,6 @@ export default function AdminPage() {
               Đăng xuất
             </button>
           </div>
-          
         </div>
       </nav>
 
@@ -481,7 +474,6 @@ export default function AdminPage() {
               <label className="block font-bold mb-2 cursor-pointer text-blue-900 text-sm">Tải lên Ảnh căn hộ</label>
               <input type="file" multiple accept="image/*" onChange={handleImageChange} className="w-full text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200 cursor-pointer" />
               
-              {/* CHỨC NĂNG PREVIEW ẢNH VÀ CHỌN ẢNH BÌA */}
               {images.length > 0 && (
                 <div className="mt-4 text-left">
                   <p className="text-xs text-blue-600 font-bold mb-2">Đã chọn {images.length} ảnh. Click ⭐ để chọn làm Ảnh Bìa.</p>
@@ -686,7 +678,7 @@ export default function AdminPage() {
         </div>
       </div>
       
-      {/* MODAL CẤU HÌNH PHÂN KHU (BỔ SUNG TIỆN ÍCH VÀ ẢNH KHÔNG WATERMARK) */}
+      {/* MODAL CẤU HÌNH PHÂN KHU TỪ ADMIN */}
       {isPhanKhuModalOpen && (
         <div className="fixed inset-0 bg-blue-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl p-6 md:p-8 w-full max-w-3xl transform transition-all overflow-y-auto max-h-[90vh]">
@@ -722,7 +714,6 @@ export default function AdminPage() {
                 </div>
               </div>
 
-              {/* KHU VỰC TẢI ẢNH PHÂN KHU (KHÔNG ĐÓNG LOGO) */}
               <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
                 <label className="block text-sm font-bold text-blue-900 mb-2">Hình ảnh Cảnh quan / Tiện ích</label>
                 <p className="text-xs text-gray-500 mb-4">Ảnh sẽ hiện trên slider trang phân khu (Không chèn Logo).</p>
@@ -730,14 +721,12 @@ export default function AdminPage() {
                 <input type="file" multiple accept="image/*" onChange={handlePKImageChange} className="w-full mb-4 text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200 cursor-pointer" />
                 
                 <div className="flex flex-wrap gap-2">
-                  {/* Hiển thị ảnh cũ từ DB */}
                   {(tempPKData.images || []).map((url, i) => (
                     <div key={`db-${i}`} className="relative w-16 h-16 rounded-md overflow-hidden border">
                       <img src={url} className="w-full h-full object-cover opacity-80" />
                       <button onClick={() => removePKImage(i, false)} className="absolute top-0 right-0 bg-red-500 text-white w-4 h-4 text-[10px] font-bold">×</button>
                     </div>
                   ))}
-                  {/* Hiển thị ảnh mới chọn */}
                   {(tempPKData.localImages || []).map((img, i) => (
                     <div key={`local-${i}`} className="relative w-16 h-16 rounded-md overflow-hidden border border-blue-400">
                       <img src={img.url} className="w-full h-full object-cover" />
@@ -757,7 +746,7 @@ export default function AdminPage() {
         </div>
       )}
 
-      {/* POPUP BÁO TRÙNG LẶP DỮ LIỆU THÔNG MINH */}
+      {/* POPUP BÁO TRÙNG LẶP DỮ LIỆU ĐÃ FIX HIỆU ỨNG DISABLED */}
       {duplicateWarning && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md text-center animate-fade-in-up">
@@ -770,21 +759,22 @@ export default function AdminPage() {
              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6">
                 <span className="text-xs text-gray-500">Mã căn bị trùng:</span>
                 <p className="text-lg font-black text-blue-900">{duplicateWarning.maCan}</p>
-                {/* Lệnh mở chi tiết căn bị trùng sang tab mới theo đúng ý bạn */}
                 <a href={`/property/${duplicateWarning.id}`} target="_blank" rel="noreferrer" className="text-blue-600 text-xs font-bold hover:underline mt-2 inline-block">
                   Mở xem chi tiết căn này ↗
                 </a>
              </div>
 
              <div className="flex gap-3">
-               <button onClick={() => setDuplicateWarning(null)} className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-lg font-bold hover:bg-gray-200">Hủy bỏ</button>
-               <button onClick={() => { setSkipDupCheck(true); executeSave(); }} className="flex-1 bg-red-600 text-white py-3 rounded-lg font-bold shadow-lg hover:bg-red-700">Vẫn lưu bài mới</button>
+               <button onClick={() => setDuplicateWarning(null)} disabled={isUploading} className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-lg font-bold hover:bg-gray-200 disabled:opacity-50">Hủy bỏ</button>
+               {/* ĐÃ FIX: Khóa nút ngay khi bấm và hiện "Đang lưu..." để chống click liên tục */}
+               <button onClick={() => { setSkipDupCheck(true); executeSave(); }} disabled={isUploading} className="flex-1 bg-red-600 text-white py-3 rounded-lg font-bold shadow-lg hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed">
+                 {isUploading ? 'Đang lưu...' : 'Vẫn lưu bài mới'}
+               </button>
              </div>
           </div>
         </div>
       )}
 
-      {/* MODAL QUẢN LÝ TÀI KHOẢN (PHÂN QUYỀN GMAIL) */}
       {isAccountModalOpen && (
         <div className="fixed inset-0 bg-blue-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl p-6 md:p-8 w-full max-w-2xl transform transition-all overflow-y-auto max-h-[90vh]">

@@ -1,13 +1,12 @@
 'use client';
 import { useEffect, useState, useRef } from 'react';
 import { db } from '../../../firebase';
-import { doc, getDoc, collection, query, orderBy, getDocs } from 'firebase/firestore';
+import { doc, getDoc, collection, query, orderBy, getDocs, addDoc, serverTimestamp } from 'firebase/firestore';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 
 const optimizeImg = (url) => url?.includes('cloudinary.com') ? url.replace('/upload/', '/upload/w_1000,c_limit,q_auto,f_auto/') : url;
 
-// HÀM DỊCH NGƯỢC URL VỀ TÊN PHÂN KHU GỐC TRONG DATABASE
 const decodePK = (slug) => {
   const map = {
     'sapphire': 'Sapphire', 'miami': 'Miami', 'sakura': 'Sakura', 'victoria': 'Victoria',
@@ -87,10 +86,19 @@ export default function SubdivisionLandingPage() {
   
   const [activeTab, setActiveTab] = useState('Cho thuê');
   const [sortBy, setSortBy] = useState('newest');
-  const [visibleCount, setVisibleCount] = useState(9);
+  
+  // ĐÃ CHUYỂN SANG PHÂN TRANG (PAGINATION) - 6 CĂN/TRANG
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 6; 
   
   const CONTACT_PHONE = "0912791925";
   const scrollRef = useRef(null);
+
+  // STATE DÀNH CHO POPUP NHỜ TÌM CĂN
+  const [isFindModalOpen, setIsFindModalOpen] = useState(false);
+  const [isSendingFind, setIsSendingFind] = useState(false);
+  const [findPhoneError, setFindPhoneError] = useState('');
+  const [findData, setFindData] = useState({ nhuCau: 'Cho thuê', loaiCan: 'Studio', taiChinh: '', noiThat: 'Đầy đủ nội thất', ngayVaoO: '', soDienThoai: '', ghiChu: '', ten: '' });
 
   useEffect(() => {
     if (!exactName) return;
@@ -98,18 +106,15 @@ export default function SubdivisionLandingPage() {
     
     const fetchData = async () => {
       try {
-        // Tải cấu hình phân khu
         const pkDoc = await getDoc(doc(db, 'settings', 'phanKhuConfig'));
         if (pkDoc.exists() && pkDoc.data()[exactName]) {
           setPkConfig(pkDoc.data()[exactName]);
         }
         
-        // Tải rổ hàng phân khu
         const q = query(collection(db, 'properties'), orderBy('createdAt', 'desc'));
         const querySnapshot = await getDocs(q);
         const data = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), createdAt: doc.data().createdAt?.seconds || 0 }));
         
-        // Chỉ lấy căn thuộc phân khu này
         setProperties(data.filter(p => p.phanKhu === exactName));
         setLoading(false);
       } catch (error) { console.error("Lỗi:", error); setLoading(false); }
@@ -118,6 +123,23 @@ export default function SubdivisionLandingPage() {
     fetchData();
   }, [exactName]);
 
+  // TỰ ĐỘNG CUỘN ẢNH SLIDER PHÂN KHU (3 GIÂY/LẦN)
+  useEffect(() => {
+    if (pkConfig?.images?.length > 1) {
+      const interval = setInterval(() => {
+        if (scrollRef.current) {
+          const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current;
+          if (scrollLeft + clientWidth >= scrollWidth - 10) {
+            scrollRef.current.scrollTo({ left: 0, behavior: 'smooth' }); // Cuộn về đầu nếu hết
+          } else {
+            scrollRef.current.scrollBy({ left: 350, behavior: 'smooth' });
+          }
+        }
+      }, 3000);
+      return () => clearInterval(interval);
+    }
+  }, [pkConfig?.images]);
+
   const filteredProperties = properties.filter(item => {
     return item.listingType === activeTab || (!item.listingType && activeTab === 'Cho thuê');
   }).sort((a, b) => {
@@ -125,13 +147,40 @@ export default function SubdivisionLandingPage() {
     return b.createdAt - a.createdAt;
   });
 
-  const currentProperties = filteredProperties.slice(0, visibleCount);
+  // TÍNH TOÁN DỮ LIỆU HIỂN THỊ THEO TRANG (1, 2, 3...)
+  const totalPages = Math.ceil(filteredProperties.length / itemsPerPage);
+  const currentProperties = filteredProperties.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   const scrollSlider = (direction) => {
     if (scrollRef.current) {
       if (direction === 'left') scrollRef.current.scrollBy({ left: -350, behavior: 'smooth' });
       else scrollRef.current.scrollBy({ left: 350, behavior: 'smooth' });
     }
+  };
+
+  const checkSpam = () => {
+    const lastSent = localStorage.getItem('lastFormSubmit');
+    if (lastSent && Date.now() - parseInt(lastSent) < 60000) { alert('Vui lòng đợi 1 phút trước khi gửi yêu cầu tiếp theo!'); return false; }
+    localStorage.setItem('lastFormSubmit', Date.now()); return true;
+  };
+
+  const handleFindSubmit = async (e) => {
+    e.preventDefault();
+    if (!checkSpam()) return;
+    const phoneRegex = /^0\d{9}$/;
+    if (!phoneRegex.test(findData.soDienThoai)) { setFindPhoneError("Số điện thoại không hợp lệ!"); return; }
+    setIsSendingFind(true);
+
+    try { await addDoc(collection(db, 'nho_tim_can'), { ...findData, source: `Trang Phân Khu ${exactName}`, createdAt: serverTimestamp(), status: 'Chưa xử lý' }); } catch(err) {}
+
+    const BOT_TOKEN = "7295171731:AAEUgA3z1y3D6o_cK8t6W42aXfN-6I"; const CHAT_ID = "6190858172";
+    if (BOT_TOKEN && CHAT_ID) {
+      const message = `🚨 <b>KHÁCH TÌM CĂN MỚI!</b>\n\n👤 <b>Tên khách:</b> ${findData.ten || 'Chưa nhập'}\n📌 <b>Nhu cầu:</b> ${findData.nhuCau}\n🛏 <b>Loại căn:</b> ${findData.loaiCan}\n💰 <b>Tài chính:</b> ${findData.taiChinh}\n🛋 <b>Nội thất:</b> ${findData.noiThat}\n📅 <b>Vào ở:</b> ${findData.nhuCau === 'Cho thuê' ? findData.ngayVaoO || 'Chưa rõ' : 'N/A'}\n📞 <b>SĐT Khách:</b> <code>${findData.soDienThoai}</code>\n📝 <b>Yêu cầu thêm:</b> ${findData.ghiChu || 'Không có'}`;
+      try { fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: CHAT_ID, text: message, parse_mode: 'HTML' }) }); } catch (error) {}
+    }
+    setIsSendingFind(false); setIsFindModalOpen(false);
+    setFindData({ nhuCau: 'Cho thuê', loaiCan: 'Studio', taiChinh: '', noiThat: 'Đầy đủ nội thất', ngayVaoO: '', soDienThoai: '', ghiChu: '', ten: '' });
+    alert("Đã gửi yêu cầu thành công! Chuyên viên An Ninh sẽ liên hệ Zalo anh/chị ngay nhé!");
   };
 
   if (!exactName) return <div className="text-center py-20 font-bold">Không tìm thấy phân khu!</div>;
@@ -145,7 +194,6 @@ export default function SubdivisionLandingPage() {
         </div>
       </header>
 
-      {/* HEADER PHÂN KHU */}
       <section className="bg-blue-900 text-white py-16 px-4 md:px-12 text-center">
         <p className="text-sm font-bold text-blue-300 mb-2 uppercase tracking-[0.2em]">Vinhomes Smart City</p>
         <h1 className="text-4xl md:text-5xl font-black uppercase tracking-tight">Phân khu {exactName}</h1>
@@ -153,10 +201,9 @@ export default function SubdivisionLandingPage() {
 
       <main className="max-w-[1200px] mx-auto px-4 md:px-8 py-10 w-full flex-grow">
         
-        {/* SLIDER ẢNH PHÂN KHU NẾU CÓ */}
         {pkConfig?.images?.length > 0 && (
           <div className="mb-12 relative group w-full overflow-hidden rounded-2xl shadow-lg border border-gray-100 bg-white p-2">
-            <button onClick={() => scrollSlider('left')} className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/90 border border-gray-200 rounded-full shadow-lg flex items-center justify-center z-10 text-blue-900 hover:bg-white font-bold text-xl backdrop-blur-sm transition">‹</button>
+            <button onClick={() => scrollSlider('left')} className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/90 border border-gray-200 rounded-full shadow-lg flex items-center justify-center z-10 text-blue-900 hover:bg-white font-bold text-xl backdrop-blur-sm transition opacity-0 group-hover:opacity-100">‹</button>
             <div ref={scrollRef} className="flex gap-2 overflow-x-auto snap-x relative scroll-smooth hide-scrollbar w-full" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
               {pkConfig.images.map((img, i) => (
                 <div key={i} className="w-[300px] md:w-[450px] h-[200px] md:h-[300px] flex-shrink-0 snap-center rounded-xl overflow-hidden">
@@ -164,11 +211,10 @@ export default function SubdivisionLandingPage() {
                 </div>
               ))}
             </div>
-            <button onClick={() => scrollSlider('right')} className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/90 border border-gray-200 rounded-full shadow-lg flex items-center justify-center z-10 text-blue-900 hover:bg-white font-bold text-xl backdrop-blur-sm transition">›</button>
+            <button onClick={() => scrollSlider('right')} className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/90 border border-gray-200 rounded-full shadow-lg flex items-center justify-center z-10 text-blue-900 hover:bg-white font-bold text-xl backdrop-blur-sm transition opacity-0 group-hover:opacity-100">›</button>
           </div>
         )}
 
-        {/* THÔNG TIN TỔNG QUAN */}
         {pkConfig && (pkConfig.tongQuan || pkConfig.uuDiem || pkConfig.tienIch) && (
           <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-8 mb-12">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
@@ -208,19 +254,19 @@ export default function SubdivisionLandingPage() {
 
         <hr className="border-gray-200 mb-10" />
 
-        {/* BỘ LỌC VÀ RỔ HÀNG RIÊNG CỦA PHÂN KHU NÀY */}
-        <div className="flex flex-col sm:flex-row justify-between items-end sm:items-center mb-6 gap-4">
+        {/* ĐÃ FIX: ĐỔI THÀNH QUỸ CĂN + ĐẢM BẢO ITEMS-START ĐỂ KHÔNG BỊ LỆCH PHẢI TRÊN ĐIỆN THOẠI */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4 border-b pb-4 sm:border-0 sm:pb-0 border-gray-200">
            <div>
-             <h2 className="text-2xl font-black text-blue-950 uppercase tracking-tight">Rổ hàng {exactName}</h2>
+             <h2 className="text-2xl font-black text-blue-950 uppercase tracking-tight">Quỹ căn {exactName}</h2>
              <span className="text-sm font-medium text-gray-500 block mt-1">Đang có {filteredProperties.length} căn hộ</span>
            </div>
            
            <div className="flex items-center gap-4 w-full sm:w-auto">
               <div className="flex bg-gray-200/70 p-1 rounded-lg">
-                 <button onClick={() => setActiveTab('Cho thuê')} className={`py-1.5 px-4 rounded-md text-xs font-bold transition-all ${activeTab === 'Cho thuê' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-800'}`}>Cho thuê</button>
-                 <button onClick={() => setActiveTab('Chuyển nhượng')} className={`py-1.5 px-4 rounded-md text-xs font-bold transition-all ${activeTab === 'Chuyển nhượng' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-800'}`}>Bán</button>
+                 <button onClick={() => {setActiveTab('Cho thuê'); setCurrentPage(1);}} className={`py-1.5 px-4 rounded-md text-xs font-bold transition-all ${activeTab === 'Cho thuê' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-800'}`}>Cho thuê</button>
+                 <button onClick={() => {setActiveTab('Chuyển nhượng'); setCurrentPage(1);}} className={`py-1.5 px-4 rounded-md text-xs font-bold transition-all ${activeTab === 'Chuyển nhượng' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-800'}`}>Bán</button>
               </div>
-              <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="text-sm border-gray-200 rounded-lg border py-2 px-3 text-gray-700 outline-none focus:border-blue-600 font-medium">
+              <select value={sortBy} onChange={(e) => {setSortBy(e.target.value); setCurrentPage(1);}} className="text-sm border-gray-200 rounded-lg border py-2 px-3 text-gray-700 outline-none focus:border-blue-600 font-medium">
                 <option value="newest">Mới nhất</option>
                 <option value="priceAsc">Giá thấp nhất</option>
               </select>
@@ -228,7 +274,7 @@ export default function SubdivisionLandingPage() {
         </div>
 
         {loading ? (
-           <div className="text-center py-20 font-bold text-gray-400">Đang tải rổ hàng...</div>
+           <div className="text-center py-20 font-bold text-gray-400">Đang tải quỹ căn...</div>
         ) : currentProperties.length === 0 ? (
            <div className="bg-white rounded-xl p-10 text-center border border-gray-100 shadow-sm"><p className="text-gray-500 font-medium">Chưa có quỹ căn phù hợp tại phân khu này.</p></div>
         ) : (
@@ -237,13 +283,27 @@ export default function SubdivisionLandingPage() {
               {currentProperties.map(item => <PropertyCard key={item.id} item={item} contactPhone={CONTACT_PHONE} />)}
             </div>
             
-            {visibleCount < filteredProperties.length && (
-              <div className="flex justify-center mb-8">
-                <button onClick={() => setVisibleCount(prev => prev + 9)} className="bg-white border-2 border-blue-600 text-blue-700 hover:bg-blue-50 px-8 py-3 rounded-full font-bold transition shadow-sm">
-                  Xem thêm {filteredProperties.length - visibleCount} căn nữa...
-                </button>
+            {/* ĐÃ FIX: THÊM TÍNH NĂNG PHÂN TRANG (1, 2, 3...) CHO TRANG PHÂN KHU */}
+            {totalPages > 1 && (
+              <div className="flex justify-center items-center gap-2 mt-4 mb-8">
+                <button onClick={() => { setCurrentPage(p => Math.max(1, p - 1)); window.scrollTo({top: 0, behavior: 'smooth'}); }} disabled={currentPage === 1} className="w-10 h-10 flex items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 hover:bg-gray-50 disabled:opacity-50 transition shadow-sm">‹</button>
+                {[...Array(totalPages)].map((_, i) => (
+                  <button key={i} onClick={() => { setCurrentPage(i + 1); window.scrollTo({top: 0, behavior: 'smooth'}); }} className={`w-10 h-10 flex items-center justify-center rounded-lg font-bold transition shadow-sm ${currentPage === i + 1 ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'}`}>{i + 1}</button>
+                ))}
+                <button onClick={() => { setCurrentPage(p => Math.min(totalPages, p + 1)); window.scrollTo({top: 0, behavior: 'smooth'}); }} disabled={currentPage === totalPages} className="w-10 h-10 flex items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 hover:bg-gray-50 disabled:opacity-50 transition shadow-sm">›</button>
               </div>
             )}
+
+            {/* ĐÃ FIX: NHÚNG BOX YÊU CẦU "NHỜ TÌM CĂN" VÀO CUỐI TRANG PHÂN KHU */}
+            <div className="bg-white border border-gray-200 rounded-xl p-6 md:p-8 flex flex-col md:flex-row justify-between items-center gap-6 shadow-sm mb-10 w-full mt-4">
+              <div>
+                  <h4 className="text-xl font-bold text-blue-900 mb-2">Không cần tự lướt hết quỹ căn</h4>
+                  <p className="text-sm text-gray-600 font-medium">Gửi nhu cầu của bạn, chúng tôi sẽ chọn 3-5 căn phù hợp nhất để gửi lại bạn nhanh nhất.</p>
+              </div>
+              <button onClick={() => { setFindData({...findData, nhuCau: activeTab}); setIsFindModalOpen(true); }} className="bg-blue-800 hover:bg-blue-900 text-white px-8 py-3.5 rounded-xl font-bold whitespace-nowrap transition shadow-lg shadow-blue-900/20 flex items-center gap-2 w-full md:w-auto justify-center">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg> Nhờ tìm căn phù hợp
+              </button>
+            </div>
           </>
         )}
       </main>
@@ -251,6 +311,79 @@ export default function SubdivisionLandingPage() {
       <footer className="bg-white border-t border-gray-200 py-8 px-4 text-center text-sm text-gray-500">
          © 2026 Quỹ Căn Smart City. All rights reserved.
       </footer>
+
+      {/* POPUP NHỜ TÌM DÀNH CHO TRANG PHÂN KHU */}
+      {isFindModalOpen && (
+        <div className="fixed inset-0 bg-blue-900/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-y-auto max-h-[90vh] animate-fade-in-up">
+            <div className="bg-blue-900 px-6 py-4 flex justify-between items-center text-white sticky top-0 z-10">
+               <h3 className="text-lg font-bold flex items-center gap-2">🕵️ Nhờ tìm căn {exactName}</h3>
+               <button onClick={() => setIsFindModalOpen(false)} className="text-blue-200 hover:text-white transition"><svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+            </div>
+            <div className="p-6">
+              <p className="text-sm text-gray-600 mb-6 italic font-medium">Anh/chị chỉ cần để lại nhu cầu, chúng em sẽ lọc các căn đẹp nhất, giá tốt nhất và gửi qua Zalo ngay sau 5 phút!</p>
+              <form onSubmit={handleFindSubmit} className="space-y-4 text-sm">
+                 <div>
+                   <label className="block font-bold text-gray-700 mb-1">Tên của anh/chị</label>
+                   <input type="text" placeholder="Nhập tên..." value={findData.ten} onChange={(e)=>setFindData({...findData, ten: e.target.value})} className="w-full p-3 border border-gray-300 rounded-lg outline-none focus:border-blue-600 bg-gray-50 font-medium" />
+                 </div>
+                 <div className="flex gap-4">
+                   <label className="flex-1 bg-gray-50 border border-gray-200 rounded-lg p-3 flex items-center gap-2 cursor-pointer has-[:checked]:border-blue-600 has-[:checked]:bg-blue-50 transition">
+                     <input type="radio" name="nhuCau" value="Cho thuê" checked={findData.nhuCau === 'Cho thuê'} onChange={(e)=>setFindData({...findData, nhuCau: e.target.value})} className="w-4 h-4 text-blue-600" />
+                     <span className="font-bold text-gray-700">Tìm Thuê</span>
+                   </label>
+                   <label className="flex-1 bg-gray-50 border border-gray-200 rounded-lg p-3 flex items-center gap-2 cursor-pointer has-[:checked]:border-blue-600 has-[:checked]:bg-blue-50 transition">
+                     <input type="radio" name="nhuCau" value="Chuyển nhượng" checked={findData.nhuCau === 'Chuyển nhượng'} onChange={(e)=>setFindData({...findData, nhuCau: e.target.value})} className="w-4 h-4 text-blue-600" />
+                     <span className="font-bold text-gray-700">Tìm Mua</span>
+                   </label>
+                 </div>
+                 <div className="grid grid-cols-2 gap-4">
+                   <div>
+                     <label className="block font-bold text-gray-700 mb-1">Loại căn *</label>
+                     <select required value={findData.loaiCan} onChange={(e)=>setFindData({...findData, loaiCan: e.target.value})} className="w-full p-3 border border-gray-300 rounded-lg outline-none focus:border-blue-600 bg-white font-medium">
+                        {['Studio', '1N', '1N+', '2N1WC', '2N2WC', '2N+', '3N', '4N'].map(opt => <option key={opt}>{opt}</option>)}
+                     </select>
+                   </div>
+                   <div>
+                     <label className="block font-bold text-gray-700 mb-1">Tầm tài chính *</label>
+                     <input required type="text" placeholder={findData.nhuCau === 'Cho thuê' ? "VD: 8-10 triệu" : "VD: Dưới 3 tỷ"} value={findData.taiChinh} onChange={(e)=>setFindData({...findData, taiChinh: e.target.value})} className="w-full p-3 border border-gray-300 rounded-lg outline-none focus:border-blue-600 bg-gray-50 font-medium" />
+                   </div>
+                   <div className="col-span-2 sm:col-span-1">
+                     <label className="block font-bold text-gray-700 mb-1">Mức độ nội thất *</label>
+                     <select required value={findData.noiThat} onChange={(e)=>setFindData({...findData, noiThat: e.target.value})} className="w-full p-3 border border-gray-300 rounded-lg outline-none focus:border-blue-600 bg-white font-medium">
+                        {['Nguyên bản CĐT', 'Đồ cơ bản', 'Đầy đủ nội thất'].map(opt => <option key={opt}>{opt}</option>)}
+                     </select>
+                   </div>
+                   {findData.nhuCau === 'Cho thuê' ? (
+                     <div className="col-span-2 sm:col-span-1">
+                       <label className="block font-bold text-gray-700 mb-1">Thời gian cần ở</label>
+                       <input type="date" value={findData.ngayVaoO} onChange={(e)=>setFindData({...findData, ngayVaoO: e.target.value})} className="w-full p-3 border border-gray-300 rounded-lg outline-none focus:border-blue-600 bg-white font-medium" />
+                     </div>
+                   ) : <div className="hidden"></div>}
+                 </div>
+                 
+                 <div>
+                   <label className="block font-bold text-gray-700 mb-1">Số điện thoại / Zalo *</label>
+                   <input required type="tel" placeholder="09xxxx..." value={findData.soDienThoai} onChange={(e)=>{setFindData({...findData, soDienThoai: e.target.value}); setFindPhoneError('');}} className={`w-full p-3 border rounded-lg outline-none transition font-medium ${findPhoneError ? 'border-red-500 bg-red-50' : 'border-gray-300 focus:border-blue-600 bg-gray-50'}`} />
+                   {findPhoneError && <p className="text-red-500 text-xs font-bold mt-1">{findPhoneError}</p>}
+                 </div>
+                 <div>
+                   <label className="block font-bold text-gray-700 mb-1">Yêu cầu thêm</label>
+                   <textarea rows="2" placeholder={`VD: Cần tìm căn bên khu ${exactName} giá tốt nhất...`} value={findData.ghiChu} onChange={(e)=>setFindData({...findData, ghiChu: e.target.value})} className="w-full p-3 border border-gray-300 rounded-lg outline-none focus:border-blue-600 bg-gray-50 font-medium"></textarea>
+                 </div>
+                 <button type="submit" disabled={isSendingFind} className="w-full bg-blue-700 hover:bg-blue-800 text-white p-3.5 rounded-lg font-bold text-base transition shadow-md disabled:bg-gray-400 flex items-center justify-center gap-2 mt-2">
+                   {isSendingFind ? 'Đang gửi...' : <><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg> Gửi yêu cầu & Nhận báo giá</>}
+                 </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      <style jsx global>{`
+        .animate-fade-in-up { animation: fadeInUp 0.3s ease-out forwards; }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
+      `}</style>
     </div>
   );
 }
