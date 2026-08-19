@@ -7,6 +7,14 @@ import { useParams } from 'next/navigation';
 
 const optimizeImg = (url) => url?.includes('cloudinary.com') ? url.replace('/upload/', '/upload/w_1000,c_limit,q_auto,f_auto/') : url;
 
+// HIỆU ỨNG SKELETON CHỜ TẢI DỮ LIỆU CĂN TƯƠNG TỰ
+const SkeletonMiniCard = () => (
+  <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden w-[260px] max-w-[80vw] snap-start flex-shrink-0 animate-pulse">
+    <div className="h-40 bg-gray-200"></div>
+    <div className="p-4"><div className="h-4 bg-gray-200 rounded w-1/2 mb-2"></div><div className="h-6 bg-gray-200 rounded w-3/4"></div></div>
+  </div>
+);
+
 const MiniPropertyCard = ({ item }) => {
   const images = item.images && item.images.length > 0 ? item.images : [];
   return (
@@ -91,7 +99,7 @@ export default function PropertyDetail() {
   const handleShare = async () => {
     const url = window.location.href;
     if (navigator.share) {
-      try { await navigator.share({ title: `Căn hộ ${property.loaiCan} - ${property.phanKhu}`, url: url }); } catch (err) {}
+      try { await navigator.share({ title: `Căn hộ ${property?.loaiCan} - ${property?.phanKhu}`, url: url }); } catch (err) {}
     } else {
       navigator.clipboard.writeText(url);
       alert('Đã copy link thông tin căn hộ!');
@@ -99,7 +107,7 @@ export default function PropertyDetail() {
   };
   
   const handleCopyCode = () => {
-    navigator.clipboard.writeText(property.maCan);
+    navigator.clipboard.writeText(property?.maCan);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -142,7 +150,16 @@ export default function PropertyDetail() {
     alert("Đã gửi yêu cầu thành công! Chuyên viên An Ninh sẽ liên hệ Zalo anh/chị ngay nhé!");
   };
 
-  if (loading) return <div className="flex justify-center items-center h-screen bg-gray-50"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-900"></div></div>;
+  // KHÔNG CHẶN TOÀN MÀN HÌNH BẰNG SPINNER NỮA
+  if (loading) return (
+    <div className="min-h-screen bg-gray-50 flex flex-col relative pb-20 md:pb-0">
+      <header className="bg-white sticky top-0 z-50 px-4 md:px-8 py-3 flex justify-between items-center shadow-sm">
+        <Link href="/"><img src="/logo.png" alt="Quỹ Căn Smart City" className="h-10 md:h-12 w-auto object-contain" /></Link>
+      </header>
+      <div className="flex justify-center items-center h-96"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-900"></div></div>
+    </div>
+  );
+
   if (!property) return <div className="text-center py-20">Không tìm thấy căn hộ!</div>;
 
   const images = property.images || [];
@@ -155,7 +172,7 @@ export default function PropertyDetail() {
   const displayId = property.maCan || property.id.substring(0, 5).toUpperCase();
   const titleString = `${property.listingType === 'Cho thuê' ? 'Cho thuê' : 'Bán'} căn hộ ${property.loaiCan || property.type}, tòa ${property.toaNha || property.building}, phân khu ${property.phanKhu}`;
 
-  // ĐỊNH NGHĨA DANH SÁCH CÁC TRƯỜNG THÔNG SỐ CÓ ICON
+  // ĐỊNH NGHĨA TRƯỜNG THÔNG TIN CHI TIẾT THEO YÊU CẦU: Tách riêng Tòa nhà/Khoảng tầng, thêm Pháp lý/Vào luôn
   const specs = property.listingType === 'Cho thuê' ? [
     { label: 'Loại căn', val: property.loaiCan || property.type, icon: '🏠' },
     { label: 'Diện tích', val: `${property.area} m²`, icon: '📐' },
@@ -164,7 +181,7 @@ export default function PropertyDetail() {
     { label: 'Khoảng tầng', val: property.khoangTang, icon: '🏢' },
     { label: 'Hướng ban công', val: property.huongBanCong || 'Đang cập nhật', icon: '🧭' },
     { label: 'Nội thất', val: property.noiThat || 'Đang cập nhật', icon: '🛋️' },
-    { label: 'Ngày chuyển vào', val: property.vaoLuon ? 'Vào luôn' : formattedDate, icon: '📅', color: property.vaoLuon ? 'text-green-600' : '' },
+    { label: 'Ngày chuyển vào', val: property.vaoLuon ? 'Vào luôn' : formattedDate, icon: '📅', color: property.vaoLuon ? 'text-green-600 font-black' : '' },
     { label: 'Phí dịch vụ', val: pkConfig.phi || 'Đang cập nhật', icon: '💰' },
   ] : [
     { label: 'Loại căn', val: property.loaiCan || property.type, icon: '🏠' },
@@ -174,12 +191,12 @@ export default function PropertyDetail() {
     { label: 'Khoảng tầng', val: property.khoangTang, icon: '🏢' },
     { label: 'Hướng ban công', val: property.huongBanCong || 'Đang cập nhật', icon: '🧭' },
     { label: 'Nội thất', val: property.noiThat || 'Đang cập nhật', icon: '🛋️' },
-    { label: 'Pháp lý', val: property.phapLy || 'Đang cập nhật', icon: '📜', color: 'text-blue-700' },
+    { label: 'Pháp lý', val: property.phapLy || 'Sổ đỏ', icon: '📜', color: 'text-blue-700' },
     { label: 'Phí dịch vụ', val: pkConfig.phi || 'Đang cập nhật', icon: '💰' },
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-800 flex flex-col relative pb-20 md:pb-0">
+    <div className="min-h-screen bg-gray-50 text-gray-800 font-sans flex flex-col relative pb-20 md:pb-0">
       <header className="bg-white sticky top-0 z-50 px-4 md:px-8 py-3 flex justify-between items-center shadow-sm">
         <Link href="/" className="flex items-center hover:opacity-80 transition"><img src="/logo.png" alt="Quỹ Căn Smart City" className="h-10 md:h-12 w-auto object-contain" /></Link>
         <div className="flex items-center gap-3 md:gap-4">
@@ -266,16 +283,16 @@ export default function PropertyDetail() {
               </div>
             </div>
 
-            {/* BẢNG THÔNG TIN CHI TIẾT HIỂN THỊ DẠNG 2 CỘT, CÓ ICON */}
+            {/* BẢNG THÔNG TIN CHI TIẾT 2 CỘT GỌN GÀNG, ĐỦ ICON */}
             <div className="bg-white rounded-2xl border border-gray-100 p-6 md:p-8 shadow-sm mb-8">
               <h3 className="font-bold text-blue-900 mb-6 text-lg border-b border-gray-100 pb-3">Thông tin chi tiết</h3>
               <ul className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-0 text-[13px] md:text-sm">
                 {specs.map((s, i) => (
                   <li key={i} className="flex py-3.5 border-b border-gray-100 items-center justify-between md:justify-start md:gap-8">
-                    <span className="text-gray-500 font-medium flex items-center gap-2.5 w-1/2">
+                    <span className="text-gray-500 font-medium flex items-center gap-2.5 md:w-1/2">
                       <span className="text-lg w-5 text-center">{s.icon}</span> {s.label}
                     </span>
-                    <span className={`font-bold w-1/2 text-right md:text-left ${s.color || 'text-gray-900'}`}>
+                    <span className={`font-bold text-right md:text-left ${s.color || 'text-gray-900'} md:w-1/2`}>
                       {s.val}
                     </span>
                   </li>
@@ -300,15 +317,17 @@ export default function PropertyDetail() {
               </div>
             )}
 
+            {/* ĐÃ FIX HIỂN THỊ CÁC CĂN TƯƠNG TỰ TRÊN MOBILE KHÔNG BỊ TRÀN */}
             {similarProps.length > 0 && (
-              <div className="mb-8 relative group">
+              <div className="mb-8 relative group w-full overflow-hidden">
                 <h3 className="font-bold text-blue-900 mb-4 text-lg">Các căn {property.listingType} tương tự</h3>
-                <button onClick={() => scrollSimilar('left')} className="absolute -left-4 top-1/2 w-10 h-10 bg-white border border-gray-200 rounded-full shadow-lg flex items-center justify-center z-10 hidden md:flex text-blue-900 hover:bg-blue-50 font-bold text-xl">‹</button>
-                {/* CSS Ở ĐÂY ĐÃ NGĂN TRÀN MÀN HÌNH ĐIỆN THOẠI */}
+                <button onClick={() => scrollSimilar('left')} className="absolute left-0 top-1/2 w-10 h-10 bg-white border border-gray-200 rounded-full shadow-lg flex items-center justify-center z-10 hidden md:flex text-blue-900 hover:bg-blue-50 font-bold text-xl">‹</button>
+                
                 <div ref={scrollRef} className="flex gap-4 overflow-x-auto pb-4 snap-x relative scroll-smooth hide-scrollbar w-full" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
                   {similarProps.map(item => <MiniPropertyCard key={item.id} item={item} />)}
                 </div>
-                <button onClick={() => scrollSimilar('right')} className="absolute -right-4 top-1/2 w-10 h-10 bg-white border border-gray-200 rounded-full shadow-lg flex items-center justify-center z-10 hidden md:flex text-blue-900 hover:bg-blue-50 font-bold text-xl">›</button>
+                
+                <button onClick={() => scrollSimilar('right')} className="absolute right-0 top-1/2 w-10 h-10 bg-white border border-gray-200 rounded-full shadow-lg flex items-center justify-center z-10 hidden md:flex text-blue-900 hover:bg-blue-50 font-bold text-xl">›</button>
               </div>
             )}
 
@@ -323,7 +342,6 @@ export default function PropertyDetail() {
             </div>
           </div>
 
-          {/* CỘT LIÊN HỆ TƯ VẤN ĐƯỢC CHỈNH LẠI FONT VÀ NÚT */}
           <aside className="w-full lg:w-[320px] flex-shrink-0 self-start sticky top-24">
             <div className="bg-white rounded-2xl shadow-xl shadow-gray-200/50 border border-gray-100 p-6">
               <h2 className="text-xl font-black text-blue-900 uppercase tracking-tight mb-2 text-center">Liên hệ tư vấn</h2>
@@ -364,7 +382,7 @@ export default function PropertyDetail() {
         </div>
       </footer>
 
-      {/* POPUP NHỜ TÌM (ĐÃ ĐƯA RA NGOÀI ROOT ĐỂ KHÔNG BỊ LỖI CLICK) */}
+      {/* MODAL BẬT TỪ NÚT ĐÃ ĐƯỢC KÉO RA NGOÀI CÙNG ĐỂ CHẠY CHUẨN */}
       {isFindModalOpen && (
         <div className="fixed inset-0 bg-blue-900/60 backdrop-blur-sm z-[150] flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-y-auto max-h-[90vh] animate-fade-in-up">

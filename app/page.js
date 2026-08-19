@@ -6,6 +6,23 @@ import Link from 'next/link';
 
 const optimizeImg = (url) => url?.includes('cloudinary.com') ? url.replace('/upload/', '/upload/w_800,c_limit,q_auto,f_auto/') : url;
 
+// HIỆU ỨNG SKELETON (KHUNG XÁM NHẤP NHÁY) KHI CHỜ DỮ LIỆU
+const SkeletonCard = () => (
+  <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden animate-pulse">
+    <div className="h-56 bg-gray-200"></div>
+    <div className="p-5">
+      <div className="h-6 bg-gray-200 rounded-md w-3/4 mb-4 mx-auto"></div>
+      <div className="grid grid-cols-2 gap-2 mb-6">
+        <div className="h-8 bg-gray-100 rounded-md"></div>
+        <div className="h-8 bg-gray-100 rounded-md"></div>
+        <div className="h-8 bg-gray-100 rounded-md"></div>
+        <div className="h-8 bg-gray-100 rounded-md"></div>
+      </div>
+      <div className="h-10 bg-gray-200 rounded-xl w-full"></div>
+    </div>
+  </div>
+);
+
 const PropertyCard = ({ item, contactPhone }) => {
   const [currentImg, setCurrentImg] = useState(0);
   const [copied, setCopied] = useState(false);
@@ -97,8 +114,9 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('Cho thuê');
   const [sortBy, setSortBy] = useState('newest');
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 9;
+  
+  // TỐI ƯU PHÂN TRANG (PAGINATION) DÀNH CHO MOBILE
+  const [visibleCount, setVisibleCount] = useState(9);
   
   const [filters, setFilters] = useState({ phanKhu: 'Tất cả phân khu', loaiCan: [], khoangTang: 'Tất cả tầng', huongBanCong: 'Tất cả hướng', noiThat: 'Tất cả nội thất', mucGia: 'Tất cả mức giá' });
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
@@ -119,6 +137,7 @@ export default function Home() {
   const [leadPhoneError, setLeadPhoneError] = useState('');
 
   useEffect(() => {
+    document.title = "Quỹ Căn Smart City - Bán & Cho Thuê Giá Tốt Nhất";
     const fetchProperties = async () => {
       try {
         const q = query(collection(db, 'properties'), orderBy('createdAt', 'desc'));
@@ -129,7 +148,6 @@ export default function Home() {
     };
     fetchProperties();
 
-    // Popup tự hiện sau 10s (đã giảm thời gian để dễ test)
     const timer = setTimeout(() => {
       if(!sessionStorage.getItem('leadPopupShown')) {
         setIsLeadPopupOpen(true);
@@ -139,15 +157,15 @@ export default function Home() {
     return () => clearTimeout(timer);
   }, []);
 
-  const handleFilterChange = (e) => { setFilters({ ...filters, [e.target.name]: e.target.value }); setCurrentPage(1); };
+  const handleFilterChange = (e) => { setFilters({ ...filters, [e.target.name]: e.target.value }); setVisibleCount(9); };
   const handleLoaiCanToggle = (type) => { 
     setFilters(prev => ({ ...prev, loaiCan: prev.loaiCan.includes(type) ? prev.loaiCan.filter(t => t !== type) : [...prev.loaiCan, type] }));
-    setCurrentPage(1);
+    setVisibleCount(9);
   };
   const handleTabChange = (tab) => {
     setActiveTab(tab);
     setFilters({...filters, loaiCan: [], mucGia: 'Tất cả mức giá'});
-    setCurrentPage(1);
+    setVisibleCount(9);
   };
 
   const checkPrice = (priceStr, rangeStr, type) => {
@@ -189,8 +207,7 @@ export default function Home() {
     return (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0);
   });
 
-  const totalPages = Math.ceil(sortedProperties.length / itemsPerPage);
-  const currentProperties = sortedProperties.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const currentProperties = sortedProperties.slice(0, visibleCount);
 
   const checkSpam = () => {
     const lastSent = localStorage.getItem('lastFormSubmit');
@@ -209,13 +226,13 @@ export default function Home() {
     if (!phoneRegex.test(findData.soDienThoai)) { setFindPhoneError("Số điện thoại không hợp lệ!"); return; }
 
     setIsSendingFind(true);
-    try { await addDoc(collection(db, 'nho_tim_can'), { ...findData, source: 'Nút Nhờ Tìm (Trang chủ)', createdAt: serverTimestamp(), status: 'Chưa xử lý' }); } catch(err) {}
+    try { await addDoc(collection(db, 'nho_tim_can'), { ...findData, source: 'Nút Nhờ Tìm', createdAt: serverTimestamp(), status: 'Chưa xử lý' }); } catch(err) {}
 
     const BOT_TOKEN = "7295171731:AAEUgA3z1y3D6o_cK8t6W42aXfN-6I"; 
     const CHAT_ID = "6190858172";
     if (BOT_TOKEN && CHAT_ID) {
-      const message = `🚨 <b>KHÁCH TÌM CĂN MỚI</b>\n\n👤 <b>Khách hàng:</b> ${findData.ten || 'Chưa nhập'}\n📌 <b>Nhu cầu:</b> ${findData.nhuCau}\n🛏 <b>Loại căn:</b> ${findData.loaiCan}\n💰 <b>Tài chính:</b> ${findData.taiChinh}\n🛋 <b>Nội thất:</b> ${findData.noiThat}\n📅 <b>Vào ở:</b> ${findData.nhuCau === 'Cho thuê' ? findData.ngayVaoO || 'Chưa rõ' : 'N/A'}\n📞 <b>SĐT Khách:</b> <code>${findData.soDienThoai}</code>\n📝 <b>Ghi chú:</b> ${findData.ghiChu || 'Không có'}`;
-      try { await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: CHAT_ID, text: message, parse_mode: 'HTML' }) }); } catch (error) {}
+      const message = `🚨 <b>KHÁCH TÌM CĂN (Nút Nhờ Tìm)</b>\n\n👤 <b>Khách hàng:</b> ${findData.ten || 'Chưa nhập'}\n📌 <b>Nhu cầu:</b> ${findData.nhuCau}\n🛏 <b>Loại căn:</b> ${findData.loaiCan}\n💰 <b>Tài chính:</b> ${findData.taiChinh}\n🛋 <b>Nội thất:</b> ${findData.noiThat}\n📅 <b>Vào ở:</b> ${findData.nhuCau === 'Cho thuê' ? findData.ngayVaoO || 'Chưa rõ' : 'N/A'}\n📞 <b>SĐT Khách:</b> <code>${findData.soDienThoai}</code>\n📝 <b>Ghi chú:</b> ${findData.ghiChu || 'Không có'}`;
+      try { fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: CHAT_ID, text: message, parse_mode: 'HTML' }) }); } catch (error) {}
     }
     setIsSendingFind(false); setIsFindModalOpen(false);
     setFindData({ nhuCau: 'Cho thuê', loaiCan: 'Studio', taiChinh: '', noiThat: 'Đầy đủ nội thất', ngayVaoO: '', soDienThoai: '', ghiChu: '', ten: '' });
@@ -234,17 +251,16 @@ export default function Home() {
     const BOT_TOKEN = "7295171731:AAEUgA3z1y3D6o_cK8t6W42aXfN-6I"; 
     const CHAT_ID = "6190858172";
     if (BOT_TOKEN && CHAT_ID) {
-      const message = `🚨 <b>KHÁCH TỪ POPUP TỰ ĐỘNG</b>\n\n👤 <b>Tên khách:</b> ${leadData.ten}\n📞 <b>Số điện thoại:</b> <code>${leadData.soDienThoai}</code>\n📌 <b>Nhu cầu:</b> Tìm ${leadData.nhuCau}\n💰 <b>Tài chính:</b> ${leadData.taiChinh || 'Không ghi'}\n📝 <b>Ghi chú thêm:</b> ${leadData.ghiChu || 'Không có'}`;
-      try { await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: CHAT_ID, text: message, parse_mode: 'HTML' }) }); } catch (error) {}
+      const message = `🚨 <b>KHÁCH TỪ POPUP 20S</b>\n\n👤 <b>Tên khách:</b> ${leadData.ten}\n📞 <b>Số điện thoại:</b> <code>${leadData.soDienThoai}</code>\n📌 <b>Nhu cầu:</b> Tìm ${leadData.nhuCau}\n💰 <b>Tài chính:</b> ${leadData.taiChinh || 'Không ghi'}\n📝 <b>Ghi chú thêm:</b> ${leadData.ghiChu || 'Không có'}`;
+      try { fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: CHAT_ID, text: message, parse_mode: 'HTML' }) }); } catch (error) {}
     }
     setIsSendingLead(false); setIsLeadPopupOpen(false);
     alert("Gửi yêu cầu thành công! Chuyên viên An Ninh sẽ liên hệ Zalo cho anh/chị trong ít phút.");
   };
 
-  if (loading) return <div className="flex justify-center items-center h-screen bg-gray-50"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-900"></div></div>;
-
   return (
     <div className="min-h-screen bg-gray-50 text-gray-800 flex flex-col relative pb-20 md:pb-0">
+      {/* HEADER VÀ BANNER HIỂN THỊ NGAY LẬP TỨC */}
       <header className="bg-white sticky top-0 z-50 px-4 md:px-8 py-3 flex justify-between items-center shadow-sm">
         <Link href="/" className="flex items-center hover:opacity-80 transition">
           <img src="/logo.png" alt="Quỹ Căn Smart City" className="h-10 md:h-12 w-auto object-contain" />
@@ -265,7 +281,7 @@ export default function Home() {
         <div className="absolute inset-0 bg-gradient-to-r from-blue-950/70 via-blue-900/40 to-transparent"></div>
         <div className="relative z-10 max-w-5xl mx-auto w-full">
           <p className="text-sm font-bold text-blue-200 mb-4 uppercase tracking-[0.3em] drop-shadow-md">Vinhomes Smart City</p>
-          <h2 className="text-4xl md:text-[3.5rem] font-bold mb-6 leading-[1.2] tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white to-blue-100 drop-shadow-lg">QUỸ CĂN CHUYỂN NHƯỢNG<br/>& CHO THUÊ</h2>
+          <h2 className="text-4xl md:text-[3.5rem] font-extrabold mb-6 leading-[1.2] tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white to-blue-100 drop-shadow-lg">QUỸ CĂN CHUYỂN NHƯỢNG<br/>& CHO THUÊ</h2>
           <p className="text-base md:text-lg text-blue-50 max-w-xl font-medium leading-relaxed drop-shadow-md">Bảng hàng cập nhật liên tục 24/7, hỗ trợ tìm căn theo yêu cầu.</p>
         </div>
       </section>
@@ -368,7 +384,12 @@ export default function Home() {
              </div>
           </div>
 
-          {currentProperties.length === 0 ? (
+          {/* HIỂN THỊ SKELETON LÚC LOAD ĐỂ KHÔNG TRẮNG MÀN HÌNH */}
+          {loading ? (
+             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6 mb-8">
+               {[1,2,3,4,5,6].map(i => <SkeletonCard key={i} />)}
+             </div>
+          ) : currentProperties.length === 0 ? (
              <div className="bg-white rounded-xl p-10 text-center border border-gray-100 shadow-sm flex-grow"><p className="text-gray-500">Chưa có quỹ căn phù hợp với bộ lọc của bạn.</p></div>
           ) : (
             <>
@@ -376,7 +397,16 @@ export default function Home() {
                 {currentProperties.map(item => <PropertyCard key={item.id} item={item} contactPhone={CONTACT_PHONE} />)}
               </div>
               
-              <div className="bg-white border border-gray-200 rounded-xl p-6 md:p-8 flex flex-col md:flex-row justify-between items-center gap-6 shadow-sm mb-10 w-full mt-8">
+              {/* NÚT TẢI THÊM (PAGINATION TỐI ƯU MOBILE) */}
+              {visibleCount < sortedProperties.length && (
+                <div className="flex justify-center mb-8">
+                  <button onClick={() => setVisibleCount(prev => prev + 9)} className="bg-white border-2 border-blue-600 text-blue-700 hover:bg-blue-50 px-8 py-3 rounded-full font-bold transition shadow-sm">
+                    Xem thêm {sortedProperties.length - visibleCount} căn nữa...
+                  </button>
+                </div>
+              )}
+
+              <div className="bg-white border border-gray-200 rounded-xl p-6 md:p-8 flex flex-col md:flex-row justify-between items-center gap-6 shadow-sm mb-10 w-full mt-4">
                 <div>
                     <h4 className="text-xl font-bold text-blue-900 mb-2">Không cần tự lướt hết quỹ căn</h4>
                     <p className="text-sm text-gray-600">Gửi nhu cầu của bạn, chúng tôi sẽ chọn 3-5 căn phù hợp nhất để gửi lại bạn nhanh nhất.</p>
@@ -385,16 +415,6 @@ export default function Home() {
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg> Nhờ tìm căn phù hợp
                 </button>
               </div>
-
-              {totalPages > 1 && (
-                <div className="flex justify-center items-center gap-2 mt-auto">
-                  <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="w-10 h-10 flex items-center justify-center rounded-md border border-gray-200 bg-white text-gray-500 hover:bg-gray-50 disabled:opacity-50 transition">‹</button>
-                  {[...Array(totalPages)].map((_, i) => (
-                    <button key={i} onClick={() => setCurrentPage(i + 1)} className={`w-10 h-10 flex items-center justify-center rounded-md font-bold transition ${currentPage === i + 1 ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'}`}>{i + 1}</button>
-                  ))}
-                  <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="w-10 h-10 flex items-center justify-center rounded-md border border-gray-200 bg-white text-gray-500 hover:bg-gray-50 disabled:opacity-50 transition">›</button>
-                </div>
-              )}
             </>
           )}
         </section>
@@ -418,7 +438,7 @@ export default function Home() {
         </div>
       </footer>
 
-      {/* MODAL TÌM CĂN */}
+      {/* POPUP NHỜ TÌM (ĐÃ CHUYỂN RA NGOÀI CÙNG ĐỂ HOẠT ĐỘNG CHUẨN XÁC) */}
       {isFindModalOpen && (
         <div className="fixed inset-0 bg-blue-900/60 backdrop-blur-sm z-[150] flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-y-auto max-h-[90vh] animate-fade-in-up">
