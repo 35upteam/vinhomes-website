@@ -7,6 +7,12 @@ import { useParams } from 'next/navigation';
 
 const optimizeImg = (url) => url?.includes('cloudinary.com') ? url.replace('/upload/', '/upload/w_1000,c_limit,q_auto,f_auto/') : url;
 
+// HÀM CHUYỂN TÊN PHÂN KHU THÀNH ĐƯỜNG LINK (Ví dụ: "Sola Park" -> "sola-park")
+const slugify = (text) => {
+  if(!text) return '';
+  return text.toLowerCase().trim().replace(/[\s\W-]+/g, '-');
+};
+
 const SkeletonDetail = () => (
   <div className="animate-pulse w-full flex flex-col lg:flex-row gap-8">
     <div className="flex-1 w-full">
@@ -50,7 +56,7 @@ export default function PropertyDetail() {
   const [property, setProperty] = useState(null);
   const [similarProps, setSimilarProps] = useState([]);
   
-  const [pkConfig, setPkConfig] = useState({ phi: 'Đang cập nhật', tongQuan: '', uuDiem: '' });
+  const [pkConfig, setPkConfig] = useState({ phi: 'Đang cập nhật', tongQuan: '', uuDiem: '', tienIch: '' });
   const [loading, setLoading] = useState(true);
   
   const [currentImg, setCurrentImg] = useState(0);
@@ -65,7 +71,6 @@ export default function PropertyDetail() {
 
   const CONTACT_PHONE = "0912791925";
 
-  // HÀM XÓA BỘ LỌC KHI KÍCH VÀO LOGO
   const clearFilterCacheAndReset = () => {
     sessionStorage.removeItem('savedActiveTab');
     sessionStorage.removeItem('savedFilters');
@@ -224,7 +229,7 @@ export default function PropertyDetail() {
   const displayId = property.maCan || property.id.substring(0, 5).toUpperCase();
   const titleString = `${property.listingType === 'Cho thuê' ? 'Cho thuê' : 'Bán'} căn hộ ${property.loaiCan || property.type}, tòa ${property.toaNha || property.building}, phân khu ${property.phanKhu}`;
 
-  // ĐÃ SỬA: BỎ IN ĐẬM/MÀU Ở TRƯỜNG PHÁP LÝ (Bỏ thuộc tính color đi)
+  // ĐÃ SỬA: Chữ "Vào luôn" trở về màu thường và font thường
   const specs = property.listingType === 'Cho thuê' ? [
     { label: 'Loại căn', val: property.loaiCan || property.type, icon: '🏠' },
     { label: 'Diện tích', val: `${property.area} m²`, icon: '📐' },
@@ -233,7 +238,7 @@ export default function PropertyDetail() {
     { label: 'Khoảng tầng', val: property.khoangTang, icon: '🏢' },
     { label: 'Hướng ban công', val: property.huongBanCong || 'Đang cập nhật', icon: '🧭' },
     { label: 'Nội thất', val: property.noiThat || 'Đang cập nhật', icon: '🛋️' },
-    { label: 'Ngày chuyển vào', val: property.vaoLuon ? 'Vào luôn' : formattedDate, icon: '📅', color: property.vaoLuon ? 'text-green-600 font-bold' : '' },
+    { label: 'Ngày chuyển vào', val: property.vaoLuon ? 'Vào luôn' : formattedDate, icon: '📅' },
     { label: 'Phí dịch vụ', val: pkConfig.phi || 'Đang cập nhật', icon: '💰' },
   ] : [
     { label: 'Loại căn', val: property.loaiCan || property.type, icon: '🏠' },
@@ -250,12 +255,9 @@ export default function PropertyDetail() {
   return (
     <div className="min-h-screen bg-gray-50 text-gray-800 flex flex-col relative pb-20 md:pb-0">
       <header className="bg-white sticky top-0 z-50 px-4 md:px-8 py-3 flex justify-between items-center shadow-sm">
-        {/* CLICK LOGO DỌN DẸP BỘ NHỚ LỌC VÀ QUAY VỀ TRANG CHỦ GỐC */}
-        <Link href="/" onClick={clearFilterCacheAndReset} className="flex items-center hover:opacity-80 transition">
-          <img src="/logo.png" alt="Quỹ Căn Smart City" className="h-10 md:h-12 w-auto object-contain" />
-        </Link>
+        <Link href="/" onClick={clearFilterCacheAndReset} className="flex items-center hover:opacity-80 transition"><img src="/logo.png" alt="Quỹ Căn Smart City" className="h-10 md:h-12 w-auto object-contain" /></Link>
         <div className="flex items-center gap-3 md:gap-4">
-           <Link href="/ky-gui" className="hidden md:flex items-center gap-1.5 bg-blue-50 text-blue-800 px-4 py-2 rounded-md font-bold hover:bg-blue-100 transition text-sm border border-blue-100"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg> Ký gửi căn hộ</Link>
+           <Link href="/ky-gui" className="hidden md:flex items-center gap-1.5 bg-blue-50 text-blue-800 px-4 py-2 rounded-md font-bold hover:bg-blue-100 transition text-sm border border-blue-100"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 001 1m-6 0h6"></path></svg> Ký gửi căn hộ</Link>
            <a href={`tel:${CONTACT_PHONE}`} className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-800 text-white px-5 py-2 rounded-full font-bold hover:opacity-90 transition shadow-md text-sm"><svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M20 15.5c-1.2 0-2.4-.2-3.6-.6-.3-.1-.7 0-1 .2l-2.2 2.2c-2.8-1.4-5.1-3.8-6.6-6.6l2.2-2.2c.3-.3.4-.7.2-1-.4-1.2-.6-2.4-.6-3.6 0-.6-.4-1-1-1H4c-.6 0-1 .4-1 1 0 9.4 7.6 17 17 17 .6 0 1-.4 1-1v-3.5c0-.6-.4-1-1-1zM19 12h2a9 9 0 00-9-9v2c3.9 0 7.1 3.2 7.1 7.1zM15 12h2c0-2.8-2.2-5-5-5v2c1.7 0 3 1.3 3 3z"/></svg> <span className="hidden sm:inline">Liên hệ tư vấn</span><span className="sm:hidden">Liên hệ</span></a>
         </div>
       </header>
@@ -340,7 +342,6 @@ export default function PropertyDetail() {
 
             <div className="bg-white rounded-2xl border border-gray-100 p-6 md:p-8 shadow-sm mb-8">
               <h3 className="font-bold text-blue-900 mb-6 text-lg border-b border-gray-100 pb-3">Thông tin chi tiết</h3>
-              
               <ul className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-0 text-[13px] md:text-sm">
                 {specs.map((s, i) => (
                   <li key={i} className="flex py-3.5 border-b border-gray-100 items-center justify-between md:justify-start md:gap-8">
@@ -355,20 +356,26 @@ export default function PropertyDetail() {
               </ul>
             </div>
 
+            {/* CLICK ĐỂ NHẢY SANG TRANG PHÂN KHU RIÊNG (NẾU ĐÃ NHẬP DỮ LIỆU) */}
             {(pkConfig.tongQuan || pkConfig.uuDiem) && (
-              <div className="bg-blue-50/50 rounded-2xl p-6 md:p-8 border border-blue-100 mb-8">
-                <h3 className="font-bold text-blue-900 text-lg mb-4">Vì sao nên chọn {property.phanKhu}?</h3>
-                {pkConfig.tongQuan && <p className="text-sm text-gray-700 leading-relaxed mb-4">{pkConfig.tongQuan}</p>}
-                {pkConfig.uuDiem && (
-                  <ul className="grid sm:grid-cols-2 gap-3">
-                    {pkConfig.uuDiem.split(';').filter(Boolean).map((line, i) => (
-                      <li key={i} className="flex items-start gap-2 text-sm text-gray-800 font-medium">
-                         <svg className="w-5 h-5 text-green-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>
-                         {line.trim()}
-                      </li>
-                    ))}
-                  </ul>
-                )}
+              <div className="bg-blue-50/50 rounded-2xl p-6 md:p-8 border border-blue-100 mb-8 hover:bg-blue-100/50 transition duration-300">
+                <Link href={`/phan-khu/${slugify(property.phanKhu)}`} className="block group cursor-pointer">
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="font-bold text-blue-900 text-lg group-hover:text-blue-700 transition">Vì sao nên chọn {property.phanKhu}?</h3>
+                    <svg className="w-6 h-6 text-blue-600 group-hover:translate-x-1 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                  </div>
+                  {pkConfig.tongQuan && <p className="text-sm text-gray-700 leading-relaxed mb-4">{pkConfig.tongQuan}</p>}
+                  {pkConfig.uuDiem && (
+                    <ul className="grid sm:grid-cols-2 gap-3">
+                      {pkConfig.uuDiem.split(';').filter(Boolean).map((line, i) => (
+                        <li key={i} className="flex items-start gap-2 text-sm text-gray-800 font-medium">
+                           <svg className="w-5 h-5 text-green-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>
+                           {line.trim()}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </Link>
               </div>
             )}
 
@@ -434,7 +441,6 @@ export default function PropertyDetail() {
         </div>
       </footer>
 
-      {/* POPUP NHỜ TÌM ĐƯỢC CHUYỂN RA ROOT MỚI BẤM ĐƯỢC */}
       {isFindModalOpen && (
         <div className="fixed inset-0 bg-blue-900/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-y-auto max-h-[90vh] animate-fade-in-up">

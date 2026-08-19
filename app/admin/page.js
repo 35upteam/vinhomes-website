@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { db, auth, provider } from '../../firebase';
 import { signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth';
-import { collection, addDoc, getDocs, doc, getDoc, setDoc, deleteDoc, updateDoc, serverTimestamp, query, orderBy } from 'firebase/firestore';
+import { collection, addDoc, getDocs, doc, getDoc, setDoc, deleteDoc, updateDoc, serverTimestamp, query, orderBy, where } from 'firebase/firestore';
 import Link from 'next/link';
 
 export default function AdminPage() {
@@ -15,30 +15,34 @@ export default function AdminPage() {
   const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
 
   const defaultPkConfig = {
-    "Sapphire": { phi: "8.800 VNĐ/m2", tongQuan: "Phân khu trung tâm sầm uất với mức chi phí dịch vụ tối ưu, thiết kế năng động lý tưởng cho giới trẻ và các gia đình mới.", uuDiem: "Ngay kế bên công viên thể thao Sportia Park; Hệ thống shophouse khối đế sầm uất; Trạm xe buýt nội khu thuận tiện; Mức giá thuê/mua hợp lý nhất dự án." },
-    "Miami": { phi: "8.800 VNĐ/m2", tongQuan: "Lấy cảm hứng từ nhịp sống sôi động của thành phố biển Miami (Mỹ), phân khu mang đậm phong cách nhiệt đới phóng khoáng.", uuDiem: "Bể bơi ngoài trời phong cách resort 1.000m2; Hệ thống sân tập thể thao đa dạng; Cảnh quan nội khu đậm chất nhiệt đới Mỹ." },
-    "Sakura": { phi: "8.800 VNĐ/m2", tongQuan: "Sự kết hợp giữa Vinhomes và tập đoàn SAMTY (Nhật Bản), mang đến không gian sống an yên, tĩnh tại đậm triết lý Zen.", uuDiem: "Vườn Nhật nội khu tĩnh lãm; Bể bơi 4 mùa mái kính hiện đại; Quảng trường nước Ashi, đường dạo tơ tằm; Thiết kế căn hộ tối ưu công năng." },
-    "Victoria": { phi: "12.000 VNĐ/m2", tongQuan: "Phân khu mang phong cách thiết kế Hồng Kông độc đáo, hòa quyện sự sôi động của phố thị và vẻ đẹp đương đại.", uuDiem: "Thiết kế mặt ngoài ấn tượng; Tiện ích nội khu phong phú; Gần các trục đường kết nối chính của dự án." },
-    "Imperia": { phi: "11.000 VNĐ/m2", tongQuan: "Được phát triển bởi MIK Group, Imperia Smart City tự hào sở hữu vị trí lõi trung tâm đẹp nhất dự án.", uuDiem: "Vị trí sát ngay công viên trung tâm 10.2ha; Bể bơi ngoài trời tiêu chuẩn resort; Tiêu chuẩn bàn giao cao cấp liền tường." },
-    "Sola Park": { phi: "10.000 VNĐ/m2", tongQuan: "Phân khu do MIK Group phát triển, sở hữu thiết kế hiện đại, ngập tràn ánh sáng và không gian xanh mát.", uuDiem: "Vị trí kế cận cổng chào dự án, kết nối đường Lê Trọng Tấn cực nhanh; Nằm ngay cạnh bãi đỗ xe nổi và trường học Vinschool." },
-    "Tonkin": { phi: "16.500 VNĐ/m2", tongQuan: "Tự hào mang đậm dấu ấn Indochine nghệ thuật, thiết kế tinh tế kết hợp hài hòa giữa nét hoài cổ phương Đông và sự hiện đại phương Tây.", uuDiem: "Bể bơi nhiệt đới Oasis phong cách Đông Dương; Tiêu chuẩn bàn giao Ruby cao cấp (có điều hòa âm trần); Kế cận công viên trung tâm." },
-    "Canopy": { phi: "12.000 VNĐ/m2", tongQuan: "Được thiết kế theo phong cách sinh thái Singapore, mang thiên nhiên vào từng không gian sống.", uuDiem: "Hệ thống tiện ích cảnh quan xanh mát; Thiết kế tối giản, thông minh; Vị trí thuận lợi dễ dàng di chuyển tới các cụm tiện ích lớn." },
-    "Masteri West Height": { phi: "18.000 VNĐ/m2", tongQuan: "Vị trí 'kim cương' trực diện hồ trung tâm 4.8ha, mang đến tầm view đắt giá và không gian sống chuẩn quốc tế.", uuDiem: "Bể bơi tầng thượng Panorama tại mỗi tòa; Thiết bị bàn giao từ thương hiệu quốc tế cao cấp (Kohler, Hafele, Daikin); 51 tiện ích đặc quyền riêng biệt." },
-    "Lumiere Evergreen": { phi: "18.000 VNĐ/m2", tongQuan: "Phân khu căn hộ hạng sang được phát triển bởi Masterise Homes, bộ sưu tập tiện ích độc bản mang tiêu chuẩn quốc tế.", uuDiem: "Hệ thống tiện ích đặc quyền (bể bơi 4 mùa, phòng gym hiện đại); Sảnh lễ tân tiêu chuẩn 5 sao; Kính Low-E cản nhiệt toàn bộ mặt ngoài; Vị trí tâm điểm dự án." }
+    "Sapphire": { phi: "8.800 VNĐ/m2", tongQuan: "", uuDiem: "", tienIch: "", images: [] },
+    "Miami": { phi: "8.800 VNĐ/m2", tongQuan: "", uuDiem: "", tienIch: "", images: [] },
+    "Sakura": { phi: "8.800 VNĐ/m2", tongQuan: "", uuDiem: "", tienIch: "", images: [] },
+    "Victoria": { phi: "12.000 VNĐ/m2", tongQuan: "", uuDiem: "", tienIch: "", images: [] },
+    "Imperia": { phi: "11.000 VNĐ/m2", tongQuan: "", uuDiem: "", tienIch: "", images: [] },
+    "Sola Park": { phi: "10.000 VNĐ/m2", tongQuan: "", uuDiem: "", tienIch: "", images: [] },
+    "Tonkin": { phi: "16.500 VNĐ/m2", tongQuan: "", uuDiem: "", tienIch: "", images: [] },
+    "Canopy": { phi: "12.000 VNĐ/m2", tongQuan: "", uuDiem: "", tienIch: "", images: [] },
+    "Masteri West Height": { phi: "18.000 VNĐ/m2", tongQuan: "", uuDiem: "", tienIch: "", images: [] },
+    "Lumiere Evergreen": { phi: "18.000 VNĐ/m2", tongQuan: "", uuDiem: "", tienIch: "", images: [] }
   };
 
   const [isPhanKhuModalOpen, setIsPhanKhuModalOpen] = useState(false);
   const phanKhuList = ['Sapphire', 'Miami', 'Sakura', 'Victoria', 'Imperia', 'Sola Park', 'Tonkin', 'Canopy', 'Masteri West Height', 'Lumiere Evergreen'];
   const [phanKhuData, setPhanKhuData] = useState({});
   const [selectedPK, setSelectedPK] = useState('Sapphire');
-  const [tempPKData, setTempPKData] = useState({ phi: '', tongQuan: '', uuDiem: '' });
+  const [tempPKData, setTempPKData] = useState({ phi: '', tongQuan: '', uuDiem: '', tienIch: '', images: [], localImages: [] });
   const [isSavingPK, setIsSavingPK] = useState(false);
 
   const initialForm = { listingType: 'Cho thuê', phanKhu: 'Sapphire', loaiCan: 'Studio', toaNha: '', khoangTang: 'Tầng trung', huongBanCong: 'Đông Nam', noiThat: 'Đầy đủ nội thất', area: '', price: '', ngayNhanNha: '', vaoLuon: false, phapLy: 'Sổ đỏ', moTa: '', nhanDan: 'Không có' };
   const [formData, setFormData] = useState(initialForm);
-  const [images, setImages] = useState([]);
+  const [images, setImages] = useState([]); // Chứa mảng object [{file, url}]
   const [isUploading, setIsUploading] = useState(false);
   
+  // TÍNH NĂNG BÁO TRÙNG LẶP
+  const [duplicateWarning, setDuplicateWarning] = useState(null);
+  const [skipDupCheck, setSkipDupCheck] = useState(false);
+
   const [adminTab, setAdminTab] = useState('quy-can');
   const [properties, setProperties] = useState([]);
   const [kyGuiList, setKyGuiList] = useState([]);
@@ -56,45 +60,22 @@ export default function AdminPage() {
         const docRef = doc(db, 'settings', 'allowedEmails');
         const docSnap = await getDoc(docRef);
         let emails = [];
-        
-        if (docSnap.exists()) {
-          emails = docSnap.data().emails || [];
-        } else {
-          emails = [currentUser.email];
-          await setDoc(docRef, { emails });
-        }
+        if (docSnap.exists()) emails = docSnap.data().emails || [];
+        else { emails = [currentUser.email]; await setDoc(docRef, { emails }); }
 
         if (emails.includes(currentUser.email)) {
-          setUser(currentUser);
-          setIsAuthorized(true);
-          setAllowedEmails(emails);
-          fetchProperties();
-          fetchPhanKhu();
-          fetchKyGui();
-          fetchNhoTim();
+          setUser(currentUser); setIsAuthorized(true); setAllowedEmails(emails);
+          fetchProperties(); fetchPhanKhu(); fetchKyGui(); fetchNhoTim();
         } else {
-          await signOut(auth);
-          alert("Tài khoản Gmail của bạn không có quyền truy cập trang Quản trị!");
+          await signOut(auth); alert("Tài khoản Gmail của bạn không có quyền truy cập trang Quản trị!");
         }
-      } else {
-        setUser(null);
-        setIsAuthorized(false);
-      }
+      } else { setUser(null); setIsAuthorized(false); }
       setIsCheckingAuth(false);
     });
-
     return () => unsubscribe();
   }, []);
 
-  const handleLogin = async () => {
-    try { 
-      await signInWithPopup(auth, provider); 
-    } catch (error) { 
-      console.error("Lỗi đăng nhập: ", error); 
-      alert(`Đăng nhập thất bại: ${error.message}`);
-    }
-  };
-
+  const handleLogin = async () => { try { await signInWithPopup(auth, provider); } catch (error) { alert(`Đăng nhập thất bại: ${error.message}`); } };
   const handleLogout = async () => { await signOut(auth); };
 
   const handleAddEmail = async () => {
@@ -102,9 +83,7 @@ export default function AdminPage() {
     if (allowedEmails.includes(newEmail)) return alert("Email này đã có quyền rồi!");
     const updatedEmails = [...allowedEmails, newEmail];
     await setDoc(doc(db, 'settings', 'allowedEmails'), { emails: updatedEmails });
-    setAllowedEmails(updatedEmails);
-    setNewEmail('');
-    alert("Đã cấp quyền truy cập thành công!");
+    setAllowedEmails(updatedEmails); setNewEmail(''); alert("Đã cấp quyền truy cập thành công!");
   };
 
   const handleRemoveEmail = async (emailToRemove) => {
@@ -121,13 +100,11 @@ export default function AdminPage() {
     const querySnapshot = await getDocs(q);
     setProperties(querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
   };
-
   const fetchKyGui = async () => {
     const q = query(collection(db, 'ky_gui'), orderBy('createdAt', 'desc'));
     const querySnapshot = await getDocs(q);
     setKyGuiList(querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
   };
-
   const fetchNhoTim = async () => {
     const q = query(collection(db, 'nho_tim_can'), orderBy('createdAt', 'desc'));
     const querySnapshot = await getDocs(q);
@@ -139,50 +116,87 @@ export default function AdminPage() {
     let dbData = pkDoc.exists() ? pkDoc.data() : {};
     const mergedData = {};
     let needsUpdate = false;
-
     phanKhuList.forEach(pk => {
-      if (dbData[pk] && (dbData[pk].phi || dbData[pk].tongQuan)) {
-        mergedData[pk] = dbData[pk];
-      } else {
-        mergedData[pk] = defaultPkConfig[pk];
-        needsUpdate = true;
-      }
+      if (dbData[pk] && dbData[pk].phi) mergedData[pk] = dbData[pk];
+      else { mergedData[pk] = defaultPkConfig[pk]; needsUpdate = true; }
     });
     setPhanKhuData(mergedData);
     if (needsUpdate) await setDoc(doc(db, 'settings', 'phanKhuConfig'), mergedData);
   };
 
-  const openPhanKhuModal = () => { setTempPKData(phanKhuData[selectedPK] || defaultPkConfig[selectedPK]); setIsPhanKhuModalOpen(true); };
-  const handleSelectPKChange = (e) => { const val = e.target.value; setSelectedPK(val); setTempPKData(phanKhuData[val] || defaultPkConfig[val]); };
+  const openPhanKhuModal = () => { setTempPKData({...defaultPkConfig[selectedPK], ...phanKhuData[selectedPK], localImages: []}); setIsPhanKhuModalOpen(true); };
+  const handleSelectPKChange = (e) => { const val = e.target.value; setSelectedPK(val); setTempPKData({...defaultPkConfig[val], ...phanKhuData[val], localImages: []}); };
   
+  // TẢI ẢNH PHÂN KHU LÊN CLOUDINARY (KHÔNG WATERMARK)
+  const handlePKImageChange = (e) => {
+    if (e.target.files) {
+      const files = Array.from(e.target.files);
+      const newLocal = files.map(f => ({ file: f, url: URL.createObjectURL(f) }));
+      setTempPKData(prev => ({...prev, localImages: [...(prev.localImages || []), ...newLocal]}));
+    }
+  };
+
+  const removePKImage = (index, isLocal) => {
+    if(isLocal) {
+      const arr = [...tempPKData.localImages]; arr.splice(index, 1);
+      setTempPKData(prev => ({...prev, localImages: arr}));
+    } else {
+      const arr = [...tempPKData.images]; arr.splice(index, 1);
+      setTempPKData(prev => ({...prev, images: arr}));
+    }
+  };
+
   const handleSavePK = async () => {
     setIsSavingPK(true);
     try {
-      const updatedData = { ...phanKhuData, [selectedPK]: tempPKData };
+      let finalImages = [...(tempPKData.images || [])];
+      if (tempPKData.localImages && tempPKData.localImages.length > 0) {
+        const CLOUD_NAME = "ibzfmsqp"; const UPLOAD_PRESET = "upload preset";
+        for (const item of tempPKData.localImages) {
+          const data = new FormData(); data.append('file', item.file); data.append('upload_preset', UPLOAD_PRESET);
+          const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, { method: 'POST', body: data });
+          const uploaded = await res.json(); finalImages.push(uploaded.secure_url);
+        }
+      }
+      
+      const updatedItem = { ...tempPKData, images: finalImages };
+      delete updatedItem.localImages; // Xóa mảng tạm trước khi lưu DB
+      const updatedData = { ...phanKhuData, [selectedPK]: updatedItem };
+      
       await setDoc(doc(db, 'settings', 'phanKhuConfig'), updatedData);
       setPhanKhuData(updatedData);
+      setTempPKData({...updatedItem, localImages: []});
       alert('Đã cập nhật thông tin phân khu thành công!');
-    } catch (error) { alert('Lỗi khi lưu thông tin!'); }
+    } catch (error) { alert('Lỗi khi lưu thông tin phân khu!'); }
     setIsSavingPK(false);
   };
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
-    if (type === 'checkbox') {
-      setFormData({ ...formData, [name]: checked });
-    } else if (name === 'listingType' && value === 'Cho thuê' && formData.nhanDan === 'Cắt lỗ') {
-      setFormData({ ...formData, listingType: value, nhanDan: 'Không có' });
-    } else {
-      setFormData({ ...formData, [name]: value });
-    }
+    if (type === 'checkbox') setFormData({ ...formData, [name]: checked });
+    else if (name === 'listingType' && value === 'Cho thuê' && formData.nhanDan === 'Cắt lỗ') setFormData({ ...formData, listingType: value, nhanDan: 'Không có' });
+    else setFormData({ ...formData, [name]: value });
   };
   
+  // TÍNH NĂNG CHỌN ẢNH BÌA
   const handleImageChange = async (e) => {
     if (e.target.files) {
       const files = Array.from(e.target.files);
       const watermarkedFiles = await Promise.all(files.map(addWatermark));
-      setImages(watermarkedFiles);
+      const newImgs = watermarkedFiles.map(f => ({ file: f, url: URL.createObjectURL(f) }));
+      setImages(prev => [...prev, ...newImgs]);
     }
+  };
+
+  const setCoverImage = (index) => {
+    const arr = [...images];
+    const item = arr.splice(index, 1)[0];
+    arr.unshift(item); // Đưa lên vị trí số 0
+    setImages(arr);
+  };
+
+  const removeImage = (index) => {
+    const arr = [...images]; arr.splice(index, 1); setImages(arr);
   };
 
   const addWatermark = (file) => {
@@ -191,30 +205,18 @@ export default function AdminPage() {
       reader.onload = (event) => {
         const img = new Image();
         img.onload = () => {
-          const canvas = document.createElement('canvas');
-          canvas.width = img.width;
-          canvas.height = img.height;
-          const ctx = canvas.getContext('2d');
-          ctx.drawImage(img, 0, 0);
-
+          const canvas = document.createElement('canvas'); canvas.width = img.width; canvas.height = img.height;
+          const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0);
           const text = '© Quỹ Căn Smart City - 0912.791.925';
           const fontSize = Math.max(14, Math.floor(img.width * 0.035)); 
           ctx.font = `600 ${fontSize}px Arial`;
           const paddingX = 12; const paddingY = 8;
           const textWidth = ctx.measureText(text).width;
-          const rectX = canvas.width - textWidth - paddingX * 2 - 20;
-          const rectY = canvas.height - fontSize - paddingY * 2 - 20;
-
-          ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-          ctx.fillRect(rectX, rectY, textWidth + paddingX * 2, fontSize + paddingY * 2);
-          
-          ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-          ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+          const rectX = canvas.width - textWidth - paddingX * 2 - 20; const rectY = canvas.height - fontSize - paddingY * 2 - 20;
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.5)'; ctx.fillRect(rectX, rectY, textWidth + paddingX * 2, fontSize + paddingY * 2);
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.9)'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
           ctx.fillText(text, rectX + paddingX + textWidth / 2, rectY + paddingY + fontSize / 2 + 1);
-
-          canvas.toBlob((blob) => {
-            resolve(new File([blob], file.name, { type: 'image/jpeg' }));
-          }, 'image/jpeg', 0.95);
+          canvas.toBlob((blob) => { resolve(new File([blob], file.name, { type: 'image/jpeg' })); }, 'image/jpeg', 0.95);
         };
         img.src = event.target.result;
       };
@@ -224,15 +226,14 @@ export default function AdminPage() {
 
   const handleDelete = async (id) => {
     if (window.confirm('Cảnh báo: Bạn có chắc chắn muốn xóa căn hộ này khỏi hệ thống?')) {
-      await deleteDoc(doc(db, 'properties', id)); 
-      sessionStorage.removeItem('cachedProperties'); // Xóa bộ nhớ đệm
-      alert('Đã xóa thành công!'); 
-      fetchProperties();
+      await deleteDoc(doc(db, 'properties', id)); sessionStorage.removeItem('cachedProperties'); alert('Đã xóa thành công!'); fetchProperties();
     }
   };
 
   const handleEdit = (item) => {
-    setFormData({ ...initialForm, ...item }); setEditingId(item.id); setImages([]);
+    setFormData({ ...initialForm, ...item }); setEditingId(item.id); 
+    if(item.images) setImages(item.images.map(url => ({ file: null, url })));
+    else setImages([]);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -240,12 +241,10 @@ export default function AdminPage() {
     const newStatus = currentStatus === 'Chưa xử lý' ? 'Đã liên hệ' : 'Chưa xử lý';
     await updateDoc(doc(db, 'ky_gui', id), { status: newStatus }); fetchKyGui();
   };
-
   const toggleNhoTimStatus = async (id, currentStatus) => {
     const newStatus = currentStatus === 'Chưa xử lý' ? 'Đã liên hệ' : 'Chưa xử lý';
     await updateDoc(doc(db, 'nho_tim_can', id), { status: newStatus }); fetchNhoTim();
   };
-
   const handleDeleteKyGui = async (id) => { if (window.confirm('Xóa thông tin ký gửi này?')) { await deleteDoc(doc(db, 'ky_gui', id)); fetchKyGui(); } };
   const handleDeleteNhoTim = async (id) => { if (window.confirm('Xóa thông tin yêu cầu tìm căn này?')) { await deleteDoc(doc(db, 'nho_tim_can', id)); fetchNhoTim(); } };
 
@@ -254,19 +253,20 @@ export default function AdminPage() {
     for (let i = 0; i < 5; i++) result += chars.charAt(Math.floor(Math.random() * chars.length)); return prefix + result;
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (images.length === 0 && !editingId) return alert('Vui lòng chọn ít nhất 1 ảnh!');
+  // TÍNH NĂNG CỐT LÕI: LƯU VÀ KIỂM TRA TRÙNG LẶP DỮ LIỆU
+  const executeSave = async () => {
     setIsUploading(true);
     try {
-      let imageUrls = editingId ? formData.images : []; 
-      if (images.length > 0) {
-        imageUrls = [];
-        const CLOUD_NAME = "ibzfmsqp"; const UPLOAD_PRESET = "upload preset";
-        for (const file of images) {
-          const data = new FormData(); data.append('file', file); data.append('upload_preset', UPLOAD_PRESET);
+      let imageUrls = []; 
+      const CLOUD_NAME = "ibzfmsqp"; const UPLOAD_PRESET = "upload preset";
+      
+      for (const img of images) {
+        if (img.file) { // Ảnh mới tải lên
+          const data = new FormData(); data.append('file', img.file); data.append('upload_preset', UPLOAD_PRESET);
           const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, { method: 'POST', body: data });
           const uploadedImage = await res.json(); imageUrls.push(uploadedImage.secure_url);
+        } else { // Ảnh cũ đang sửa
+          imageUrls.push(img.url);
         }
       }
 
@@ -279,10 +279,39 @@ export default function AdminPage() {
         await addDoc(collection(db, 'properties'), { ...dataToSave, createdAt: serverTimestamp() }); alert(`Đã đăng thành công căn ${formData.listingType} với Mã: ${finalMaCan}`);
       }
 
-      sessionStorage.removeItem('cachedProperties'); // ÉP KHÁCH LÀM MỚI KHI ADMIN CẬP NHẬT
-      setFormData(initialForm); setEditingId(null); setImages([]); fetchProperties();
+      sessionStorage.removeItem('cachedProperties'); 
+      setFormData(initialForm); setEditingId(null); setImages([]); setSkipDupCheck(false); setDuplicateWarning(null); fetchProperties();
     } catch (error) { alert('Có lỗi xảy ra, vui lòng thử lại!'); }
     setIsUploading(false);
+  };
+
+  const handleSubmit = async (e) => {
+    if(e) e.preventDefault();
+    if (images.length === 0 && !editingId) return alert('Vui lòng chọn ít nhất 1 ảnh!');
+    
+    // KIỂM TRA TRÙNG LẶP NẾU LÀ ĐĂNG MỚI VÀ CHƯA YÊU CẦU BỎ QUA
+    if (!editingId && !skipDupCheck) {
+      setIsUploading(true);
+      const dupQuery = query(collection(db, 'properties'),
+        where('listingType', '==', formData.listingType),
+        where('phanKhu', '==', formData.phanKhu),
+        where('toaNha', '==', formData.toaNha),
+        where('loaiCan', '==', formData.loaiCan),
+        where('area', '==', Number(formData.area)),
+        where('huongBanCong', '==', formData.huongBanCong)
+      );
+      const dupSnap = await getDocs(dupQuery);
+      setIsUploading(false);
+      
+      if (!dupSnap.empty) {
+        const dupDoc = dupSnap.docs[0];
+        setDuplicateWarning({ id: dupDoc.id, maCan: dupDoc.data().maCan });
+        return; // Dừng việc lưu để chờ Admin ra quyết định
+      }
+    }
+    
+    // Nếu không trùng hoặc đã bấm bỏ qua, tiến hành lưu
+    executeSave();
   };
 
   if (isCheckingAuth) return <div className="min-h-screen bg-gray-900 flex items-center justify-center"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-white"></div></div>;
@@ -328,7 +357,7 @@ export default function AdminPage() {
   const nhanDanOptions = formData.listingType === 'Chuyển nhượng' ? ['Không có', 'Giá tốt', 'Độc quyền', 'Cắt lỗ'] : ['Không có', 'Giá tốt', 'Độc quyền'];
 
   return (
-    <div className="min-h-screen bg-gray-50 font-sans pb-12">
+    <div className="min-h-screen bg-gray-50 font-sans pb-12 relative">
       <nav className="bg-blue-900 text-white shadow-md sticky top-0 z-40">
         <div className="max-w-[1400px] mx-auto px-4 md:px-8 py-3 flex justify-between items-center">
           <div className="flex items-center gap-4">
@@ -361,7 +390,7 @@ export default function AdminPage() {
                <h2 className="text-xl font-bold text-blue-900 tracking-tight">{editingId ? 'Sửa thông tin căn hộ' : 'Lên giỏ hàng mới'}</h2>
                {editingId && <p className="text-blue-600 font-bold mt-1 text-sm">Đang sửa mã: {formData.maCan}</p>}
              </div>
-             {editingId && <button onClick={() => {setEditingId(null); setFormData(initialForm);}} className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded-md font-bold transition">Hủy sửa</button>}
+             {editingId && <button onClick={() => {setEditingId(null); setFormData(initialForm); setImages([]);}} className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded-md font-bold transition">Hủy sửa</button>}
           </div>
           
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -451,7 +480,26 @@ export default function AdminPage() {
             <div className="border-2 border-dashed border-gray-300 p-5 text-center rounded-xl bg-gray-50 hover:bg-gray-100 transition">
               <label className="block font-bold mb-2 cursor-pointer text-blue-900 text-sm">Tải lên Ảnh căn hộ</label>
               <input type="file" multiple accept="image/*" onChange={handleImageChange} className="w-full text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200 cursor-pointer" />
-              {images.length > 0 && <p className="text-sm text-blue-600 mt-3 font-bold">Đã chọn {images.length} ảnh mới</p>}
+              
+              {/* CHỨC NĂNG PREVIEW ẢNH VÀ CHỌN ẢNH BÌA */}
+              {images.length > 0 && (
+                <div className="mt-4 text-left">
+                  <p className="text-xs text-blue-600 font-bold mb-2">Đã chọn {images.length} ảnh. Click ⭐ để chọn làm Ảnh Bìa.</p>
+                  <div className="flex gap-2 overflow-x-auto pb-2 snap-x">
+                    {images.map((img, i) => (
+                      <div key={i} className={`relative w-20 h-20 flex-shrink-0 rounded-lg overflow-hidden border-2 snap-center transition ${i === 0 ? 'border-yellow-400 shadow-md' : 'border-gray-200 opacity-80'}`}>
+                        <img src={img.url} className="w-full h-full object-cover" alt="Preview" />
+                        {i === 0 ? (
+                          <div className="absolute top-0 left-0 bg-yellow-400 text-[10px] text-yellow-900 px-1 font-bold rounded-br">Bìa</div>
+                        ) : (
+                          <button type="button" onClick={() => setCoverImage(i)} className="absolute top-1 left-1 bg-black/50 hover:bg-yellow-500 text-white w-5 h-5 rounded-full text-xs flex items-center justify-center transition" title="Đặt làm ảnh bìa">⭐</button>
+                        )}
+                        <button type="button" onClick={() => removeImage(i)} className="absolute top-1 right-1 bg-red-500/80 hover:bg-red-600 text-white w-5 h-5 rounded-full text-xs font-bold transition">×</button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             <button type="submit" disabled={isUploading} className="w-full bg-blue-600 hover:bg-blue-700 text-white p-4 rounded-xl font-bold text-base transition shadow-lg shadow-blue-600/30 disabled:bg-gray-400 mt-2">
@@ -638,12 +686,12 @@ export default function AdminPage() {
         </div>
       </div>
       
-      {/* MODAL CẤU HÌNH PHÂN KHU TỪ ADMIN */}
+      {/* MODAL CẤU HÌNH PHÂN KHU (BỔ SUNG TIỆN ÍCH VÀ ẢNH KHÔNG WATERMARK) */}
       {isPhanKhuModalOpen && (
         <div className="fixed inset-0 bg-blue-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl p-6 md:p-8 w-full max-w-2xl transform transition-all overflow-y-auto max-h-[90vh]">
+          <div className="bg-white rounded-2xl shadow-2xl p-6 md:p-8 w-full max-w-3xl transform transition-all overflow-y-auto max-h-[90vh]">
             <div className="flex justify-between items-center mb-6">
-              <div><h2 className="text-xl font-bold text-blue-900">Cấu Hình Phân Khu</h2></div>
+              <div><h2 className="text-xl font-bold text-blue-900">Cấu Hình Phân Khu - Landing Page</h2></div>
               <button onClick={() => setIsPhanKhuModalOpen(false)} className="text-gray-400 hover:text-red-500">X</button>
             </div>
             
@@ -654,22 +702,84 @@ export default function AdminPage() {
               </select>
             </div>
             
-            <div className="space-y-4 mb-8">
-              <div>
-                <label className="block text-xs font-bold text-gray-600 mb-1">Mức Phí Dịch Vụ</label>
-                <input type="text" value={tempPKData.phi || ''} onChange={(e) => setTempPKData({...tempPKData, phi: e.target.value})} className="w-full p-3 border border-gray-300 rounded-lg outline-none focus:border-blue-500" placeholder="VD: 8.800 VNĐ/m2" />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-600 mb-1">Mức Phí Dịch Vụ</label>
+                  <input type="text" value={tempPKData.phi || ''} onChange={(e) => setTempPKData({...tempPKData, phi: e.target.value})} className="w-full p-3 border border-gray-300 rounded-lg outline-none focus:border-blue-500" placeholder="VD: 8.800 VNĐ/m2" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-600 mb-1">Thông tin Tổng quan</label>
+                  <textarea rows="3" value={tempPKData.tongQuan || ''} onChange={(e) => setTempPKData({...tempPKData, tongQuan: e.target.value})} className="w-full p-3 border border-gray-300 rounded-lg outline-none focus:border-blue-500" placeholder="Giới thiệu điểm nhấn của phân khu này..."></textarea>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-600 mb-1">Ưu Điểm (Mỗi dòng cách nhau ; )</label>
+                  <textarea rows="3" value={tempPKData.uuDiem || ''} onChange={(e) => setTempPKData({...tempPKData, uuDiem: e.target.value})} className="w-full p-3 border border-gray-300 rounded-lg outline-none focus:border-blue-500" placeholder="Gần nhà xe nổi; Có bể bơi bốn mùa; Nhiều trường mầm non..."></textarea>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-600 mb-1">Hệ Thống Tiện Ích (Mỗi dòng cách nhau ; )</label>
+                  <textarea rows="3" value={tempPKData.tienIch || ''} onChange={(e) => setTempPKData({...tempPKData, tienIch: e.target.value})} className="w-full p-3 border border-gray-300 rounded-lg outline-none focus:border-blue-500" placeholder="Bể bơi nhiệt đới ngoài trời 1000m2; Sân tập gym bãi biển..."></textarea>
+                </div>
               </div>
-              <div>
-                <label className="block text-xs font-bold text-gray-600 mb-1">Thông tin Tổng quan</label>
-                <textarea rows="4" value={tempPKData.tongQuan || ''} onChange={(e) => setTempPKData({...tempPKData, tongQuan: e.target.value})} className="w-full p-3 border border-gray-300 rounded-lg outline-none focus:border-blue-500" placeholder="Đoạn văn ngắn giới thiệu điểm nhấn của phân khu này..."></textarea>
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-gray-600 mb-1">Các Ưu Điểm (Mỗi ưu điểm cách nhau bằng dấu chấm phẩy ; )</label>
-                <textarea rows="4" value={tempPKData.uuDiem || ''} onChange={(e) => setTempPKData({...tempPKData, uuDiem: e.target.value})} className="w-full p-3 border border-gray-300 rounded-lg outline-none focus:border-blue-500" placeholder="Gần nhà xe nổi; Có bể bơi bốn mùa; Nhiều trường mầm non..."></textarea>
+
+              {/* KHU VỰC TẢI ẢNH PHÂN KHU (KHÔNG ĐÓNG LOGO) */}
+              <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
+                <label className="block text-sm font-bold text-blue-900 mb-2">Hình ảnh Cảnh quan / Tiện ích</label>
+                <p className="text-xs text-gray-500 mb-4">Ảnh sẽ hiện trên slider trang phân khu (Không chèn Logo).</p>
+                
+                <input type="file" multiple accept="image/*" onChange={handlePKImageChange} className="w-full mb-4 text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200 cursor-pointer" />
+                
+                <div className="flex flex-wrap gap-2">
+                  {/* Hiển thị ảnh cũ từ DB */}
+                  {(tempPKData.images || []).map((url, i) => (
+                    <div key={`db-${i}`} className="relative w-16 h-16 rounded-md overflow-hidden border">
+                      <img src={url} className="w-full h-full object-cover opacity-80" />
+                      <button onClick={() => removePKImage(i, false)} className="absolute top-0 right-0 bg-red-500 text-white w-4 h-4 text-[10px] font-bold">×</button>
+                    </div>
+                  ))}
+                  {/* Hiển thị ảnh mới chọn */}
+                  {(tempPKData.localImages || []).map((img, i) => (
+                    <div key={`local-${i}`} className="relative w-16 h-16 rounded-md overflow-hidden border border-blue-400">
+                      <img src={img.url} className="w-full h-full object-cover" />
+                      <span className="absolute bottom-0 bg-blue-500 text-white text-[8px] w-full text-center">Mới</span>
+                      <button onClick={() => removePKImage(i, true)} className="absolute top-0 right-0 bg-red-500 text-white w-4 h-4 text-[10px] font-bold">×</button>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
 
-            <div className="flex justify-end gap-3 border-t border-gray-100 pt-5"><button onClick={() => setIsPhanKhuModalOpen(false)} className="px-6 py-2.5 rounded-lg text-gray-600 font-bold hover:bg-gray-100">Hủy</button><button onClick={handleSavePK} disabled={isSavingPK} className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-2.5 rounded-lg font-bold shadow-md disabled:opacity-50">Lưu thông tin</button></div>
+            <div className="flex justify-end gap-3 border-t border-gray-100 pt-5">
+              <button onClick={() => setIsPhanKhuModalOpen(false)} className="px-6 py-2.5 rounded-lg text-gray-600 font-bold hover:bg-gray-100">Hủy</button>
+              <button onClick={handleSavePK} disabled={isSavingPK} className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-2.5 rounded-lg font-bold shadow-md disabled:opacity-50">Lưu Landing Page</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* POPUP BÁO TRÙNG LẶP DỮ LIỆU THÔNG MINH */}
+      {duplicateWarning && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md text-center animate-fade-in-up">
+             <div className="w-16 h-16 bg-red-100 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+               <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+             </div>
+             <h3 className="text-xl font-bold text-red-600 mb-2">Phát hiện dữ liệu trùng lặp!</h3>
+             <p className="text-sm text-gray-600 mb-4">Hệ thống nhận thấy bạn đang nhập một căn hộ có thông số giống hệt với căn đang có trên hệ thống.</p>
+             
+             <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6">
+                <span className="text-xs text-gray-500">Mã căn bị trùng:</span>
+                <p className="text-lg font-black text-blue-900">{duplicateWarning.maCan}</p>
+                {/* Lệnh mở chi tiết căn bị trùng sang tab mới theo đúng ý bạn */}
+                <a href={`/property/${duplicateWarning.id}`} target="_blank" rel="noreferrer" className="text-blue-600 text-xs font-bold hover:underline mt-2 inline-block">
+                  Mở xem chi tiết căn này ↗
+                </a>
+             </div>
+
+             <div className="flex gap-3">
+               <button onClick={() => setDuplicateWarning(null)} className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-lg font-bold hover:bg-gray-200">Hủy bỏ</button>
+               <button onClick={() => { setSkipDupCheck(true); executeSave(); }} className="flex-1 bg-red-600 text-white py-3 rounded-lg font-bold shadow-lg hover:bg-red-700">Vẫn lưu bài mới</button>
+             </div>
           </div>
         </div>
       )}
@@ -714,6 +824,11 @@ export default function AdminPage() {
           </div>
         </div>
       )}
+      
+      <style jsx global>{`
+        .animate-fade-in-up { animation: fadeInUp 0.3s ease-out forwards; }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
+      `}</style>
     </div>
   );
 }

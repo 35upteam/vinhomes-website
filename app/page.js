@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { db } from '../firebase';
 import { collection, query, orderBy, getDocs, addDoc, serverTimestamp } from 'firebase/firestore';
 import Link from 'next/link';
@@ -25,10 +25,20 @@ const SkeletonCard = () => (
 const PropertyCard = ({ item, contactPhone }) => {
   const [currentImg, setCurrentImg] = useState(0);
   const [copied, setCopied] = useState(false);
+  const [isHovering, setIsHovering] = useState(false);
   const images = item.images && item.images.length > 0 ? item.images : [];
   
-  const nextImg = (e) => { e.preventDefault(); e.stopPropagation(); if (currentImg < images.length - 1) setCurrentImg(currentImg + 1); };
-  const prevImg = (e) => { e.preventDefault(); e.stopPropagation(); if (currentImg > 0) setCurrentImg(currentImg - 1); };
+  // TÍNH NĂNG TỰ ĐỘNG CHUYỂN ẢNH KHI RÊ CHUỘT (HOVER SLIDESHOW)
+  useEffect(() => {
+    let timer;
+    if (isHovering && images.length > 1) {
+      timer = setInterval(() => setCurrentImg(prev => (prev + 1) % images.length), 1200);
+    }
+    return () => clearInterval(timer);
+  }, [isHovering, images.length]);
+
+  const nextImg = (e) => { e.preventDefault(); e.stopPropagation(); if (currentImg < images.length - 1) setCurrentImg(currentImg + 1); else setCurrentImg(0); };
+  const prevImg = (e) => { e.preventDefault(); e.stopPropagation(); if (currentImg > 0) setCurrentImg(currentImg - 1); else setCurrentImg(images.length - 1); };
 
   const handleCopy = (e) => {
     e.preventDefault(); e.stopPropagation();
@@ -38,7 +48,12 @@ const PropertyCard = ({ item, contactPhone }) => {
   };
 
   return (
-    <Link href={`/property/${item.id}`} className="block bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer group flex flex-col relative">
+    <Link 
+      href={`/property/${item.id}`} 
+      onMouseEnter={() => setIsHovering(true)} 
+      onMouseLeave={() => {setIsHovering(false); setCurrentImg(0);}}
+      className="block bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer group flex flex-col relative"
+    >
       <div className="relative h-56 bg-gray-200 overflow-hidden">
         {images.length > 0 ? (
           <img src={optimizeImg(images[currentImg])} loading="lazy" alt={`Căn hộ ${item.loaiCan}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
@@ -136,14 +151,11 @@ export default function Home() {
   const [isSendingLead, setIsSendingLead] = useState(false);
   const [leadPhoneError, setLeadPhoneError] = useState('');
 
-  // HÀM XÓA BỘ LỌC KHI KÍCH VÀO LOGO
   const clearFilterCacheAndReset = () => {
     sessionStorage.removeItem('savedActiveTab');
     sessionStorage.removeItem('savedFilters');
     sessionStorage.removeItem('savedCurrentPage');
     sessionStorage.removeItem('savedSortBy');
-    
-    // Đặt lại state hiển thị ngay lập tức
     setActiveTab('Cho thuê');
     setFilters({ phanKhu: 'Tất cả phân khu', loaiCan: [], khoangTang: 'Tất cả tầng', huongBanCong: 'Tất cả hướng', noiThat: 'Tất cả nội thất', mucGia: 'Tất cả mức giá' });
     setCurrentPage(1);
@@ -320,13 +332,12 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gray-50 text-gray-800 flex flex-col relative pb-20 md:pb-0">
       <header className="bg-white sticky top-0 z-50 px-4 md:px-8 py-3 flex justify-between items-center shadow-sm">
-        {/* CLICK VÀO LOGO LÀ GỌI HÀM XÓA BỘ LỌC ĐỂ VỀ TRANG CHỦ GỐC */}
         <Link href="/" onClick={clearFilterCacheAndReset} className="flex items-center hover:opacity-80 transition">
           <img src="/logo.png" alt="Quỹ Căn Smart City" className="h-10 md:h-12 w-auto object-contain" />
         </Link>
         <div className="flex items-center gap-3 md:gap-4">
            <Link href="/ky-gui" className="hidden md:flex items-center gap-1.5 bg-blue-50 text-blue-800 px-4 py-2 rounded-md font-bold hover:bg-blue-100 transition text-sm border border-blue-100">
-             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 001 1m-6 0h6"></path></svg>
              Ký gửi căn hộ
            </Link>
            <a href={`https://zalo.me/${CONTACT_PHONE}`} target="_blank" rel="noreferrer" className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-800 text-white px-5 py-2 rounded-full font-bold hover:opacity-90 transition shadow-md text-sm">
@@ -340,12 +351,9 @@ export default function Home() {
         <div className="absolute inset-0 bg-gradient-to-r from-blue-950/70 via-blue-900/40 to-transparent"></div>
         <div className="relative z-10 max-w-5xl mx-auto w-full">
           <p className="text-sm font-bold text-blue-200 mb-4 uppercase tracking-[0.3em] drop-shadow-md">Vinhomes Smart City</p>
-          
-          {/* ĐÃ TĂNG padding-y LÊN VÀ TĂNG leading (line-height) ĐỂ DẤU CHỮ Ể BUNG RA TOÀN VẸN TRÊN MÁY TÍNH */}
           <h2 className="text-[32px] md:text-[3.5rem] font-extrabold mb-6 leading-[1.3] md:leading-[1.4] py-2 tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white to-blue-100 drop-shadow-lg">
             QUỸ CĂN <span className="whitespace-nowrap">CHUYỂN NHƯỢNG</span><br /> & CHO THUÊ
           </h2>
-          
           <p className="text-base md:text-lg text-blue-50 max-w-xl font-medium leading-relaxed drop-shadow-md">Bảng hàng cập nhật liên tục 24/7, hỗ trợ tìm căn theo yêu cầu.</p>
         </div>
       </section>
