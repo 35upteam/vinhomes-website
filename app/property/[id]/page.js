@@ -69,7 +69,7 @@ export default function PropertyDetail() {
   const [findPhoneError, setFindPhoneError] = useState('');
   const [findData, setFindData] = useState({ nhuCau: 'Cho thuê', loaiCan: 'Studio', taiChinh: '', noiThat: 'Đầy đủ nội thất', ngayVaoO: '', soDienThoai: '', ghiChu: '', ten: '' });
 
-  // STATE TẠO ẢNH POSTER VÀ XỬ LÝ ẢNH BASE64 CHỐNG LỖI CORS
+  // STATE TẠO ẢNH POSTER VÀ XỬ LÝ ẢNH BASE64
   const posterRef = useRef(null);
   const [isGeneratingPoster, setIsGeneratingPoster] = useState(false);
   const [coverBase64, setCoverBase64] = useState('/banner.jpg');
@@ -155,10 +155,8 @@ export default function PropertyDetail() {
     fetchData();
   }, [id]);
 
-  // TIỀN XỬ LÝ ẢNH CHỐNG LỖI CORS (Convert sang Base64)
   useEffect(() => {
     if (property) {
-      // 1. Convert Ảnh bìa Cloudinary sang Base64
       if (property.images && property.images.length > 0) {
         const imgUrl = optimizeImg(property.images[0]);
         fetch(imgUrl)
@@ -171,7 +169,6 @@ export default function PropertyDetail() {
           .catch(e => console.error("Lỗi load ảnh nền:", e));
       }
       
-      // 2. Convert Mã QR sang Base64
       const qrLink = `https://quycan-smartcity.vercel.app/property/${property.id}`;
       const qrUrl = `https://quickchart.io/qr?text=${encodeURIComponent(qrLink)}&size=150&dark=1e3a8a`;
       fetch(qrUrl)
@@ -202,19 +199,17 @@ export default function PropertyDetail() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // HÀM TẠO ẢNH ĐÃ FIX HOÀN TOÀN LỖI CORS VÀ CANVAS TAINTING
   const handleDownloadPoster = async () => {
     if (!posterRef.current) return;
     setIsGeneratingPoster(true);
     
     try {
-      // Đợi thêm 300ms để đảm bảo Base64 đã render xong lên màn hình ảo
       await new Promise(resolve => setTimeout(resolve, 300));
       
       const canvas = await html2canvas(posterRef.current, {
         scale: 2, 
         useCORS: true, 
-        backgroundColor: "#1e3a8a", // Khớp màu nền xanh để không bị viền trắng
+        backgroundColor: "#1e3a8a", 
       });
       
       const image = canvas.toDataURL("image/png", 1.0);
@@ -315,63 +310,66 @@ export default function PropertyDetail() {
   return (
     <div className="min-h-screen bg-gray-50 text-gray-800 flex flex-col relative pb-20 md:pb-0 overflow-x-hidden">
       
-      {/* COMPONENT ẢO: TẤM POSTER ĐỂ LƯU ẢNH (Dùng Fixed và Z-index âm để lẩn trốn dưới nền web xám, qua mặt Html2Canvas) */}
+      {/* COMPONENT ẢO: TẤM POSTER ĐÃ GỠ BỎ HOÀN TOÀN MÃ MÀU TAILWIND ĐỂ TRÁNH LỖI "LAB" */}
       <div 
-        className="fixed top-0 left-0 pointer-events-none bg-blue-900 border border-gray-200" 
-        style={{ width: '1200px', height: '630px', zIndex: -9999 }} 
+        className="fixed -left-[9999px] top-0 block" 
+        style={{ width: '1200px', height: '630px', zIndex: -9999, backgroundColor: '#ffffff' }} 
         ref={posterRef}
       >
-        <div className="flex w-full h-full bg-blue-900 overflow-hidden">
-           <div className="w-[60%] h-full relative">
-              {/* Load bằng biến base64 để không bị lỗi CORS Taint Canvas */}
-              <img src={coverBase64} alt="Cover" className="w-full h-full object-cover" />
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent to-blue-900/90"></div>
+        <div style={{ display: 'flex', width: '100%', height: '100%', backgroundColor: '#1e3a8a', overflow: 'hidden' }}>
+           {/* CỘT TRÁI (ẢNH) */}
+           <div style={{ width: '60%', height: '100%', position: 'relative' }}>
+              <img src={coverBase64} alt="Cover" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to right, rgba(0,0,0,0), rgba(30,58,138,0.9))' }}></div>
               {property.nhanDan && property.nhanDan !== 'Không có' && (
-                <div className="absolute top-6 left-6 bg-red-600 text-white px-5 py-2 rounded-lg text-lg font-black uppercase shadow-lg border-2 border-red-400">🔥 {property.nhanDan}</div>
+                <div style={{ position: 'absolute', top: '24px', left: '24px', backgroundColor: '#dc2626', color: '#ffffff', padding: '8px 20px', borderRadius: '8px', fontSize: '1.125rem', fontWeight: 900, textTransform: 'uppercase', border: '2px solid #f87171' }}>
+                  🔥 {property.nhanDan}
+                </div>
               )}
            </div>
 
-           <div className="w-[40%] h-full bg-blue-900 text-white p-10 flex flex-col justify-between border-l-4 border-yellow-400 relative">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-blue-800 rounded-bl-full opacity-50"></div>
+           {/* CỘT PHẢI (THÔNG TIN) */}
+           <div style={{ width: '40%', height: '100%', backgroundColor: '#1e3a8a', color: '#ffffff', padding: '40px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', borderLeft: '4px solid #facc15', position: 'relative' }}>
+              <div style={{ position: 'absolute', top: 0, right: 0, width: '128px', height: '128px', backgroundColor: '#1e40af', borderBottomLeftRadius: '9999px', opacity: 0.5 }}></div>
               
-              <div>
-                <p className="text-yellow-400 font-black tracking-[0.2em] text-sm mb-2 uppercase">Vinhomes Smart City</p>
-                <h1 className="text-4xl font-extrabold mb-8 leading-tight tracking-tight drop-shadow-md">
-                  {property.listingType === 'Chuyển nhượng' ? 'BÁN' : 'CHO THUÊ'} CĂN HỘ<br/><span className="text-5xl text-blue-200">{property.loaiCan || property.type}</span>
+              <div style={{ position: 'relative', zIndex: 10 }}>
+                <p style={{ color: '#facc15', fontWeight: 900, letterSpacing: '0.2em', fontSize: '0.875rem', marginBottom: '8px', textTransform: 'uppercase' }}>Vinhomes Smart City</p>
+                <h1 style={{ fontSize: '2.25rem', fontWeight: 800, marginBottom: '32px', lineHeight: 1.2 }}>
+                  {property.listingType === 'Chuyển nhượng' ? 'BÁN' : 'CHO THUÊ'} CĂN HỘ<br/>
+                  <span style={{ fontSize: '3rem', color: '#bfdbfe' }}>{property.loaiCan || property.type}</span>
                 </h1>
                 
-                <div className="space-y-4">
-                  <div className="flex items-center gap-4 bg-blue-800/50 p-3 rounded-xl border border-blue-700/50 backdrop-blur-sm">
-                    <span className="text-3xl w-10 text-center">📍</span>
-                    <div><p className="text-xs text-blue-200 font-bold uppercase">Vị trí</p><p className="text-lg font-bold">Tòa {property.toaNha} - Khu {property.phanKhu}</p></div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px', backgroundColor: 'rgba(30,64,175,0.5)', padding: '12px', borderRadius: '12px', border: '1px solid rgba(29,78,216,0.5)' }}>
+                    <span style={{ fontSize: '1.875rem', width: '40px', textAlign: 'center' }}>📍</span>
+                    <div><p style={{ fontSize: '0.75rem', color: '#bfdbfe', fontWeight: 700, textTransform: 'uppercase', margin: 0 }}>Vị trí</p><p style={{ fontSize: '1.125rem', fontWeight: 700, color: '#ffffff', margin: 0 }}>Tòa {property.toaNha} - Khu {property.phanKhu}</p></div>
                   </div>
-                  <div className="flex items-center gap-4 bg-blue-800/50 p-3 rounded-xl border border-blue-700/50 backdrop-blur-sm">
-                    <span className="text-3xl w-10 text-center">📐</span>
-                    <div><p className="text-xs text-blue-200 font-bold uppercase">Diện tích</p><p className="text-lg font-bold">{property.area || 0} m²</p></div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px', backgroundColor: 'rgba(30,64,175,0.5)', padding: '12px', borderRadius: '12px', border: '1px solid rgba(29,78,216,0.5)' }}>
+                    <span style={{ fontSize: '1.875rem', width: '40px', textAlign: 'center' }}>📐</span>
+                    <div><p style={{ fontSize: '0.75rem', color: '#bfdbfe', fontWeight: 700, textTransform: 'uppercase', margin: 0 }}>Diện tích</p><p style={{ fontSize: '1.125rem', fontWeight: 700, color: '#ffffff', margin: 0 }}>{property.area || 0} m²</p></div>
                   </div>
-                  <div className="flex items-center gap-4 bg-blue-800/50 p-3 rounded-xl border border-blue-700/50 backdrop-blur-sm">
-                    <span className="text-3xl w-10 text-center">🛋️</span>
-                    <div><p className="text-xs text-blue-200 font-bold uppercase">Nội thất</p><p className="text-lg font-bold line-clamp-1">{property.noiThat}</p></div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px', backgroundColor: 'rgba(30,64,175,0.5)', padding: '12px', borderRadius: '12px', border: '1px solid rgba(29,78,216,0.5)' }}>
+                    <span style={{ fontSize: '1.875rem', width: '40px', textAlign: 'center' }}>🛋️</span>
+                    <div><p style={{ fontSize: '0.75rem', color: '#bfdbfe', fontWeight: 700, textTransform: 'uppercase', margin: 0 }}>Nội thất</p><p style={{ fontSize: '1.125rem', fontWeight: 700, color: '#ffffff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '280px', margin: 0 }}>{property.noiThat}</p></div>
                   </div>
                 </div>
               </div>
 
-              <div className="mt-8">
-                <p className="text-sm font-bold text-blue-200 uppercase tracking-widest mb-1">Mức giá</p>
-                <div className="flex items-baseline gap-2">
-                   <span className="text-7xl font-black text-yellow-400 drop-shadow-lg">{property.price}</span>
-                   <span className="text-3xl font-bold text-yellow-500">{property.listingType === 'Chuyển nhượng' ? 'Tỷ' : 'Tr/tháng'}</span>
+              <div style={{ marginTop: '32px', position: 'relative', zIndex: 10 }}>
+                <p style={{ fontSize: '0.875rem', fontWeight: 700, color: '#bfdbfe', textTransform: 'uppercase', letterSpacing: '0.1em', margin: '0 0 4px 0' }}>Mức giá</p>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
+                   <span style={{ fontSize: '4.5rem', fontWeight: 900, color: '#facc15', lineHeight: 1 }}>{property.price}</span>
+                   <span style={{ fontSize: '1.875rem', fontWeight: 700, color: '#eab308' }}>{property.listingType === 'Chuyển nhượng' ? 'Tỷ' : 'Tr/tháng'}</span>
                 </div>
               </div>
 
-              <div className="mt-auto pt-6 border-t border-blue-800 flex justify-between items-center bg-blue-950/50 p-4 rounded-xl backdrop-blur-md">
+              <div style={{ marginTop: 'auto', paddingTop: '24px', borderTop: '1px solid #1e40af', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'rgba(23,37,84,0.5)', padding: '16px', borderRadius: '12px', position: 'relative', zIndex: 10 }}>
                  <div>
-                    <p className="text-[10px] text-blue-300 font-bold uppercase tracking-wider mb-1">Mời xem chi tiết tại web & Gọi tư vấn:</p>
-                    <p className="text-2xl font-black text-white flex items-center gap-2">📞 0912.791.925</p>
+                    <p style={{ fontSize: '10px', color: '#93c5fd', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 4px 0' }}>Mời xem chi tiết tại web & Gọi tư vấn:</p>
+                    <p style={{ fontSize: '1.5rem', fontWeight: 900, color: '#ffffff', display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>📞 0912.791.925</p>
                  </div>
-                 <div className="bg-white p-2 rounded-lg shadow-xl shrink-0">
-                    {/* Dùng QR đã convert Base64 */}
-                    {qrBase64 ? <img src={qrBase64} className="w-16 h-16" alt="QR Code" /> : <div className="w-16 h-16 bg-gray-200 animate-pulse rounded"></div>}
+                 <div style={{ backgroundColor: '#ffffff', padding: '8px', borderRadius: '8px' }}>
+                    {qrBase64 ? <img src={qrBase64} style={{ width: '64px', height: '64px' }} alt="QR Code" /> : <div style={{ width: '64px', height: '64px', backgroundColor: '#e5e7eb', borderRadius: '4px' }}></div>}
                  </div>
               </div>
            </div>
