@@ -4,7 +4,8 @@ import { db } from '../../../firebase';
 import { doc, getDoc, collection, query, orderBy, getDocs, addDoc, serverTimestamp, where, limit } from 'firebase/firestore';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import html2canvas from 'html2canvas';
+// SỬ DỤNG MÁY ẢNH ĐỜI MỚI CHỐNG LỖI MÀU LAB
+import { toPng } from 'html-to-image';
 
 const optimizeImg = (url) => url?.includes('cloudinary.com') ? url.replace('/upload/', '/upload/w_1000,c_limit,q_auto,f_auto/') : url;
 
@@ -69,7 +70,6 @@ export default function PropertyDetail() {
   const [findPhoneError, setFindPhoneError] = useState('');
   const [findData, setFindData] = useState({ nhuCau: 'Cho thuê', loaiCan: 'Studio', taiChinh: '', noiThat: 'Đầy đủ nội thất', ngayVaoO: '', soDienThoai: '', ghiChu: '', ten: '' });
 
-  // STATE TẠO ẢNH POSTER VÀ XỬ LÝ ẢNH BASE64
   const posterRef = useRef(null);
   const [isGeneratingPoster, setIsGeneratingPoster] = useState(false);
   const [coverBase64, setCoverBase64] = useState('/banner.jpg');
@@ -199,6 +199,7 @@ export default function PropertyDetail() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  // SỬ DỤNG HTML-TO-IMAGE ĐỂ VẼ ẢNH
   const handleDownloadPoster = async () => {
     if (!posterRef.current) return;
     setIsGeneratingPoster(true);
@@ -206,22 +207,19 @@ export default function PropertyDetail() {
     try {
       await new Promise(resolve => setTimeout(resolve, 300));
       
-      const canvas = await html2canvas(posterRef.current, {
-        scale: 2, 
-        useCORS: true, 
-        backgroundColor: "#1e3a8a", 
+      const dataUrl = await toPng(posterRef.current, {
+        quality: 1,
+        backgroundColor: "#1e3a8a",
+        pixelRatio: 2, // Đảm bảo độ nét cao
       });
       
-      const image = canvas.toDataURL("image/png", 1.0);
       const link = document.createElement('a');
-      link.href = image;
       link.download = `Can-Ho-${property.maCan}-${property.phanKhu}.png`;
-      document.body.appendChild(link);
+      link.href = dataUrl;
       link.click();
-      document.body.removeChild(link);
     } catch (error) {
       console.error("Lỗi tạo ảnh:", error);
-      alert("Trình duyệt từ chối tạo ảnh: " + error.message);
+      alert("Đã xảy ra lỗi khi tạo ảnh. Vui lòng tải lại trang và thử lại!");
     } finally {
       setIsGeneratingPoster(false);
     }
@@ -310,10 +308,10 @@ export default function PropertyDetail() {
   return (
     <div className="min-h-screen bg-gray-50 text-gray-800 flex flex-col relative pb-20 md:pb-0 overflow-x-hidden">
       
-      {/* COMPONENT ẢO: TẤM POSTER ĐÃ GỠ BỎ HOÀN TOÀN MÃ MÀU TAILWIND ĐỂ TRÁNH LỖI "LAB" */}
+      {/* COMPONENT ẢO: TẤM POSTER BẰNG CSS THUẦN CHUẨN ĐỂ RENDER */}
       <div 
         className="fixed -left-[9999px] top-0 block" 
-        style={{ width: '1200px', height: '630px', zIndex: -9999, backgroundColor: '#ffffff' }} 
+        style={{ width: '1200px', height: '630px', zIndex: -9999, backgroundColor: '#1e3a8a', fontFamily: 'sans-serif' }} 
         ref={posterRef}
       >
         <div style={{ display: 'flex', width: '100%', height: '100%', backgroundColor: '#1e3a8a', overflow: 'hidden' }}>
@@ -329,17 +327,17 @@ export default function PropertyDetail() {
            </div>
 
            {/* CỘT PHẢI (THÔNG TIN) */}
-           <div style={{ width: '40%', height: '100%', backgroundColor: '#1e3a8a', color: '#ffffff', padding: '40px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', borderLeft: '4px solid #facc15', position: 'relative' }}>
+           <div style={{ width: '40%', height: '100%', backgroundColor: '#1e3a8a', color: '#ffffff', padding: '40px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', borderLeft: '4px solid #facc15', position: 'relative', boxSizing: 'border-box' }}>
               <div style={{ position: 'absolute', top: 0, right: 0, width: '128px', height: '128px', backgroundColor: '#1e40af', borderBottomLeftRadius: '9999px', opacity: 0.5 }}></div>
               
               <div style={{ position: 'relative', zIndex: 10 }}>
                 <p style={{ color: '#facc15', fontWeight: 900, letterSpacing: '0.2em', fontSize: '0.875rem', marginBottom: '8px', textTransform: 'uppercase' }}>Vinhomes Smart City</p>
-                <h1 style={{ fontSize: '2.25rem', fontWeight: 800, marginBottom: '32px', lineHeight: 1.2 }}>
+                <h1 style={{ fontSize: '2.25rem', fontWeight: 800, marginBottom: '32px', lineHeight: 1.2, margin: 0 }}>
                   {property.listingType === 'Chuyển nhượng' ? 'BÁN' : 'CHO THUÊ'} CĂN HỘ<br/>
                   <span style={{ fontSize: '3rem', color: '#bfdbfe' }}>{property.loaiCan || property.type}</span>
                 </h1>
                 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '30px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '16px', backgroundColor: 'rgba(30,64,175,0.5)', padding: '12px', borderRadius: '12px', border: '1px solid rgba(29,78,216,0.5)' }}>
                     <span style={{ fontSize: '1.875rem', width: '40px', textAlign: 'center' }}>📍</span>
                     <div><p style={{ fontSize: '0.75rem', color: '#bfdbfe', fontWeight: 700, textTransform: 'uppercase', margin: 0 }}>Vị trí</p><p style={{ fontSize: '1.125rem', fontWeight: 700, color: '#ffffff', margin: 0 }}>Tòa {property.toaNha} - Khu {property.phanKhu}</p></div>
@@ -363,7 +361,7 @@ export default function PropertyDetail() {
                 </div>
               </div>
 
-              <div style={{ marginTop: 'auto', paddingTop: '24px', borderTop: '1px solid #1e40af', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'rgba(23,37,84,0.5)', padding: '16px', borderRadius: '12px', position: 'relative', zIndex: 10 }}>
+              <div style={{ marginTop: 'auto', paddingTop: '24px', borderTop: '1px solid #1e40af', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'rgba(23,37,84,0.5)', padding: '16px', borderRadius: '12px', position: 'relative', zIndex: 10, boxSizing: 'border-box' }}>
                  <div>
                     <p style={{ fontSize: '10px', color: '#93c5fd', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 4px 0' }}>Mời xem chi tiết tại web & Gọi tư vấn:</p>
                     <p style={{ fontSize: '1.5rem', fontWeight: 900, color: '#ffffff', display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>📞 0912.791.925</p>
