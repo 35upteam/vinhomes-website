@@ -4,7 +4,6 @@ import { db } from '../../../firebase';
 import { doc, getDoc, collection, query, orderBy, getDocs, addDoc, serverTimestamp, where, limit } from 'firebase/firestore';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-// Import thư viện vẽ ảnh
 import html2canvas from 'html2canvas';
 
 const optimizeImg = (url) => url?.includes('cloudinary.com') ? url.replace('/upload/', '/upload/w_1000,c_limit,q_auto,f_auto/') : url;
@@ -70,9 +69,11 @@ export default function PropertyDetail() {
   const [findPhoneError, setFindPhoneError] = useState('');
   const [findData, setFindData] = useState({ nhuCau: 'Cho thuê', loaiCan: 'Studio', taiChinh: '', noiThat: 'Đầy đủ nội thất', ngayVaoO: '', soDienThoai: '', ghiChu: '', ten: '' });
 
-  // STATE TẠO ẢNH POSTER
+  // STATE TẠO ẢNH POSTER VÀ XỬ LÝ ẢNH BASE64 CHỐNG LỖI CORS
   const posterRef = useRef(null);
   const [isGeneratingPoster, setIsGeneratingPoster] = useState(false);
+  const [coverBase64, setCoverBase64] = useState('/banner.jpg');
+  const [qrBase64, setQrBase64] = useState(null);
 
   const CONTACT_PHONE = "0912791925";
 
@@ -154,6 +155,36 @@ export default function PropertyDetail() {
     fetchData();
   }, [id]);
 
+  // TIỀN XỬ LÝ ẢNH CHỐNG LỖI CORS (Convert sang Base64)
+  useEffect(() => {
+    if (property) {
+      // 1. Convert Ảnh bìa Cloudinary sang Base64
+      if (property.images && property.images.length > 0) {
+        const imgUrl = optimizeImg(property.images[0]);
+        fetch(imgUrl)
+          .then(res => res.blob())
+          .then(blob => {
+            const reader = new FileReader();
+            reader.onloadend = () => setCoverBase64(reader.result);
+            reader.readAsDataURL(blob);
+          })
+          .catch(e => console.error("Lỗi load ảnh nền:", e));
+      }
+      
+      // 2. Convert Mã QR sang Base64
+      const qrLink = `https://quycan-smartcity.vercel.app/property/${property.id}`;
+      const qrUrl = `https://quickchart.io/qr?text=${encodeURIComponent(qrLink)}&size=150&dark=1e3a8a`;
+      fetch(qrUrl)
+        .then(res => res.blob())
+        .then(blob => {
+          const reader = new FileReader();
+          reader.onloadend = () => setQrBase64(reader.result);
+          reader.readAsDataURL(blob);
+        })
+        .catch(e => console.error("Lỗi load QR:", e));
+    }
+  }, [property]);
+
   const handleShare = async () => {
     const url = window.location.href;
     if (navigator.share) {
@@ -171,20 +202,22 @@ export default function PropertyDetail() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // ĐÃ SỬA: BỎ setTimeout, LUÔN HIỆN DIV POSTER (NHƯNG ĐẨY RA NGOÀI MÀN HÌNH) ĐỂ html2canvas ĐỌC ĐƯỢC
+  // HÀM TẠO ẢNH ĐÃ FIX HOÀN TOÀN LỖI CORS VÀ CANVAS TAINTING
   const handleDownloadPoster = async () => {
     if (!posterRef.current) return;
     setIsGeneratingPoster(true);
     
     try {
+      // Đợi thêm 300ms để đảm bảo Base64 đã render xong lên màn hình ảo
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
       const canvas = await html2canvas(posterRef.current, {
         scale: 2, 
         useCORS: true, 
-        allowTaint: true,
-        backgroundColor: "#ffffff",
+        backgroundColor: "#1e3a8a", // Khớp màu nền xanh để không bị viền trắng
       });
       
-      const image = canvas.toDataURL("image/png");
+      const image = canvas.toDataURL("image/png", 1.0);
       const link = document.createElement('a');
       link.href = image;
       link.download = `Can-Ho-${property.maCan}-${property.phanKhu}.png`;
@@ -193,9 +226,10 @@ export default function PropertyDetail() {
       document.body.removeChild(link);
     } catch (error) {
       console.error("Lỗi tạo ảnh:", error);
-      alert("Lỗi tạo ảnh, vui lòng tải lại trang và thử lại!");
+      alert("Trình duyệt từ chối tạo ảnh: " + error.message);
+    } finally {
+      setIsGeneratingPoster(false);
     }
-    setIsGeneratingPoster(false);
   };
 
   const scrollSimilar = (direction) => {
@@ -255,8 +289,6 @@ export default function PropertyDetail() {
 
   const displayId = property.maCan || property.id.substring(0, 5).toUpperCase();
   const titleString = `${property.listingType === 'Cho thuê' ? 'Cho thuê' : 'Bán'} căn hộ ${property.loaiCan || property.type}, tòa ${property.toaNha || property.building}, phân khu ${property.phanKhu}`;
-  
-  const qrLink = `https://quycan-smartcity.vercel.app/property/${property.id}`;
 
   const specs = property.listingType === 'Cho thuê' ? [
     { label: 'Loại căn', val: property.loaiCan || property.type, icon: '🏠' },
@@ -283,15 +315,16 @@ export default function PropertyDetail() {
   return (
     <div className="min-h-screen bg-gray-50 text-gray-800 flex flex-col relative pb-20 md:pb-0 overflow-x-hidden">
       
-      {/* ĐÃ SỬA: Đẩy DOM ra ngoài vùng nhìn thấy (fixed -left-[9999px] top-0) thay vì dùng class hidden */}
+      {/* COMPONENT ẢO: TẤM POSTER ĐỂ LƯU ẢNH (Dùng Fixed và Z-index âm để lẩn trốn dưới nền web xám, qua mặt Html2Canvas) */}
       <div 
-        className="fixed -left-[9999px] top-0 bg-white border border-gray-200 shadow-2xl block" 
+        className="fixed top-0 left-0 pointer-events-none bg-blue-900 border border-gray-200" 
         style={{ width: '1200px', height: '630px', zIndex: -9999 }} 
         ref={posterRef}
       >
         <div className="flex w-full h-full bg-blue-900 overflow-hidden">
            <div className="w-[60%] h-full relative">
-              <img crossOrigin="anonymous" src={optimizeImg(images[0] || '/banner.jpg')} alt="Cover" className="w-full h-full object-cover" />
+              {/* Load bằng biến base64 để không bị lỗi CORS Taint Canvas */}
+              <img src={coverBase64} alt="Cover" className="w-full h-full object-cover" />
               <div className="absolute inset-0 bg-gradient-to-r from-transparent to-blue-900/90"></div>
               {property.nhanDan && property.nhanDan !== 'Không có' && (
                 <div className="absolute top-6 left-6 bg-red-600 text-white px-5 py-2 rounded-lg text-lg font-black uppercase shadow-lg border-2 border-red-400">🔥 {property.nhanDan}</div>
@@ -337,8 +370,8 @@ export default function PropertyDetail() {
                     <p className="text-2xl font-black text-white flex items-center gap-2">📞 0912.791.925</p>
                  </div>
                  <div className="bg-white p-2 rounded-lg shadow-xl shrink-0">
-                    {/* ĐÃ SỬA: Đổi sang QuickChart API chuyên dụng cho phép tải chéo Canvas */}
-                    <img crossOrigin="anonymous" src={`https://quickchart.io/qr?text=${encodeURIComponent(qrLink)}&size=150&dark=1e3a8a`} className="w-16 h-16" alt="QR Code" />
+                    {/* Dùng QR đã convert Base64 */}
+                    {qrBase64 ? <img src={qrBase64} className="w-16 h-16" alt="QR Code" /> : <div className="w-16 h-16 bg-gray-200 animate-pulse rounded"></div>}
                  </div>
               </div>
            </div>
@@ -368,7 +401,7 @@ export default function PropertyDetail() {
         <div className="flex justify-between items-center mb-6">
           <Link href="/" className="inline-flex items-center text-sm font-bold text-blue-900 hover:text-blue-700 transition"><span className="mr-2">←</span> Quay lại danh sách</Link>
           
-          <button onClick={handleDownloadPoster} disabled={isGeneratingPoster} className="flex items-center gap-2 bg-gradient-to-r from-blue-700 to-blue-900 hover:from-blue-800 hover:to-blue-950 text-white px-5 py-2.5 rounded-full font-bold shadow-md shadow-blue-900/20 transition disabled:opacity-50 text-sm">
+          <button onClick={handleDownloadPoster} disabled={isGeneratingPoster || !qrBase64} className="flex items-center gap-2 bg-gradient-to-r from-blue-700 to-blue-900 hover:from-blue-800 hover:to-blue-950 text-white px-5 py-2.5 rounded-full font-bold shadow-md shadow-blue-900/20 transition disabled:opacity-50 text-sm">
              {isGeneratingPoster ? (
                 <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> Đang vẽ ảnh...</>
              ) : (
