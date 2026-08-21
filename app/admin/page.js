@@ -176,11 +176,11 @@ export default function AdminPage() {
     else setFormData({ ...formData, [name]: value });
   };
   
-  const handleImageChange = async (e) => {
+  // ĐÃ SỬA: BỎ WATERMARK, CHỈ LẤY ẢNH GỐC UP LÊN
+  const handleImageChange = (e) => {
     if (e.target.files) {
       const files = Array.from(e.target.files);
-      const watermarkedFiles = await Promise.all(files.map(addWatermark));
-      const newImgs = watermarkedFiles.map(f => ({ file: f, url: URL.createObjectURL(f) }));
+      const newImgs = files.map(f => ({ file: f, url: URL.createObjectURL(f) }));
       setImages(prev => [...prev, ...newImgs]);
     }
   };
@@ -194,31 +194,6 @@ export default function AdminPage() {
 
   const removeImage = (index) => {
     const arr = [...images]; arr.splice(index, 1); setImages(arr);
-  };
-
-  const addWatermark = (file) => {
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const img = new Image();
-        img.onload = () => {
-          const canvas = document.createElement('canvas'); canvas.width = img.width; canvas.height = img.height;
-          const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0);
-          const text = '© Quỹ Căn Smart City - 0912.791.925';
-          const fontSize = Math.max(14, Math.floor(img.width * 0.035)); 
-          ctx.font = `600 ${fontSize}px Arial`;
-          const paddingX = 12; const paddingY = 8;
-          const textWidth = ctx.measureText(text).width;
-          const rectX = canvas.width - textWidth - paddingX * 2 - 20; const rectY = canvas.height - fontSize - paddingY * 2 - 20;
-          ctx.fillStyle = 'rgba(0, 0, 0, 0.5)'; ctx.fillRect(rectX, rectY, textWidth + paddingX * 2, fontSize + paddingY * 2);
-          ctx.fillStyle = 'rgba(255, 255, 255, 0.9)'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-          ctx.fillText(text, rectX + paddingX + textWidth / 2, rectY + paddingY + fontSize / 2 + 1);
-          canvas.toBlob((blob) => { resolve(new File([blob], file.name, { type: 'image/jpeg' })); }, 'image/jpeg', 0.95);
-        };
-        img.src = event.target.result;
-      };
-      reader.readAsDataURL(file);
-    });
   };
 
   const handleDelete = async (item) => {
@@ -281,7 +256,6 @@ export default function AdminPage() {
         }
       }
 
-      // SỬA: Chuyển area thành số hoặc lưu text nếu bỏ trống
       const finalArea = formData.area ? Number(formData.area) : 0; 
       const finalMaCan = editingId ? formData.maCan : generateMaCan(formData.listingType);
       const dataToSave = { ...formData, maCan: finalMaCan, price: Number(formData.price), area: finalArea, images: imageUrls };
@@ -367,7 +341,6 @@ export default function AdminPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans pb-12 relative">
-      {/* SỬA: Ẩn 2 phím mũi tên lên/xuống ở các ô input number để tránh ấn nhầm */}
       <style jsx global>{`
         input[type=number]::-webkit-inner-spin-button, 
         input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
@@ -382,7 +355,6 @@ export default function AdminPage() {
           </div>
           
           <div className="flex gap-3 md:gap-4 items-center">
-            {/* THÊM NÚT ĐO LƯỜNG GOOGLE ANALYTICS */}
             <a href="https://analytics.google.com/" target="_blank" rel="noreferrer" className="hidden lg:flex items-center gap-2 bg-[#F9AB00] hover:bg-[#F29900] text-blue-900 px-4 py-2 rounded-lg text-sm font-bold transition whitespace-nowrap shadow-sm">
                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
                Đo lường (GA4)
@@ -443,12 +415,10 @@ export default function AdminPage() {
                 <select name="noiThat" value={formData.noiThat} onChange={handleInputChange} className="w-full p-3 border border-gray-200 rounded-lg focus:border-blue-500 outline-none text-sm font-medium">{['Nguyên bản CĐT', 'Đồ cơ bản', 'Đầy đủ nội thất'].map(opt => <option key={opt}>{opt}</option>)}</select>
               </div>
                <div>
-                  {/* SỬA: Xóa chữ required, nhập diện tích không bắt buộc nữa */}
                   <label className="block text-[11px] font-bold mb-1 text-gray-500 uppercase">Diện tích (m²)</label>
                   <input name="area" value={formData.area} onChange={handleInputChange} type="number" step="0.1" placeholder="Bỏ trống nếu chưa rõ" onWheel={(e) => e.target.blur()} className="w-full p-3 border border-gray-200 rounded-lg focus:border-blue-500 outline-none text-sm font-medium" />
                </div>
                <div>
-                  {/* SỬA: Chặn lăn chuột onWheel */}
                   <label className="block text-[11px] font-bold mb-1 text-gray-500 uppercase">{formData.listingType === 'Cho thuê' ? 'Giá thuê (Triệu)' : 'Giá bán (Tỷ)'}</label>
                   <input name="price" value={formData.price} onChange={handleInputChange} type="number" step="0.01" placeholder="VD: 15.5" onWheel={(e) => e.target.blur()} className="w-full p-3 border border-gray-200 rounded-lg focus:border-blue-500 outline-none text-sm font-medium" required />
                </div>
@@ -457,7 +427,6 @@ export default function AdminPage() {
             <div className="flex gap-4">
               {formData.listingType === 'Cho thuê' && (
                 <div className="bg-blue-50/50 p-3 rounded-xl border border-blue-100 flex-1">
-                  {/* SỬA: Đổi Tiêu đề thành Ngày chuyển vào */}
                   <label className="block text-[11px] font-bold mb-1 text-blue-800 uppercase">Ngày chuyển vào</label>
                   <div className="flex items-center gap-3 mt-1">
                     <input type="date" name="ngayNhanNha" value={formData.ngayNhanNha || ''} onChange={handleInputChange} disabled={formData.vaoLuon} className="flex-1 p-2 border border-blue-200 rounded-lg focus:border-blue-500 outline-none text-sm font-medium disabled:opacity-50" />
