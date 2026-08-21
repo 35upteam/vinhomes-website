@@ -4,7 +4,7 @@ import { db } from '../../../firebase';
 import { doc, getDoc, collection, query, orderBy, getDocs, addDoc, serverTimestamp, where, limit } from 'firebase/firestore';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-// SỬ DỤNG MÁY ẢNH ĐỜI MỚI CHỐNG LỖI MÀU LAB
+// SỬ DỤNG MÁY ẢNH ĐỜI MỚI
 import { toPng } from 'html-to-image';
 
 const optimizeImg = (url) => url?.includes('cloudinary.com') ? url.replace('/upload/', '/upload/w_1000,c_limit,q_auto,f_auto/') : url;
@@ -70,6 +70,7 @@ export default function PropertyDetail() {
   const [findPhoneError, setFindPhoneError] = useState('');
   const [findData, setFindData] = useState({ nhuCau: 'Cho thuê', loaiCan: 'Studio', taiChinh: '', noiThat: 'Đầy đủ nội thất', ngayVaoO: '', soDienThoai: '', ghiChu: '', ten: '' });
 
+  // STATE TẠO ẢNH POSTER VÀ XỬ LÝ ẢNH BASE64
   const posterRef = useRef(null);
   const [isGeneratingPoster, setIsGeneratingPoster] = useState(false);
   const [coverBase64, setCoverBase64] = useState('/banner.jpg');
@@ -199,18 +200,20 @@ export default function PropertyDetail() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // SỬ DỤNG HTML-TO-IMAGE ĐỂ VẼ ẢNH
+  // ĐÃ FIX: LÔI POSTER VÀO MÀN HÌNH ĐỂ TRÁNH LỖI CHỤP ẢNH TRỐNG
   const handleDownloadPoster = async () => {
     if (!posterRef.current) return;
-    setIsGeneratingPoster(true);
+    setIsGeneratingPoster(true); // Gây trigger đổi class đưa Poster vào màn hình
     
     try {
-      await new Promise(resolve => setTimeout(resolve, 300));
+      // Đợi nửa giây để trình duyệt vẽ xong Poster trên màn hình
+      await new Promise(resolve => setTimeout(resolve, 500));
       
       const dataUrl = await toPng(posterRef.current, {
         quality: 1,
         backgroundColor: "#1e3a8a",
-        pixelRatio: 2, // Đảm bảo độ nét cao
+        pixelRatio: 2, // Chụp với độ phân giải gấp đôi cho sắc nét
+        cacheBust: true, // Chống lưu đệm ảnh
       });
       
       const link = document.createElement('a');
@@ -221,7 +224,7 @@ export default function PropertyDetail() {
       console.error("Lỗi tạo ảnh:", error);
       alert("Đã xảy ra lỗi khi tạo ảnh. Vui lòng tải lại trang và thử lại!");
     } finally {
-      setIsGeneratingPoster(false);
+      setIsGeneratingPoster(false); // Trả Poster ra ngoài rìa màn hình
     }
   };
 
@@ -308,10 +311,10 @@ export default function PropertyDetail() {
   return (
     <div className="min-h-screen bg-gray-50 text-gray-800 flex flex-col relative pb-20 md:pb-0 overflow-x-hidden">
       
-      {/* COMPONENT ẢO: TẤM POSTER BẰNG CSS THUẦN CHUẨN ĐỂ RENDER */}
+      {/* ĐÃ FIX: CHỈ LÔI POSTER VÀO MÀN HÌNH (-left-[9999px] -> left-0) KHI BẤM CHỤP, ĐỂ ẢNH KHÔNG BỊ TRỐNG */}
       <div 
-        className="fixed -left-[9999px] top-0 block" 
-        style={{ width: '1200px', height: '630px', zIndex: -9999, backgroundColor: '#1e3a8a', fontFamily: 'sans-serif' }} 
+        className={`fixed top-0 block ${isGeneratingPoster ? 'left-0' : '-left-[9999px]'}`} 
+        style={{ width: '1200px', height: '630px', zIndex: -9000, backgroundColor: '#1e3a8a', fontFamily: 'sans-serif' }} 
         ref={posterRef}
       >
         <div style={{ display: 'flex', width: '100%', height: '100%', backgroundColor: '#1e3a8a', overflow: 'hidden' }}>
@@ -448,7 +451,7 @@ export default function PropertyDetail() {
                    <span className="text-[10px] text-blue-600 font-bold uppercase mb-1">Mã Căn</span>
                    <div className="flex items-center gap-1.5 text-blue-900">
                      <span className="font-black text-sm md:text-base truncate max-w-[80px]">{displayId}</span>
-                     <svg className="w-4 h-4 shrink-0 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                     <svg className="w-4 h-4 shrink-0 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
                    </div>
                    {copied && <span className="absolute -top-3 right-2 bg-green-500 text-white text-[9px] px-2 py-0.5 rounded shadow">Đã copy!</span>}
                 </div>
