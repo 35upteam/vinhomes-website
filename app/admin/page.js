@@ -221,11 +221,9 @@ export default function AdminPage() {
     });
   };
 
-  // HÀM XÓA CĂN HỘ TÍCH HỢP XÓA ẢNH SERVER
   const handleDelete = async (item) => {
     if (window.confirm(`Cảnh báo: Bạn có chắc chắn muốn xóa căn hộ Mã ${item.maCan} khỏi hệ thống? (Hình ảnh cũng sẽ bị xóa vĩnh viễn)`)) {
       try {
-        // 1. Dọn rác Cloudinary
         if (item.images && item.images.length > 0) {
           const publicIds = item.images.map(url => {
              const match = url.match(/\/upload\/(?:v\d+\/)?([^.]+)/);
@@ -233,23 +231,14 @@ export default function AdminPage() {
           }).filter(Boolean);
 
           if (publicIds.length > 0) {
-            await fetch('/api/delete-image', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ publicIds })
-            });
+            await fetch('/api/delete-image', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ publicIds }) });
           }
         }
-
-        // 2. Dọn rác Firebase
         await deleteDoc(doc(db, 'properties', item.id)); 
         sessionStorage.removeItem('cachedProperties'); 
         alert('Đã xóa thành công dữ liệu và dọn sạch hình ảnh!'); 
         fetchProperties();
-      } catch (error) {
-        alert('Có lỗi xảy ra khi xóa!');
-        console.error(error);
-      }
+      } catch (error) { alert('Có lỗi xảy ra khi xóa!'); console.error(error); }
     }
   };
 
@@ -292,8 +281,10 @@ export default function AdminPage() {
         }
       }
 
+      // SỬA: Chuyển area thành số hoặc lưu text nếu bỏ trống
+      const finalArea = formData.area ? Number(formData.area) : 0; 
       const finalMaCan = editingId ? formData.maCan : generateMaCan(formData.listingType);
-      const dataToSave = { ...formData, maCan: finalMaCan, price: Number(formData.price), area: Number(formData.area), images: imageUrls };
+      const dataToSave = { ...formData, maCan: finalMaCan, price: Number(formData.price), area: finalArea, images: imageUrls };
 
       if (editingId) {
         await updateDoc(doc(db, 'properties', editingId), dataToSave); alert('Cập nhật thông tin thành công!');
@@ -318,7 +309,6 @@ export default function AdminPage() {
         where('phanKhu', '==', formData.phanKhu),
         where('toaNha', '==', formData.toaNha),
         where('loaiCan', '==', formData.loaiCan),
-        where('area', '==', Number(formData.area)),
         where('huongBanCong', '==', formData.huongBanCong)
       );
       const dupSnap = await getDocs(dupQuery);
@@ -351,7 +341,6 @@ export default function AdminPage() {
              <svg className="w-6 h-6" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
              Tiếp tục với Google
           </button>
-          <p className="text-[11px] text-gray-400 mt-6">Chỉ tài khoản được cấp quyền mới có thể truy cập.</p>
         </div>
       </div>
     );
@@ -378,6 +367,13 @@ export default function AdminPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans pb-12 relative">
+      {/* SỬA: Ẩn 2 phím mũi tên lên/xuống ở các ô input number để tránh ấn nhầm */}
+      <style jsx global>{`
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type=number] { -moz-appearance: textfield; }
+      `}</style>
+
       <nav className="bg-blue-900 text-white shadow-md sticky top-0 z-40">
         <div className="max-w-[1400px] mx-auto px-4 md:px-8 py-3 flex justify-between items-center">
           <div className="flex items-center gap-4">
@@ -386,18 +382,15 @@ export default function AdminPage() {
           </div>
           
           <div className="flex gap-3 md:gap-4 items-center">
-            <span className="hidden lg:block text-sm font-medium text-blue-100">
-              Xin chào <strong className="text-white">{user?.email}</strong>!
-            </span>
-            <button onClick={openPhanKhuModal} className="bg-white/10 hover:bg-white/20 border border-white/30 px-4 py-2 rounded-lg text-sm font-medium transition whitespace-nowrap">
-              Quản lý phân khu
-            </button>
-            <button onClick={() => setIsAccountModalOpen(true)} className="bg-white/10 hover:bg-white/20 border border-white/30 px-4 py-2 rounded-lg text-sm font-medium transition whitespace-nowrap">
-              Quản lý tài khoản
-            </button>
-            <button onClick={handleLogout} className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-bold transition whitespace-nowrap">
-              Đăng xuất
-            </button>
+            {/* THÊM NÚT ĐO LƯỜNG GOOGLE ANALYTICS */}
+            <a href="https://analytics.google.com/" target="_blank" rel="noreferrer" className="hidden lg:flex items-center gap-2 bg-[#F9AB00] hover:bg-[#F29900] text-blue-900 px-4 py-2 rounded-lg text-sm font-bold transition whitespace-nowrap shadow-sm">
+               <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+               Đo lường (GA4)
+            </a>
+            
+            <button onClick={openPhanKhuModal} className="bg-white/10 hover:bg-white/20 border border-white/30 px-4 py-2 rounded-lg text-sm font-medium transition whitespace-nowrap">Quản lý phân khu</button>
+            <button onClick={() => setIsAccountModalOpen(true)} className="bg-white/10 hover:bg-white/20 border border-white/30 px-4 py-2 rounded-lg text-sm font-medium transition whitespace-nowrap">Quản lý tài khoản</button>
+            <button onClick={handleLogout} className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-bold transition whitespace-nowrap">Đăng xuất</button>
           </div>
         </div>
       </nav>
@@ -450,19 +443,22 @@ export default function AdminPage() {
                 <select name="noiThat" value={formData.noiThat} onChange={handleInputChange} className="w-full p-3 border border-gray-200 rounded-lg focus:border-blue-500 outline-none text-sm font-medium">{['Nguyên bản CĐT', 'Đồ cơ bản', 'Đầy đủ nội thất'].map(opt => <option key={opt}>{opt}</option>)}</select>
               </div>
                <div>
+                  {/* SỬA: Xóa chữ required, nhập diện tích không bắt buộc nữa */}
                   <label className="block text-[11px] font-bold mb-1 text-gray-500 uppercase">Diện tích (m²)</label>
-                  <input name="area" value={formData.area} onChange={handleInputChange} type="number" step="0.1" placeholder="Nhập số" className="w-full p-3 border border-gray-200 rounded-lg focus:border-blue-500 outline-none text-sm font-medium" required />
+                  <input name="area" value={formData.area} onChange={handleInputChange} type="number" step="0.1" placeholder="Bỏ trống nếu chưa rõ" onWheel={(e) => e.target.blur()} className="w-full p-3 border border-gray-200 rounded-lg focus:border-blue-500 outline-none text-sm font-medium" />
                </div>
                <div>
+                  {/* SỬA: Chặn lăn chuột onWheel */}
                   <label className="block text-[11px] font-bold mb-1 text-gray-500 uppercase">{formData.listingType === 'Cho thuê' ? 'Giá thuê (Triệu)' : 'Giá bán (Tỷ)'}</label>
-                  <input name="price" value={formData.price} onChange={handleInputChange} type="number" step="0.01" placeholder="VD: 15.5" className="w-full p-3 border border-gray-200 rounded-lg focus:border-blue-500 outline-none text-sm font-medium" required />
+                  <input name="price" value={formData.price} onChange={handleInputChange} type="number" step="0.01" placeholder="VD: 15.5" onWheel={(e) => e.target.blur()} className="w-full p-3 border border-gray-200 rounded-lg focus:border-blue-500 outline-none text-sm font-medium" required />
                </div>
             </div>
 
             <div className="flex gap-4">
               {formData.listingType === 'Cho thuê' && (
                 <div className="bg-blue-50/50 p-3 rounded-xl border border-blue-100 flex-1">
-                  <label className="block text-[11px] font-bold mb-1 text-blue-800 uppercase">Tình trạng vào ở</label>
+                  {/* SỬA: Đổi Tiêu đề thành Ngày chuyển vào */}
+                  <label className="block text-[11px] font-bold mb-1 text-blue-800 uppercase">Ngày chuyển vào</label>
                   <div className="flex items-center gap-3 mt-1">
                     <input type="date" name="ngayNhanNha" value={formData.ngayNhanNha || ''} onChange={handleInputChange} disabled={formData.vaoLuon} className="flex-1 p-2 border border-blue-200 rounded-lg focus:border-blue-500 outline-none text-sm font-medium disabled:opacity-50" />
                     <label className="flex items-center gap-1.5 text-sm font-bold text-blue-900 cursor-pointer whitespace-nowrap">
@@ -603,7 +599,6 @@ export default function AdminPage() {
                         <td className="px-4 py-4 text-right">
                           <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                             <button onClick={() => handleEdit(item)} className="text-blue-600 hover:bg-blue-100 px-3 py-1.5 rounded-md font-bold transition">Sửa</button>
-                            {/* CẬP NHẬT GỌI HÀM XÓA CÓ THAM SỐ LÀ CẢ OBJECT CĂN HỘ */}
                             <button onClick={() => handleDelete(item)} className="text-red-500 hover:bg-red-50 px-3 py-1.5 rounded-md font-bold transition">Xóa</button>
                           </div>
                         </td>
@@ -705,7 +700,6 @@ export default function AdminPage() {
         </div>
       </div>
       
-      {/* MODAL CẤU HÌNH PHÂN KHU TỪ ADMIN */}
       {isPhanKhuModalOpen && (
         <div className="fixed inset-0 bg-blue-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl p-6 md:p-8 w-full max-w-3xl transform transition-all overflow-y-auto max-h-[90vh]">
@@ -773,7 +767,6 @@ export default function AdminPage() {
         </div>
       )}
 
-      {/* POPUP BÁO TRÙNG LẶP DỮ LIỆU ĐÃ FIX HIỆU ỨNG DISABLED */}
       {duplicateWarning && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md text-center animate-fade-in-up">
@@ -793,7 +786,6 @@ export default function AdminPage() {
 
              <div className="flex gap-3">
                <button onClick={() => setDuplicateWarning(null)} disabled={isUploading} className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-lg font-bold hover:bg-gray-200 disabled:opacity-50">Hủy bỏ</button>
-               {/* Khóa nút ngay khi bấm và hiện "Đang lưu..." để chống click liên tục */}
                <button onClick={() => { setSkipDupCheck(true); executeSave(); }} disabled={isUploading} className="flex-1 bg-red-600 text-white py-3 rounded-lg font-bold shadow-lg hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed">
                  {isUploading ? 'Đang lưu...' : 'Vẫn lưu bài mới'}
                </button>

@@ -4,10 +4,11 @@ import { db } from '../../../firebase';
 import { doc, getDoc, collection, query, orderBy, getDocs, addDoc, serverTimestamp, where, limit } from 'firebase/firestore';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
+// Import thư viện vẽ ảnh
+import html2canvas from 'html2canvas';
 
 const optimizeImg = (url) => url?.includes('cloudinary.com') ? url.replace('/upload/', '/upload/w_1000,c_limit,q_auto,f_auto/') : url;
 
-// HÀM CHUYỂN TÊN PHÂN KHU THÀNH ĐƯỜNG LINK (Ví dụ: "Sola Park" -> "sola-park")
 const slugify = (text) => {
   if(!text) return '';
   return text.toLowerCase().trim().replace(/[\s\W-]+/g, '-');
@@ -68,6 +69,10 @@ export default function PropertyDetail() {
   const [isSendingFind, setIsSendingFind] = useState(false);
   const [findPhoneError, setFindPhoneError] = useState('');
   const [findData, setFindData] = useState({ nhuCau: 'Cho thuê', loaiCan: 'Studio', taiChinh: '', noiThat: 'Đầy đủ nội thất', ngayVaoO: '', soDienThoai: '', ghiChu: '', ten: '' });
+
+  // STATE TẠO ẢNH POSTER
+  const posterRef = useRef(null);
+  const [isGeneratingPoster, setIsGeneratingPoster] = useState(false);
 
   const CONTACT_PHONE = "0912791925";
 
@@ -166,6 +171,36 @@ export default function PropertyDetail() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  // HÀM TẠO ẢNH POSTER ĐỂ ĐĂNG FACEBOOK
+  const handleDownloadPoster = async () => {
+    if (!posterRef.current) return;
+    setIsGeneratingPoster(true);
+    
+    // Đợi 1 chút để component ảo hiển thị lên màn hình trước khi chụp
+    setTimeout(async () => {
+      try {
+        const canvas = await html2canvas(posterRef.current, {
+          scale: 2, // Chụp độ nét cao
+          useCORS: true, // Cho phép tải ảnh chéo từ Cloudinary
+          backgroundColor: "#ffffff",
+        });
+        
+        // Tạo link tải file
+        const image = canvas.toDataURL("image/png");
+        const link = document.createElement('a');
+        link.href = image;
+        link.download = `Can-Ho-${property.maCan}-${property.phanKhu}.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } catch (error) {
+        console.error("Lỗi tạo ảnh:", error);
+        alert("Lỗi tạo ảnh, vui lòng tải lại trang và thử lại!");
+      }
+      setIsGeneratingPoster(false);
+    }, 100);
+  };
+
   const scrollSimilar = (direction) => {
     if (scrollRef.current) {
       const { current } = scrollRef;
@@ -176,12 +211,8 @@ export default function PropertyDetail() {
 
   const checkSpam = () => {
     const lastSent = localStorage.getItem('lastFormSubmit');
-    if (lastSent && Date.now() - parseInt(lastSent) < 60000) {
-      alert('Vui lòng đợi 1 phút trước khi gửi yêu cầu tiếp theo!');
-      return false;
-    }
-    localStorage.setItem('lastFormSubmit', Date.now());
-    return true;
+    if (lastSent && Date.now() - parseInt(lastSent) < 60000) { alert('Vui lòng đợi 1 phút trước khi gửi yêu cầu tiếp theo!'); return false; }
+    localStorage.setItem('lastFormSubmit', Date.now()); return true;
   };
 
   const handleFindSubmit = async (e) => {
@@ -193,8 +224,7 @@ export default function PropertyDetail() {
 
     try { await addDoc(collection(db, 'nho_tim_can'), { ...findData, source: 'Trang Chi Tiết Căn', createdAt: serverTimestamp(), status: 'Chưa xử lý' }); } catch(err) {}
 
-    const BOT_TOKEN = "7295171731:AAEUgA3z1y3D6o_cK8t6W42aXfN-6I"; 
-    const CHAT_ID = "6190858172";
+    const BOT_TOKEN = "7295171731:AAEUgA3z1y3D6o_cK8t6W42aXfN-6I"; const CHAT_ID = "6190858172";
     if (BOT_TOKEN && CHAT_ID) {
       const message = `🚨 <b>KHÁCH TÌM CĂN MỚI!</b>\n\n👤 <b>Tên khách:</b> ${findData.ten || 'Chưa nhập'}\n📌 <b>Nhu cầu:</b> ${findData.nhuCau}\n🛏 <b>Loại căn:</b> ${findData.loaiCan}\n💰 <b>Tài chính:</b> ${findData.taiChinh}\n🛋 <b>Nội thất:</b> ${findData.noiThat}\n📅 <b>Vào ở:</b> ${findData.nhuCau === 'Cho thuê' ? findData.ngayVaoO || 'Chưa rõ' : 'N/A'}\n📞 <b>SĐT Khách:</b> <code>${findData.soDienThoai}</code>\n📝 <b>Yêu cầu thêm:</b> ${findData.ghiChu || 'Không có'}`;
       try { await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: CHAT_ID, text: message, parse_mode: 'HTML' }) }); } catch (error) {}
@@ -228,11 +258,13 @@ export default function PropertyDetail() {
 
   const displayId = property.maCan || property.id.substring(0, 5).toUpperCase();
   const titleString = `${property.listingType === 'Cho thuê' ? 'Cho thuê' : 'Bán'} căn hộ ${property.loaiCan || property.type}, tòa ${property.toaNha || property.building}, phân khu ${property.phanKhu}`;
+  
+  // Link rút gọn để tạo mã QR Code (tùy chỉnh lại link vercel của bạn)
+  const qrLink = `https://quycan-smartcity.vercel.app/property/${property.id}`;
 
-  // ĐÃ SỬA: Chữ "Vào luôn" trở về màu thường và font thường
   const specs = property.listingType === 'Cho thuê' ? [
     { label: 'Loại căn', val: property.loaiCan || property.type, icon: '🏠' },
-    { label: 'Diện tích', val: `${property.area} m²`, icon: '📐' },
+    { label: 'Diện tích', val: `${property.area || 0} m²`, icon: '📐' },
     { label: 'Tòa nhà', val: `Tòa ${property.toaNha || property.building}`, icon: '🏢' },
     { label: 'Phân khu', val: property.phanKhu, icon: '📍' },
     { label: 'Khoảng tầng', val: property.khoangTang, icon: '🏢' },
@@ -242,7 +274,7 @@ export default function PropertyDetail() {
     { label: 'Phí dịch vụ', val: pkConfig.phi || 'Đang cập nhật', icon: '💰' },
   ] : [
     { label: 'Loại căn', val: property.loaiCan || property.type, icon: '🏠' },
-    { label: 'Diện tích', val: `${property.area} m²`, icon: '📐' },
+    { label: 'Diện tích', val: `${property.area || 0} m²`, icon: '📐' },
     { label: 'Tòa nhà', val: `Tòa ${property.toaNha || property.building}`, icon: '🏢' },
     { label: 'Phân khu', val: property.phanKhu, icon: '📍' },
     { label: 'Khoảng tầng', val: property.khoangTang, icon: '🏢' },
@@ -254,11 +286,78 @@ export default function PropertyDetail() {
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-800 flex flex-col relative pb-20 md:pb-0">
+      
+      {/* 1. COMPONENT ẢO: TẤM POSTER ĐỂ LƯU ẢNH (Bình thường sẽ ẩn đi) */}
+      <div 
+        className={`${isGeneratingPoster ? 'fixed top-[200vh] left-0 block' : 'hidden'} bg-white border border-gray-200 shadow-2xl`} 
+        style={{ width: '1200px', height: '630px', zIndex: -9999 }} // Tỉ lệ ngang chuẩn Facebook
+        ref={posterRef}
+      >
+        <div className="flex w-full h-full bg-blue-900 overflow-hidden">
+           {/* Cột trái: Ảnh căn hộ (Chiếm 60%) */}
+           <div className="w-[60%] h-full relative">
+              <img crossOrigin="anonymous" src={optimizeImg(images[0] || '/banner.jpg')} alt="Cover" className="w-full h-full object-cover" />
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent to-blue-900/90"></div>
+              {property.nhanDan && property.nhanDan !== 'Không có' && (
+                <div className="absolute top-6 left-6 bg-red-600 text-white px-5 py-2 rounded-lg text-lg font-black uppercase shadow-lg border-2 border-red-400">🔥 {property.nhanDan}</div>
+              )}
+           </div>
+
+           {/* Cột phải: Thông tin (Chiếm 40%) */}
+           <div className="w-[40%] h-full bg-blue-900 text-white p-10 flex flex-col justify-between border-l-4 border-yellow-400 relative">
+              {/* Vệt trang trí */}
+              <div className="absolute top-0 right-0 w-32 h-32 bg-blue-800 rounded-bl-full opacity-50"></div>
+              
+              <div>
+                <p className="text-yellow-400 font-black tracking-[0.2em] text-sm mb-2 uppercase">Vinhomes Smart City</p>
+                <h1 className="text-4xl font-extrabold mb-8 leading-tight tracking-tight drop-shadow-md">
+                  {property.listingType === 'Chuyển nhượng' ? 'BÁN' : 'CHO THUÊ'} CĂN HỘ<br/><span className="text-5xl text-blue-200">{property.loaiCan || property.type}</span>
+                </h1>
+                
+                <div className="space-y-4">
+                  <div className="flex items-center gap-4 bg-blue-800/50 p-3 rounded-xl border border-blue-700/50 backdrop-blur-sm">
+                    <span className="text-3xl w-10 text-center">📍</span>
+                    <div><p className="text-xs text-blue-200 font-bold uppercase">Vị trí</p><p className="text-lg font-bold">Tòa {property.toaNha} - Khu {property.phanKhu}</p></div>
+                  </div>
+                  <div className="flex items-center gap-4 bg-blue-800/50 p-3 rounded-xl border border-blue-700/50 backdrop-blur-sm">
+                    <span className="text-3xl w-10 text-center">📐</span>
+                    <div><p className="text-xs text-blue-200 font-bold uppercase">Diện tích</p><p className="text-lg font-bold">{property.area || 0} m²</p></div>
+                  </div>
+                  <div className="flex items-center gap-4 bg-blue-800/50 p-3 rounded-xl border border-blue-700/50 backdrop-blur-sm">
+                    <span className="text-3xl w-10 text-center">🛋️</span>
+                    <div><p className="text-xs text-blue-200 font-bold uppercase">Nội thất</p><p className="text-lg font-bold line-clamp-1">{property.noiThat}</p></div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-8">
+                <p className="text-sm font-bold text-blue-200 uppercase tracking-widest mb-1">Mức giá</p>
+                <div className="flex items-baseline gap-2">
+                   <span className="text-7xl font-black text-yellow-400 drop-shadow-lg">{property.price}</span>
+                   <span className="text-3xl font-bold text-yellow-500">{property.listingType === 'Chuyển nhượng' ? 'Tỷ' : 'Tr/tháng'}</span>
+                </div>
+              </div>
+
+              <div className="mt-auto pt-6 border-t border-blue-800 flex justify-between items-center bg-blue-950/50 p-4 rounded-xl backdrop-blur-md">
+                 <div>
+                    <p className="text-[10px] text-blue-300 font-bold uppercase tracking-wider mb-1">Mời xem chi tiết tại web & Gọi tư vấn:</p>
+                    <p className="text-2xl font-black text-white flex items-center gap-2">📞 0912.791.925</p>
+                 </div>
+                 {/* QR CODE DẪN THẲNG VỀ CĂN NÀY TRÊN WEB */}
+                 <div className="bg-white p-2 rounded-lg shadow-xl shrink-0">
+                    <img crossOrigin="anonymous" src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(qrLink)}&bgcolor=ffffff&color=1e3a8a`} className="w-16 h-16" alt="QR Code" />
+                 </div>
+              </div>
+           </div>
+        </div>
+      </div>
+      {/* END COMPONENT ẢO */}
+
       <header className="bg-white sticky top-0 z-50 px-4 md:px-8 py-3 flex justify-between items-center shadow-sm">
         <Link href="/" onClick={clearFilterCacheAndReset} className="flex items-center hover:opacity-80 transition"><img src="/logo.png" alt="Quỹ Căn Smart City" className="h-10 md:h-12 w-auto object-contain" /></Link>
         <div className="flex items-center gap-3 md:gap-4">
            <Link href="/ky-gui" className="hidden md:flex items-center gap-1.5 bg-blue-50 text-blue-800 px-4 py-2 rounded-md font-bold hover:bg-blue-100 transition text-sm border border-blue-100"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 001 1m-6 0h6"></path></svg> Ký gửi căn hộ</Link>
-           <a href={`tel:${CONTACT_PHONE}`} className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-800 text-white px-5 py-2 rounded-full font-bold hover:opacity-90 transition shadow-md text-sm"><svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M20 15.5c-1.2 0-2.4-.2-3.6-.6-.3-.1-.7 0-1 .2l-2.2 2.2c-2.8-1.4-5.1-3.8-6.6-6.6l2.2-2.2c.3-.3.4-.7.2-1-.4-1.2-.6-2.4-.6-3.6 0-.6-.4-1-1-1H4c-.6 0-1 .4-1 1 0 9.4 7.6 17 17 17 .6 0 1-.4 1-1v-3.5c0-.6-.4-1-1-1zM19 12h2a9 9 0 00-9-9v2c3.9 0 7.1 3.2 7.1 7.1zM15 12h2c0-2.8-2.2-5-5-5v2c1.7 0 3 1.3 3 3z"/></svg> <span className="hidden sm:inline">Liên hệ tư vấn</span><span className="sm:hidden">Liên hệ</span></a>
+           <a href={`tel:${CONTACT_PHONE}`} className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-800 text-white px-5 py-2 rounded-full font-bold hover:opacity-90 transition shadow-md text-sm"><span className="hidden sm:inline">Liên hệ tư vấn</span><span className="sm:hidden">Liên hệ</span></a>
         </div>
       </header>
 
@@ -273,7 +372,18 @@ export default function PropertyDetail() {
       )}
 
       <main className="max-w-[1200px] mx-auto px-4 md:px-8 py-8 flex-grow w-full">
-        <Link href="/" className="inline-flex items-center text-sm font-bold text-blue-900 hover:text-blue-700 mb-6 transition"><span className="mr-2">←</span> Quay lại danh sách</Link>
+        <div className="flex justify-between items-center mb-6">
+          <Link href="/" className="inline-flex items-center text-sm font-bold text-blue-900 hover:text-blue-700 transition"><span className="mr-2">←</span> Quay lại danh sách</Link>
+          
+          {/* NÚT TẠO ẢNH SHARE */}
+          <button onClick={handleDownloadPoster} disabled={isGeneratingPoster} className="flex items-center gap-2 bg-gradient-to-r from-blue-700 to-blue-900 hover:from-blue-800 hover:to-blue-950 text-white px-5 py-2.5 rounded-full font-bold shadow-md shadow-blue-900/20 transition disabled:opacity-50 text-sm">
+             {isGeneratingPoster ? (
+                <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> Đang vẽ ảnh...</>
+             ) : (
+                <><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg> Tải Ảnh Đăng FB</>
+             )}
+          </button>
+        </div>
 
         <div className="flex flex-col lg:flex-row gap-8 items-start">
           <div className="flex-1 w-full min-w-0">
@@ -287,7 +397,7 @@ export default function PropertyDetail() {
               <div className="relative h-[400px] md:h-[500px] bg-gray-200 group cursor-zoom-in" onClick={() => { setLightboxImg(currentImg); setIsLightboxOpen(true); }}>
                 {images.length > 0 ? (
                   <>
-                    <img src={optimizeImg(images[currentImg])} alt="Căn hộ" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.02]" />
+                    <img crossOrigin="anonymous" src={optimizeImg(images[currentImg])} alt="Căn hộ" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.02]" />
                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition flex items-center justify-center">
                        <svg className="w-12 h-12 text-white opacity-0 group-hover:opacity-100 transition shadow-sm drop-shadow-md" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"></path></svg>
                     </div>
@@ -307,7 +417,7 @@ export default function PropertyDetail() {
                 <div className="flex-1 flex gap-2 overflow-x-auto hide-scrollbar snap-x">
                   {images.map((img, idx) => (
                     <div key={idx} onClick={() => setCurrentImg(idx)} className={`snap-center flex-shrink-0 w-24 h-16 rounded-md cursor-pointer overflow-hidden border-2 transition-all ${currentImg === idx ? 'border-blue-600 shadow-md scale-105' : 'border-transparent opacity-60 hover:opacity-100'}`}>
-                      <img src={optimizeImg(img)} loading="lazy" className="w-full h-full object-cover" />
+                      <img crossOrigin="anonymous" src={optimizeImg(img)} loading="lazy" className="w-full h-full object-cover" />
                     </div>
                   ))}
                   {images.length === 0 && <div className="text-sm text-gray-400 flex items-center px-4 w-full h-16">Chưa có ảnh chi tiết</div>}
@@ -335,7 +445,7 @@ export default function PropertyDetail() {
                  </div>
                  <button onClick={handleShare} className="flex items-center gap-1.5 text-blue-600 hover:text-blue-800 font-semibold text-sm transition bg-blue-50 hover:bg-blue-100 px-4 py-2 rounded-full shadow-sm">
                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path></svg>
-                   Chia sẻ
+                   Chia sẻ Link
                  </button>
               </div>
             </div>
@@ -356,7 +466,6 @@ export default function PropertyDetail() {
               </ul>
             </div>
 
-            {/* CLICK ĐỂ NHẢY SANG TRANG PHÂN KHU RIÊNG (NẾU ĐÃ NHẬP DỮ LIỆU) */}
             {(pkConfig.tongQuan || pkConfig.uuDiem) && (
               <div className="bg-blue-50/50 rounded-2xl p-6 md:p-8 border border-blue-100 mb-8 hover:bg-blue-100/50 transition duration-300">
                 <Link href={`/phan-khu/${slugify(property.phanKhu)}`} className="block group cursor-pointer">
