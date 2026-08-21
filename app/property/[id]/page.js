@@ -169,6 +169,7 @@ export default function PropertyDetail() {
       }
       
       const qrLink = `https://quycan-smartcity.vercel.app/property/${property.id}`;
+      // Mã QR nền trắng nét căng
       const qrUrl = `https://quickchart.io/qr?text=${encodeURIComponent(qrLink)}&size=150&dark=1e3a8a`;
       fetch(qrUrl)
         .then(res => res.blob())
@@ -307,12 +308,15 @@ export default function PropertyDetail() {
   return (
     <div className="min-h-screen bg-gray-50 text-gray-800 flex flex-col relative pb-20 md:pb-0 overflow-x-hidden">
       
-      {/* KHU VỰC POSTER - THIẾT KẾ DÙNG ICON TRỰC QUAN (MINIMALIST) */}
+      {/* KHU VỰC POSTER - LỘT XÁC TOÀN DIỆN */}
       <div 
         className={`fixed top-0 block ${isGeneratingPoster ? 'left-0' : '-left-[9999px]'}`} 
-        style={{ width: '1200px', height: '630px', zIndex: -9000, backgroundColor: '#ffffff', fontFamily: 'sans-serif' }} 
+        style={{ width: '1200px', height: '630px', zIndex: -9000, backgroundColor: '#ffffff', fontFamily: '"Montserrat", system-ui, -apple-system, sans-serif' }} 
         ref={posterRef}
       >
+        {/* Nhúng Font Montserrat từ Google để chữ tròn, đẹp và sang trọng */}
+        <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;700;800;900&display=swap" rel="stylesheet" />
+        
         <div style={{ display: 'flex', width: '100%', height: '100%', backgroundColor: '#ffffff', overflow: 'hidden' }}>
            
            {/* CỘT TRÁI (ẢNH 50%) */}
@@ -328,49 +332,92 @@ export default function PropertyDetail() {
            {/* CỘT PHẢI (THÔNG TIN 50%) */}
            <div style={{ width: '50%', height: '100%', display: 'flex', flexDirection: 'column', boxSizing: 'border-box', padding: '40px 50px' }}>
               
-              {/* Tiêu đề & Loại căn */}
+              {/* Tiêu đề & Loại căn - ÉP TRÊN 1 DÒNG */}
               <div style={{ marginBottom: '30px' }}>
-                <p style={{ color: '#d97706', fontWeight: 800, letterSpacing: '0.15em', fontSize: '1rem', marginBottom: '8px', textTransform: 'uppercase', margin: '0 0 10px 0' }}>Vinhomes Smart City</p>
-                <h1 style={{ fontSize: '2.5rem', fontWeight: 900, color: '#1e3a8a', lineHeight: 1.2, margin: 0, textTransform: 'uppercase' }}>
-                  {property.listingType === 'Chuyển nhượng' ? 'BÁN' : 'CHO THUÊ'} CĂN HỘ<br/>
-                  <span style={{ fontSize: '3.5rem', color: '#1d4ed8' }}>{property.loaiCan || property.type}</span>
+                <p style={{ color: '#d97706', fontWeight: 800, letterSpacing: '0.15em', fontSize: '0.875rem', marginBottom: '8px', textTransform: 'uppercase', margin: '0 0 10px 0' }}>Vinhomes Smart City</p>
+                <h1 style={{ fontSize: '32px', fontWeight: 900, color: '#1e3a8a', lineHeight: 1.2, margin: 0, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
+                  {property.listingType === 'Chuyển nhượng' ? 'BÁN' : 'CHO THUÊ'} CĂN HỘ <span style={{ color: '#2563eb' }}>{property.loaiCan || property.type}</span>
                 </h1>
               </div>
 
-              {/* Lưới Thông tin thay thế bằng ICON nổi bật */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginBottom: 'auto' }}>
-                {/* Dòng 1: Vị trí */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                  <div style={{ width: '45px', height: '45px', backgroundColor: '#eff6ff', borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center', fontSize: '1.5rem', flexShrink: 0 }}>📍</div>
-                  <p style={{ fontSize: '1.4rem', fontWeight: 700, color: '#1e3a8a', margin: 0 }}>Tòa {property.toaNha} - {property.phanKhu}</p>
+              {/* Lưới Thông tin CHIA 2 CỘT GỌN GÀNG (Sử dụng Icon SVG chuyên nghiệp) */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: 'auto' }}>
+                
+                {/* Dòng 1 - Cột 1: Tòa nhà */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{ width: '40px', height: '40px', backgroundColor: '#eff6ff', borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center', color: '#2563eb', flexShrink: 0 }}>
+                    <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                  </div>
+                  <div style={{ overflow: 'hidden' }}>
+                     <p style={{ fontSize: '11px', color: '#6b7280', fontWeight: 700, textTransform: 'uppercase', margin: '0 0 2px 0' }}>Tòa nhà</p>
+                     <p style={{ fontSize: '15px', fontWeight: 800, color: '#1e3a8a', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Tòa {property.toaNha}</p>
+                  </div>
                 </div>
-                {/* Dòng 2: Diện tích */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                  <div style={{ width: '45px', height: '45px', backgroundColor: '#eff6ff', borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center', fontSize: '1.5rem', flexShrink: 0 }}>📐</div>
-                  <p style={{ fontSize: '1.4rem', fontWeight: 700, color: '#1e3a8a', margin: 0 }}>{property.area || 0} m²</p>
+
+                {/* Dòng 1 - Cột 2: Phân khu */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{ width: '40px', height: '40px', backgroundColor: '#eff6ff', borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center', color: '#2563eb', flexShrink: 0 }}>
+                    <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+                  </div>
+                  <div style={{ overflow: 'hidden' }}>
+                     <p style={{ fontSize: '11px', color: '#6b7280', fontWeight: 700, textTransform: 'uppercase', margin: '0 0 2px 0' }}>Phân khu</p>
+                     <p style={{ fontSize: '15px', fontWeight: 800, color: '#1e3a8a', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{property.phanKhu}</p>
+                  </div>
                 </div>
-                {/* Dòng 3: Nội thất */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                  <div style={{ width: '45px', height: '45px', backgroundColor: '#eff6ff', borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center', fontSize: '1.5rem', flexShrink: 0 }}>🛋️</div>
-                  <p style={{ fontSize: '1.4rem', fontWeight: 700, color: '#1e3a8a', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '380px' }}>{property.noiThat}</p>
+
+                {/* Dòng 2 - Cột 1: Diện tích */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{ width: '40px', height: '40px', backgroundColor: '#eff6ff', borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center', color: '#2563eb', flexShrink: 0 }}>
+                    <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M4 4h16v16H4zM4 12h16M12 4v16"/></svg>
+                  </div>
+                  <div style={{ overflow: 'hidden' }}>
+                     <p style={{ fontSize: '11px', color: '#6b7280', fontWeight: 700, textTransform: 'uppercase', margin: '0 0 2px 0' }}>Diện tích</p>
+                     <p style={{ fontSize: '15px', fontWeight: 800, color: '#1e3a8a', margin: 0 }}>{property.area || 0} m²</p>
+                  </div>
+                </div>
+
+                {/* Dòng 2 - Cột 2: Nội thất */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{ width: '40px', height: '40px', backgroundColor: '#eff6ff', borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center', color: '#2563eb', flexShrink: 0 }}>
+                    <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M3 12h18M5 12V6a2 2 0 012-2h10a2 2 0 012 2v6M8 21v-4m8 4v-4M4 21v-2m16 2v-2"/></svg>
+                  </div>
+                  <div style={{ overflow: 'hidden' }}>
+                     <p style={{ fontSize: '11px', color: '#6b7280', fontWeight: 700, textTransform: 'uppercase', margin: '0 0 2px 0' }}>Nội thất</p>
+                     <p style={{ fontSize: '15px', fontWeight: 800, color: '#1e3a8a', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{property.noiThat}</p>
+                  </div>
                 </div>
               </div>
 
-              {/* Mức Giá khổng lồ (Kèm Icon tiền) */}
-              <div style={{ marginBottom: '25px', display: 'flex', alignItems: 'baseline', gap: '12px' }}>
-                 <div style={{ width: '45px', height: '45px', backgroundColor: '#fef3c7', borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center', fontSize: '1.5rem', alignSelf: 'center', flexShrink: 0 }}>💰</div>
-                 <span style={{ fontSize: '4.5rem', fontWeight: 900, color: '#dc2626', lineHeight: 1 }}>{property.price}</span>
-                 <span style={{ fontSize: '1.75rem', fontWeight: 800, color: '#ef4444' }}>{property.listingType === 'Chuyển nhượng' ? 'Tỷ' : 'Tr/tháng'}</span>
-              </div>
-
-              {/* Dải băng Chân trang chứa Hotline & QR (Được bo cong hiện đại) */}
-              <div style={{ backgroundColor: '#1e3a8a', padding: '20px 30px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderRadius: '16px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}>
-                 <div>
-                    <p style={{ fontSize: '12px', color: '#bfdbfe', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 5px 0' }}>Mời xem chi tiết & Gọi tư vấn:</p>
-                    <p style={{ fontSize: '1.75rem', fontWeight: 900, color: '#ffffff', margin: 0 }}>📞 0912.791.925</p>
+              {/* Mức Giá Nổi Bật (Màu Vàng Đồng, Căn Chân Chữ) */}
+              <div style={{ marginBottom: '20px' }}>
+                 <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
+                    <span style={{ fontSize: '64px', fontWeight: 900, color: '#d97706', lineHeight: 1 }}>{property.price}</span>
+                    <span style={{ fontSize: '24px', fontWeight: 800, color: '#b45309' }}>{property.listingType === 'Chuyển nhượng' ? 'Tỷ' : 'Tr/tháng'}</span>
                  </div>
-                 <div style={{ backgroundColor: '#ffffff', padding: '6px', borderRadius: '8px' }}>
-                    {qrBase64 ? <img src={qrBase64} style={{ width: '65px', height: '65px', display: 'block' }} alt="QR Code" /> : <div style={{ width: '65px', height: '65px', backgroundColor: '#e5e7eb' }}></div>}
+              </div>
+
+              {/* CHÂN TRANG MỚI: TẬP TRUNG TOÀN BỘ VÀO QR CODE VÀ CALL-TO-ACTION */}
+              <div style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '16px', padding: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                 
+                 {/* Cột trái chân trang: Text kêu gọi hành động + Hotline thu nhỏ */}
+                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxWidth: '60%' }}>
+                    <p style={{ fontSize: '16px', fontWeight: 800, color: '#1e3a8a', margin: 0, lineHeight: 1.4, textTransform: 'uppercase' }}>
+                      👉 Quét mã QR để xem<br/>thêm quỹ căn độc quyền
+                    </p>
+                    {/* Hotline nhỏ, khiêm tốn */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '10px' }}>
+                      <svg width="14" height="14" fill="none" stroke="#6b7280" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
+                      <span style={{ fontSize: '12px', color: '#6b7280', fontWeight: 600 }}>Tư vấn viên: 0912.791.925</span>
+                    </div>
+                 </div>
+
+                 {/* Cột phải chân trang: QR to + Link web tạo uy tín */}
+                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
+                    <div style={{ backgroundColor: '#ffffff', padding: '4px', borderRadius: '8px', border: '2px solid #3b82f6', boxShadow: '0 4px 6px -1px rgba(59, 130, 246, 0.2)' }}>
+                      {qrBase64 ? <img src={qrBase64} style={{ width: '110px', height: '110px', display: 'block' }} alt="QR Code" /> : <div style={{ width: '110px', height: '110px', backgroundColor: '#e5e7eb' }}></div>}
+                    </div>
+                    {/* Link web bên dưới để khách tin tưởng */}
+                    <span style={{ fontSize: '11px', color: '#2563eb', fontWeight: 800 }}>quycan-smartcity.vercel.app</span>
                  </div>
               </div>
 
