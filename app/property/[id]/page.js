@@ -169,7 +169,6 @@ export default function PropertyDetail() {
       }
       
       const qrLink = `https://quycan-smartcity.vercel.app/property/${property.id}`;
-      // Mã QR màu xanh đồng bộ chân trang
       const qrUrl = `https://quickchart.io/qr?text=${encodeURIComponent(qrLink)}&size=150&dark=1e3a8a`;
       fetch(qrUrl)
         .then(res => res.blob())
@@ -308,7 +307,7 @@ export default function PropertyDetail() {
   return (
     <div className="min-h-screen bg-gray-50 text-gray-800 flex flex-col relative pb-20 md:pb-0 overflow-x-hidden">
       
-      {/* KHU VỰC POSTER THIẾT KẾ MỚI TỐI GIẢN - PHƯƠNG ÁN A */}
+      {/* KHU VỰC POSTER - THIẾT KẾ DÙNG ICON TRỰC QUAN (MINIMALIST) */}
       <div 
         className={`fixed top-0 block ${isGeneratingPoster ? 'left-0' : '-left-[9999px]'}`} 
         style={{ width: '1200px', height: '630px', zIndex: -9000, backgroundColor: '#ffffff', fontFamily: 'sans-serif' }} 
@@ -316,7 +315,7 @@ export default function PropertyDetail() {
       >
         <div style={{ display: 'flex', width: '100%', height: '100%', backgroundColor: '#ffffff', overflow: 'hidden' }}>
            
-           {/* CỘT TRÁI (ẢNH 50%) - KHÔNG CÓ VIỀN MỜ XANH */}
+           {/* CỘT TRÁI (ẢNH 50%) */}
            <div style={{ width: '50%', height: '100%', position: 'relative' }}>
               <img src={coverBase64} alt="Cover" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               {property.nhanDan && property.nhanDan !== 'Không có' && (
@@ -326,50 +325,52 @@ export default function PropertyDetail() {
               )}
            </div>
 
-           {/* CỘT PHẢI (THÔNG TIN 50%) - NỀN TRẮNG SẠCH SẼ */}
-           <div style={{ width: '50%', height: '100%', display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }}>
+           {/* CỘT PHẢI (THÔNG TIN 50%) */}
+           <div style={{ width: '50%', height: '100%', display: 'flex', flexDirection: 'column', boxSizing: 'border-box', padding: '40px 50px' }}>
               
-              <div style={{ padding: '50px 50px 30px 50px', flex: 1, display: 'flex', flexDirection: 'column' }}>
-                <p style={{ color: '#6b7280', fontWeight: 800, letterSpacing: '0.15em', fontSize: '1rem', marginBottom: '12px', textTransform: 'uppercase' }}>Vinhomes Smart City</p>
-                <h1 style={{ fontSize: '2.5rem', fontWeight: 900, color: '#1e3a8a', marginBottom: '30px', lineHeight: 1.3, margin: 0 }}>
+              {/* Tiêu đề & Loại căn */}
+              <div style={{ marginBottom: '30px' }}>
+                <p style={{ color: '#d97706', fontWeight: 800, letterSpacing: '0.15em', fontSize: '1rem', marginBottom: '8px', textTransform: 'uppercase', margin: '0 0 10px 0' }}>Vinhomes Smart City</p>
+                <h1 style={{ fontSize: '2.5rem', fontWeight: 900, color: '#1e3a8a', lineHeight: 1.2, margin: 0, textTransform: 'uppercase' }}>
                   {property.listingType === 'Chuyển nhượng' ? 'BÁN' : 'CHO THUÊ'} CĂN HỘ<br/>
-                  <span style={{ fontSize: '3.5rem', color: '#2563eb' }}>{property.loaiCan || property.type}</span>
+                  <span style={{ fontSize: '3.5rem', color: '#1d4ed8' }}>{property.loaiCan || property.type}</span>
                 </h1>
-                
-                {/* Lưới Thông tin tối giản */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '20px', marginBottom: 'auto' }}>
-                  <div style={{ borderBottom: '1px solid #e5e7eb', paddingBottom: '12px' }}>
-                    <p style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: 700, textTransform: 'uppercase', margin: '0 0 4px 0' }}>Vị trí</p>
-                    <p style={{ fontSize: '1.25rem', fontWeight: 800, color: '#111827', margin: 0 }}>Tòa {property.toaNha} - Khu {property.phanKhu}</p>
-                  </div>
-                  <div style={{ borderBottom: '1px solid #e5e7eb', paddingBottom: '12px' }}>
-                    <p style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: 700, textTransform: 'uppercase', margin: '0 0 4px 0' }}>Diện tích</p>
-                    <p style={{ fontSize: '1.25rem', fontWeight: 800, color: '#111827', margin: 0 }}>{property.area || 0} m²</p>
-                  </div>
-                  <div style={{ borderBottom: '1px solid #e5e7eb', paddingBottom: '12px' }}>
-                    <p style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: 700, textTransform: 'uppercase', margin: '0 0 4px 0' }}>Nội thất</p>
-                    <p style={{ fontSize: '1.25rem', fontWeight: 800, color: '#111827', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{property.noiThat}</p>
-                  </div>
-                </div>
+              </div>
 
-                {/* Mức Giá nổi bật */}
-                <div style={{ marginTop: '30px' }}>
-                  <p style={{ fontSize: '1rem', fontWeight: 800, color: '#6b7280', textTransform: 'uppercase', margin: '0 0 8px 0' }}>Mức giá</p>
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '12px' }}>
-                     <span style={{ fontSize: '5rem', fontWeight: 900, color: '#dc2626', lineHeight: 1 }}>{property.price}</span>
-                     <span style={{ fontSize: '2rem', fontWeight: 800, color: '#ef4444' }}>{property.listingType === 'Chuyển nhượng' ? 'Tỷ' : 'Tr/tháng'}</span>
-                  </div>
+              {/* Lưới Thông tin thay thế bằng ICON nổi bật */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginBottom: 'auto' }}>
+                {/* Dòng 1: Vị trí */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                  <div style={{ width: '45px', height: '45px', backgroundColor: '#eff6ff', borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center', fontSize: '1.5rem', flexShrink: 0 }}>📍</div>
+                  <p style={{ fontSize: '1.4rem', fontWeight: 700, color: '#1e3a8a', margin: 0 }}>Tòa {property.toaNha} - {property.phanKhu}</p>
+                </div>
+                {/* Dòng 2: Diện tích */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                  <div style={{ width: '45px', height: '45px', backgroundColor: '#eff6ff', borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center', fontSize: '1.5rem', flexShrink: 0 }}>📐</div>
+                  <p style={{ fontSize: '1.4rem', fontWeight: 700, color: '#1e3a8a', margin: 0 }}>{property.area || 0} m²</p>
+                </div>
+                {/* Dòng 3: Nội thất */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                  <div style={{ width: '45px', height: '45px', backgroundColor: '#eff6ff', borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center', fontSize: '1.5rem', flexShrink: 0 }}>🛋️</div>
+                  <p style={{ fontSize: '1.4rem', fontWeight: 700, color: '#1e3a8a', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '380px' }}>{property.noiThat}</p>
                 </div>
               </div>
 
-              {/* Dải băng Chân trang chứa Hotline & QR */}
-              <div style={{ backgroundColor: '#1e3a8a', padding: '30px 50px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              {/* Mức Giá khổng lồ (Kèm Icon tiền) */}
+              <div style={{ marginBottom: '25px', display: 'flex', alignItems: 'baseline', gap: '12px' }}>
+                 <div style={{ width: '45px', height: '45px', backgroundColor: '#fef3c7', borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center', fontSize: '1.5rem', alignSelf: 'center', flexShrink: 0 }}>💰</div>
+                 <span style={{ fontSize: '4.5rem', fontWeight: 900, color: '#dc2626', lineHeight: 1 }}>{property.price}</span>
+                 <span style={{ fontSize: '1.75rem', fontWeight: 800, color: '#ef4444' }}>{property.listingType === 'Chuyển nhượng' ? 'Tỷ' : 'Tr/tháng'}</span>
+              </div>
+
+              {/* Dải băng Chân trang chứa Hotline & QR (Được bo cong hiện đại) */}
+              <div style={{ backgroundColor: '#1e3a8a', padding: '20px 30px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderRadius: '16px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}>
                  <div>
-                    <p style={{ fontSize: '12px', color: '#bfdbfe', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 8px 0' }}>Mời xem chi tiết & Gọi tư vấn:</p>
+                    <p style={{ fontSize: '12px', color: '#bfdbfe', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 5px 0' }}>Mời xem chi tiết & Gọi tư vấn:</p>
                     <p style={{ fontSize: '1.75rem', fontWeight: 900, color: '#ffffff', margin: 0 }}>📞 0912.791.925</p>
                  </div>
-                 <div style={{ backgroundColor: '#ffffff', padding: '10px', borderRadius: '12px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}>
-                    {qrBase64 ? <img src={qrBase64} style={{ width: '80px', height: '80px', display: 'block' }} alt="QR Code" /> : <div style={{ width: '80px', height: '80px', backgroundColor: '#e5e7eb' }}></div>}
+                 <div style={{ backgroundColor: '#ffffff', padding: '6px', borderRadius: '8px' }}>
+                    {qrBase64 ? <img src={qrBase64} style={{ width: '65px', height: '65px', display: 'block' }} alt="QR Code" /> : <div style={{ width: '65px', height: '65px', backgroundColor: '#e5e7eb' }}></div>}
                  </div>
               </div>
 
