@@ -28,7 +28,11 @@ const PropertyCard = ({ item, contactPhone }) => {
   const [isHovering, setIsHovering] = useState(false);
   const images = item.images && item.images.length > 0 ? item.images : [];
   
-  // TÍNH NĂNG TỰ ĐỘNG CHUYỂN ẢNH KHI RÊ CHUỘT (HOVER SLIDESHOW)
+  // STATE CHO TÍNH NĂNG VUỐT CẢM ỨNG TRÊN MOBILE
+  const [touchStart, setTouchStart] = useState(null);
+  const [touchEnd, setTouchEnd] = useState(null);
+  const minSwipeDistance = 50;
+
   useEffect(() => {
     let timer;
     if (isHovering && images.length > 1) {
@@ -47,6 +51,28 @@ const PropertyCard = ({ item, contactPhone }) => {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  // HÀM XỬ LÝ VUỐT ẢNH
+  const onTouchStart = (e) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+  const onTouchMove = (e) => setTouchEnd(e.targetTouches[0].clientX);
+  const onTouchEnd = (e) => {
+    if (!touchStart || !touchEnd) return;
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > minSwipeDistance;
+    const isRightSwipe = distance < -minSwipeDistance;
+    
+    if (isLeftSwipe && images.length > 1) {
+      e.preventDefault(); e.stopPropagation();
+      setCurrentImg(prev => prev < images.length - 1 ? prev + 1 : 0);
+    }
+    if (isRightSwipe && images.length > 1) {
+      e.preventDefault(); e.stopPropagation();
+      setCurrentImg(prev => prev > 0 ? prev - 1 : images.length - 1);
+    }
+  };
+
   return (
     <Link 
       href={`/property/${item.id}`} 
@@ -54,9 +80,14 @@ const PropertyCard = ({ item, contactPhone }) => {
       onMouseLeave={() => {setIsHovering(false); setCurrentImg(0);}}
       className="block bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer group flex flex-col relative"
     >
-      <div className="relative h-56 bg-gray-200 overflow-hidden">
+      <div 
+        className="relative h-56 bg-gray-200 overflow-hidden"
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+      >
         {images.length > 0 ? (
-          <img src={optimizeImg(images[currentImg])} loading="lazy" alt={`Căn hộ ${item.loaiCan}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+          <img src={optimizeImg(images[currentImg])} loading="lazy" alt={`Căn hộ ${item.loaiCan}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 select-none" />
         ) : <div className="flex items-center justify-center h-full text-gray-400 text-sm">Chưa có ảnh</div>}
         
         {images.length > 1 && (

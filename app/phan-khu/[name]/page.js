@@ -22,6 +22,11 @@ const PropertyCard = ({ item, contactPhone }) => {
   const [isHovering, setIsHovering] = useState(false);
   const images = item.images && item.images.length > 0 ? item.images : [];
   
+  // STATE CHO TÍNH NĂNG VUỐT CẢM ỨNG TRÊN MOBILE
+  const [touchStart, setTouchStart] = useState(null);
+  const [touchEnd, setTouchEnd] = useState(null);
+  const minSwipeDistance = 50;
+
   useEffect(() => {
     let timer;
     if (isHovering && images.length > 1) {
@@ -35,11 +40,38 @@ const PropertyCard = ({ item, contactPhone }) => {
 
   const handleCopy = (e) => { e.preventDefault(); e.stopPropagation(); navigator.clipboard.writeText(item.maCan); setCopied(true); setTimeout(() => setCopied(false), 2000); };
 
+  // HÀM XỬ LÝ VUỐT ẢNH
+  const onTouchStart = (e) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+  const onTouchMove = (e) => setTouchEnd(e.targetTouches[0].clientX);
+  const onTouchEnd = (e) => {
+    if (!touchStart || !touchEnd) return;
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > minSwipeDistance;
+    const isRightSwipe = distance < -minSwipeDistance;
+    
+    if (isLeftSwipe && images.length > 1) {
+      e.preventDefault(); e.stopPropagation();
+      setCurrentImg(prev => prev < images.length - 1 ? prev + 1 : 0);
+    }
+    if (isRightSwipe && images.length > 1) {
+      e.preventDefault(); e.stopPropagation();
+      setCurrentImg(prev => prev > 0 ? prev - 1 : images.length - 1);
+    }
+  };
+
   return (
     <Link href={`/property/${item.id}`} onMouseEnter={() => setIsHovering(true)} onMouseLeave={() => {setIsHovering(false); setCurrentImg(0);}} className="block bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer group flex flex-col relative">
-      <div className="relative h-56 bg-gray-200 overflow-hidden">
+      <div 
+        className="relative h-56 bg-gray-200 overflow-hidden"
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+      >
         {images.length > 0 ? (
-          <img src={optimizeImg(images[currentImg])} loading="lazy" alt="Căn hộ" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+          <img src={optimizeImg(images[currentImg])} loading="lazy" alt="Căn hộ" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 select-none" />
         ) : <div className="flex items-center justify-center h-full text-gray-400 text-sm">Chưa có ảnh</div>}
         
         {images.length > 1 && (
@@ -301,7 +333,6 @@ export default function SubdivisionLandingPage() {
         )}
       </main>
 
-      {/* FOOTER ĐÃ ĐƯỢC ĐỒNG BỘ 100% VỚI TRANG KHÁCH CHÍNH */}
       <footer className="bg-white border-t border-gray-200 py-12 px-4 md:px-12 w-full mt-auto">
         <div className="max-w-[1400px] mx-auto grid grid-cols-1 md:grid-cols-2 gap-12 text-sm text-gray-600">
            <div className="md:pr-10">
@@ -386,7 +417,18 @@ export default function SubdivisionLandingPage() {
           </div>
         </div>
       )}
-      
+
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-3 flex gap-3 z-50 shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
+        <a href={`tel:${CONTACT_PHONE}`} className="flex-1 bg-blue-600 text-white flex justify-center items-center gap-2 py-3.5 rounded-xl font-bold text-sm shadow-md">
+           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg>
+           Gọi ngay
+        </a>
+        <a href={`https://zalo.me/${CONTACT_PHONE}?text=${encodeURIComponent(`Xin chào, tôi quan tâm các căn trên web.`)}`} target="_blank" rel="noreferrer" className="flex-1 bg-blue-50 border border-blue-200 text-blue-800 flex justify-center items-center gap-2 py-3.5 rounded-xl font-bold text-sm">
+           <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M20 15.5c-1.2 0-2.4-.2-3.6-.6-.3-.1-.7 0-1 .2l-2.2 2.2c-2.8-1.4-5.1-3.8-6.6-6.6l2.2-2.2c.3-.3.4-.7.2-1-.4-1.2-.6-2.4-.6-3.6 0-.6-.4-1-1-1H4c-.6 0-1 .4-1 1 0 9.4 7.6 17 17 17 .6 0 1-.4 1-1v-3.5c0-.6-.4-1-1-1zM19 12h2a9 9 0 00-9-9v2c3.9 0 7.1 3.2 7.1 7.1zM15 12h2c0-2.8-2.2-5-5-5v2c1.7 0 3 1.3 3 3z"/></svg>
+           Nhắn Zalo
+        </a>
+      </div>
+
       <style jsx global>{`
         .animate-fade-in-up { animation: fadeInUp 0.3s ease-out forwards; }
         @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
