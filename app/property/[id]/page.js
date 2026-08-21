@@ -64,7 +64,7 @@ export default function PropertyDetail() {
   const [lightboxImg, setLightboxImg] = useState(0);
   const [copied, setCopied] = useState(false);
 
-  // STATE ĐỂ LƯỚT ẢNH TRÊN MOBILE
+  // STATE ĐỂ LƯỚT ẢNH TRÊN MOBILE CHO TRANG CHI TIẾT
   const [touchStart, setTouchStart] = useState(null);
   const [touchEnd, setTouchEnd] = useState(null);
   const minSwipeDistance = 50;
@@ -243,6 +243,7 @@ export default function PropertyDetail() {
     localStorage.setItem('lastFormSubmit', Date.now()); return true;
   };
 
+  // ĐÃ BỔ SUNG AWAIT ĐỂ ĐẢM BẢO GỬI TELEGRAM THÀNH CÔNG RỒI MỚI ĐÓNG POPUP
   const handleFindSubmit = async (e) => {
     e.preventDefault();
     if (!checkSpam()) return;
@@ -262,22 +263,24 @@ export default function PropertyDetail() {
     alert("Đã gửi yêu cầu thành công! Chuyên viên An Ninh sẽ liên hệ Zalo anh/chị ngay nhé!");
   };
 
-  // CÁC HÀM XỬ LÝ LƯỚT ẢNH (SWIPE) TRÊN MOBILE
+  // HÀM XỬ LÝ VUỐT ẢNH CHO ẢNH CHÍNH
   const onTouchStart = (e) => {
     setTouchEnd(null);
     setTouchStart(e.targetTouches[0].clientX);
   };
   const onTouchMove = (e) => setTouchEnd(e.targetTouches[0].clientX);
-  const onTouchEnd = () => {
+  const onTouchEnd = (e) => {
+    if (!property || !property.images) return;
     if (!touchStart || !touchEnd) return;
     const distance = touchStart - touchEnd;
     const isLeftSwipe = distance > minSwipeDistance;
     const isRightSwipe = distance < -minSwipeDistance;
-    if (isLeftSwipe && images.length > 1) {
-      setCurrentImg(prev => prev < images.length - 1 ? prev + 1 : prev);
+    
+    if (isLeftSwipe && property.images.length > 1) {
+      setCurrentImg(prev => prev < property.images.length - 1 ? prev + 1 : 0);
     }
-    if (isRightSwipe && images.length > 1) {
-      setCurrentImg(prev => prev > 0 ? prev - 1 : prev);
+    if (isRightSwipe && property.images.length > 1) {
+      setCurrentImg(prev => prev > 0 ? prev - 1 : property.images.length - 1);
     }
   };
 
@@ -331,7 +334,7 @@ export default function PropertyDetail() {
   return (
     <div className="min-h-screen bg-gray-50 text-gray-800 flex flex-col relative pb-20 md:pb-0 overflow-x-hidden">
       
-      {/* TẤM POSTER ẢO ĐƯỢC CẬP NHẬT EMOJI TRỰC TIẾP THEO YÊU CẦU */}
+      {/* TẤM POSTER ẢO */}
       <div 
         className={`fixed top-0 block ${isGeneratingPoster ? 'left-0' : '-left-[9999px]'}`} 
         style={{ width: '1200px', height: '630px', zIndex: -9000, backgroundColor: '#ffffff', fontFamily: '"Montserrat", system-ui, -apple-system, sans-serif' }} 
@@ -399,7 +402,7 @@ export default function PropertyDetail() {
                   </div>
                 </div>
 
-                {/* Nội thất - ĐÃ ĐỔI SANG EMOJI SOFA 🛋️ THEO YÊU CẦU */}
+                {/* Nội thất */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                   <div style={{ width: '36px', height: '36px', backgroundColor: '#eff6ff', borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center', flexShrink: 0 }}>
                     <span style={{ fontSize: '20px' }}>🛋️</span>
@@ -411,7 +414,7 @@ export default function PropertyDetail() {
                 </div>
               </div>
 
-              {/* Mức Giá Nổi Bật - ĐÃ ĐỔI SANG EMOJI TÚI TIỀN 💰 THEO YÊU CẦU */}
+              {/* Mức Giá Nổi Bật */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: 'auto' }}>
                  <div style={{ width: '46px', height: '46px', backgroundColor: '#fffbeb', borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center', flexShrink: 0 }}>
                     <span style={{ fontSize: '28px' }}>💰</span>
@@ -422,12 +425,12 @@ export default function PropertyDetail() {
                  </div>
               </div>
 
-              {/* CHÂN TRANG */}
+              {/* CHÂN TRANG ĐÃ NGẮT DÒNG CHUẨN */}
               <div style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '16px', padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', boxSizing: 'border-box' }}>
                  
                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1 }}>
                     <p style={{ fontSize: '15px', fontWeight: 800, color: '#1e3a8a', margin: 0, lineHeight: 1.4, textTransform: 'uppercase' }}>
-                      Quét QR để xem chi tiết &<br/>xem thêm quỹ căn
+                      Quét QR để xem chi tiết<br/>& xem thêm quỹ căn
                     </p>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px' }}>
                       <div style={{ backgroundColor: '#1e3a8a', color: '#ffffff', width: '26px', height: '26px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -482,22 +485,25 @@ export default function PropertyDetail() {
                   {property.nhanDan}
                 </div>
               )}
-              {/* ĐÃ THÊM TÍNH NĂNG VUỐT ẢNH BẰNG ĐIỆN THOẠI (SWIPE) */}
+              {/* ĐÃ TỐI ƯU CẢM ỨNG TRƯỢT FLEXBOX TRÊN TRANG CHI TIẾT */}
               <div 
-                className="relative h-[400px] md:h-[500px] bg-gray-200 group cursor-zoom-in" 
+                className="relative h-[400px] md:h-[500px] bg-gray-200 group cursor-zoom-in overflow-hidden" 
                 onClick={() => { setLightboxImg(currentImg); setIsLightboxOpen(true); }}
                 onTouchStart={onTouchStart}
                 onTouchMove={onTouchMove}
                 onTouchEnd={onTouchEnd}
               >
                 {images.length > 0 ? (
-                  <>
-                    <img crossOrigin="anonymous" src={optimizeImg(images[currentImg])} alt="Căn hộ" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.02]" />
-                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition flex items-center justify-center">
-                       <svg className="w-12 h-12 text-white opacity-0 group-hover:opacity-100 transition shadow-sm drop-shadow-md" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"></path></svg>
-                    </div>
-                  </>
+                  <div className="flex w-full h-full transition-transform duration-300 ease-out" style={{ transform: `translateX(-${currentImg * 100}%)` }}>
+                    {images.map((img, idx) => (
+                      <img key={idx} crossOrigin="anonymous" src={optimizeImg(img)} alt="Căn hộ" loading={idx === 0 ? "eager" : "lazy"} className="w-full h-full object-cover flex-shrink-0 group-hover:scale-105 transition-transform duration-700 pointer-events-none" />
+                    ))}
+                  </div>
                 ) : <div className="flex items-center justify-center h-full text-gray-400">Chưa có ảnh</div>}
+                
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition flex items-center justify-center pointer-events-none">
+                   <svg className="w-12 h-12 text-white opacity-0 group-hover:opacity-100 transition shadow-sm drop-shadow-md" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"></path></svg>
+                </div>
                 
                 {images.length > 1 && (
                   <>
@@ -518,7 +524,6 @@ export default function PropertyDetail() {
                   {images.length === 0 && <div className="text-sm text-gray-400 flex items-center px-4 w-full h-16">Chưa có ảnh chi tiết</div>}
                 </div>
                 
-                {/* ĐÃ TỐI ƯU CỤM NÚT COPY MÃ VÀ TẢI ẢNH (Text "Mã căn" đã được đổi đầy đủ) */}
                 <div className="w-[160px] md:w-[170px] shrink-0 flex flex-col gap-2">
                   <div className="bg-blue-50/50 hover:bg-blue-100/50 border border-blue-100 rounded-lg flex items-center justify-between px-3 py-2 cursor-pointer transition relative gap-2 w-full" onClick={handleCopyCode}>
                      <div className="flex items-center gap-1.5">

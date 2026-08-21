@@ -22,7 +22,6 @@ const PropertyCard = ({ item, contactPhone }) => {
   const [isHovering, setIsHovering] = useState(false);
   const images = item.images && item.images.length > 0 ? item.images : [];
   
-  // STATE CHO TÍNH NĂNG VUỐT CẢM ỨNG TRÊN MOBILE
   const [touchStart, setTouchStart] = useState(null);
   const [touchEnd, setTouchEnd] = useState(null);
   const minSwipeDistance = 50;
@@ -30,7 +29,7 @@ const PropertyCard = ({ item, contactPhone }) => {
   useEffect(() => {
     let timer;
     if (isHovering && images.length > 1) {
-      timer = setInterval(() => setCurrentImg(prev => (prev + 1) % images.length), 1200);
+      timer = setInterval(() => setCurrentImg(prev => (prev + 1) % images.length), 1500);
     }
     return () => clearInterval(timer);
   }, [isHovering, images.length]);
@@ -40,11 +39,7 @@ const PropertyCard = ({ item, contactPhone }) => {
 
   const handleCopy = (e) => { e.preventDefault(); e.stopPropagation(); navigator.clipboard.writeText(item.maCan); setCopied(true); setTimeout(() => setCopied(false), 2000); };
 
-  // HÀM XỬ LÝ VUỐT ẢNH
-  const onTouchStart = (e) => {
-    setTouchEnd(null);
-    setTouchStart(e.targetTouches[0].clientX);
-  };
+  const onTouchStart = (e) => { setTouchEnd(null); setTouchStart(e.targetTouches[0].clientX); };
   const onTouchMove = (e) => setTouchEnd(e.targetTouches[0].clientX);
   const onTouchEnd = (e) => {
     if (!touchStart || !touchEnd) return;
@@ -70,8 +65,13 @@ const PropertyCard = ({ item, contactPhone }) => {
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
       >
+        {/* ĐÃ TỐI ƯU: TRƯỢT FLEXBOX SIÊU MƯỢT TRÊN ĐIỆN THOẠI */}
         {images.length > 0 ? (
-          <img src={optimizeImg(images[currentImg])} loading="lazy" alt="Căn hộ" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 select-none" />
+          <div className="flex w-full h-full transition-transform duration-300 ease-out" style={{ transform: `translateX(-${currentImg * 100}%)` }}>
+            {images.map((img, idx) => (
+              <img key={idx} src={optimizeImg(img)} loading={idx === 0 ? "eager" : "lazy"} alt="Căn hộ" className="w-full h-full object-cover flex-shrink-0 group-hover:scale-105 transition-transform duration-700 select-none" />
+            ))}
+          </div>
         ) : <div className="flex items-center justify-center h-full text-gray-400 text-sm">Chưa có ảnh</div>}
         
         {images.length > 1 && (
@@ -192,6 +192,7 @@ export default function SubdivisionLandingPage() {
     localStorage.setItem('lastFormSubmit', Date.now()); return true;
   };
 
+  // ĐÃ FIX LỖI POPUP KHÔNG NHẢY VỀ TELEGRAM BẰNG CÁCH THÊM AWAIT FETCH
   const handleFindSubmit = async (e) => {
     e.preventDefault();
     if (!checkSpam()) return;
@@ -204,7 +205,7 @@ export default function SubdivisionLandingPage() {
     const BOT_TOKEN = "7295171731:AAEUgA3z1y3D6o_cK8t6W42aXfN-6I"; const CHAT_ID = "6190858172";
     if (BOT_TOKEN && CHAT_ID) {
       const message = `🚨 <b>KHÁCH TÌM CĂN MỚI!</b>\n\n👤 <b>Tên khách:</b> ${findData.ten || 'Chưa nhập'}\n📌 <b>Nhu cầu:</b> ${findData.nhuCau}\n🛏 <b>Loại căn:</b> ${findData.loaiCan}\n💰 <b>Tài chính:</b> ${findData.taiChinh}\n🛋 <b>Nội thất:</b> ${findData.noiThat}\n📅 <b>Vào ở:</b> ${findData.nhuCau === 'Cho thuê' ? findData.ngayVaoO || 'Chưa rõ' : 'N/A'}\n📞 <b>SĐT Khách:</b> <code>${findData.soDienThoai}</code>\n📝 <b>Yêu cầu thêm:</b> ${findData.ghiChu || 'Không có'}`;
-      try { fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: CHAT_ID, text: message, parse_mode: 'HTML' }) }); } catch (error) {}
+      try { await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: CHAT_ID, text: message, parse_mode: 'HTML' }) }); } catch (error) {}
     }
     setIsSendingFind(false); setIsFindModalOpen(false);
     setFindData({ nhuCau: 'Cho thuê', loaiCan: 'Studio', taiChinh: '', noiThat: 'Đầy đủ nội thất', ngayVaoO: '', soDienThoai: '', ghiChu: '', ten: '' });
@@ -355,11 +356,11 @@ export default function SubdivisionLandingPage() {
         <div className="fixed inset-0 bg-blue-900/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-y-auto max-h-[90vh] animate-fade-in-up">
             <div className="bg-blue-900 px-6 py-4 flex justify-between items-center text-white sticky top-0 z-10">
-               <h3 className="text-lg font-bold flex items-center gap-2">🕵️ Nhờ tìm căn {exactName}</h3>
+               <h3 className="text-lg font-bold flex items-center gap-2">🕵️ Nhờ chuyên viên tìm căn</h3>
                <button onClick={() => setIsFindModalOpen(false)} className="text-blue-200 hover:text-white transition"><svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
             </div>
             <div className="p-6">
-              <p className="text-sm text-gray-600 mb-6 italic font-medium">Anh/chị chỉ cần để lại nhu cầu, chúng em sẽ lọc các căn đẹp nhất, giá tốt nhất và gửi qua Zalo ngay sau 5 phút!</p>
+              <p className="text-sm text-gray-600 mb-6 italic font-medium">Anh/chị chỉ cần để lại nhu cầu, chúng em sẽ lọc ra 3-5 căn đẹp nhất, giá tốt nhất và gửi qua Zalo ngay sau 5 phút!</p>
               <form onSubmit={handleFindSubmit} className="space-y-4 text-sm">
                  <div>
                    <label className="block font-bold text-gray-700 mb-1">Tên của anh/chị</label>

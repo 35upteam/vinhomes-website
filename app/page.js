@@ -28,7 +28,6 @@ const PropertyCard = ({ item, contactPhone }) => {
   const [isHovering, setIsHovering] = useState(false);
   const images = item.images && item.images.length > 0 ? item.images : [];
   
-  // STATE CHO TÍNH NĂNG VUỐT CẢM ỨNG TRÊN MOBILE
   const [touchStart, setTouchStart] = useState(null);
   const [touchEnd, setTouchEnd] = useState(null);
   const minSwipeDistance = 50;
@@ -36,7 +35,7 @@ const PropertyCard = ({ item, contactPhone }) => {
   useEffect(() => {
     let timer;
     if (isHovering && images.length > 1) {
-      timer = setInterval(() => setCurrentImg(prev => (prev + 1) % images.length), 1200);
+      timer = setInterval(() => setCurrentImg(prev => (prev + 1) % images.length), 1500);
     }
     return () => clearInterval(timer);
   }, [isHovering, images.length]);
@@ -51,11 +50,7 @@ const PropertyCard = ({ item, contactPhone }) => {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // HÀM XỬ LÝ VUỐT ẢNH
-  const onTouchStart = (e) => {
-    setTouchEnd(null);
-    setTouchStart(e.targetTouches[0].clientX);
-  };
+  const onTouchStart = (e) => { setTouchEnd(null); setTouchStart(e.targetTouches[0].clientX); };
   const onTouchMove = (e) => setTouchEnd(e.targetTouches[0].clientX);
   const onTouchEnd = (e) => {
     if (!touchStart || !touchEnd) return;
@@ -86,8 +81,13 @@ const PropertyCard = ({ item, contactPhone }) => {
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
       >
+        {/* ĐÃ TỐI ƯU: TRƯỢT FLEXBOX SIÊU MƯỢT TRÊN ĐIỆN THOẠI */}
         {images.length > 0 ? (
-          <img src={optimizeImg(images[currentImg])} loading="lazy" alt={`Căn hộ ${item.loaiCan}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 select-none" />
+          <div className="flex w-full h-full transition-transform duration-300 ease-out" style={{ transform: `translateX(-${currentImg * 100}%)` }}>
+            {images.map((img, idx) => (
+              <img key={idx} src={optimizeImg(img)} loading={idx === 0 ? "eager" : "lazy"} alt={`Căn hộ ${item.loaiCan}`} className="w-full h-full object-cover flex-shrink-0 group-hover:scale-105 transition-transform duration-700 select-none" />
+            ))}
+          </div>
         ) : <div className="flex items-center justify-center h-full text-gray-400 text-sm">Chưa có ảnh</div>}
         
         {images.length > 1 && (
@@ -321,6 +321,7 @@ export default function Home() {
     return true;
   };
 
+  // ĐÃ FIX LỖI POPUP KHÔNG NHẢY VỀ TELEGRAM BẰNG CÁCH THÊM AWAIT FETCH
   const handleFindSubmit = async (e) => {
     e.preventDefault();
     if (!checkSpam()) return;
@@ -334,13 +335,14 @@ export default function Home() {
     const CHAT_ID = "6190858172";
     if (BOT_TOKEN && CHAT_ID) {
       const message = `🚨 <b>KHÁCH TÌM CĂN (Nút Nhờ Tìm)</b>\n\n👤 <b>Khách hàng:</b> ${findData.ten || 'Chưa nhập'}\n📌 <b>Nhu cầu:</b> ${findData.nhuCau}\n🛏 <b>Loại căn:</b> ${findData.loaiCan}\n💰 <b>Tài chính:</b> ${findData.taiChinh}\n🛋 <b>Nội thất:</b> ${findData.noiThat}\n📅 <b>Vào ở:</b> ${findData.nhuCau === 'Cho thuê' ? findData.ngayVaoO || 'Chưa rõ' : 'N/A'}\n📞 <b>SĐT Khách:</b> <code>${findData.soDienThoai}</code>\n📝 <b>Ghi chú:</b> ${findData.ghiChu || 'Không có'}`;
-      try { fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: CHAT_ID, text: message, parse_mode: 'HTML' }) }); } catch (error) {}
+      try { await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: CHAT_ID, text: message, parse_mode: 'HTML' }) }); } catch (error) {}
     }
     setIsSendingFind(false); setIsFindModalOpen(false);
     setFindData({ nhuCau: 'Cho thuê', loaiCan: 'Studio', taiChinh: '', noiThat: 'Đầy đủ nội thất', ngayVaoO: '', soDienThoai: '', ghiChu: '', ten: '' });
     alert("Đã gửi yêu cầu thành công! Chuyên viên An Ninh sẽ liên hệ Zalo anh/chị ngay nhé!");
   };
 
+  // ĐÃ FIX LỖI POPUP KHÔNG NHẢY VỀ TELEGRAM BẰNG CÁCH THÊM AWAIT FETCH
   const handleLeadSubmit = async (e) => {
     e.preventDefault();
     if (!checkSpam()) return;
@@ -354,7 +356,7 @@ export default function Home() {
     const CHAT_ID = "6190858172";
     if (BOT_TOKEN && CHAT_ID) {
       const message = `🚨 <b>KHÁCH TỪ POPUP TỰ ĐỘNG</b>\n\n👤 <b>Tên khách:</b> ${leadData.ten}\n📞 <b>Số điện thoại:</b> <code>${leadData.soDienThoai}</code>\n📌 <b>Nhu cầu:</b> Tìm ${leadData.nhuCau}\n💰 <b>Tài chính:</b> ${leadData.taiChinh || 'Không ghi'}\n📝 <b>Ghi chú thêm:</b> ${leadData.ghiChu || 'Không có'}`;
-      try { fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: CHAT_ID, text: message, parse_mode: 'HTML' }) }); } catch (error) {}
+      try { await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: CHAT_ID, text: message, parse_mode: 'HTML' }) }); } catch (error) {}
     }
     setIsSendingLead(false); setIsLeadPopupOpen(false);
     alert("Gửi yêu cầu thành công! Chuyên viên An Ninh sẽ liên hệ Zalo cho anh/chị trong ít phút.");
