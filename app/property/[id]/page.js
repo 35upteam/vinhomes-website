@@ -64,6 +64,11 @@ export default function PropertyDetail() {
   const [lightboxImg, setLightboxImg] = useState(0);
   const [copied, setCopied] = useState(false);
 
+  // STATE ĐỂ LƯỚT ẢNH TRÊN MOBILE
+  const [touchStart, setTouchStart] = useState(null);
+  const [touchEnd, setTouchEnd] = useState(null);
+  const minSwipeDistance = 50;
+
   const [isFindModalOpen, setIsFindModalOpen] = useState(false);
   const [isSendingFind, setIsSendingFind] = useState(false);
   const [findPhoneError, setFindPhoneError] = useState('');
@@ -257,6 +262,25 @@ export default function PropertyDetail() {
     alert("Đã gửi yêu cầu thành công! Chuyên viên An Ninh sẽ liên hệ Zalo anh/chị ngay nhé!");
   };
 
+  // CÁC HÀM XỬ LÝ LƯỚT ẢNH (SWIPE) TRÊN MOBILE
+  const onTouchStart = (e) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+  const onTouchMove = (e) => setTouchEnd(e.targetTouches[0].clientX);
+  const onTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > minSwipeDistance;
+    const isRightSwipe = distance < -minSwipeDistance;
+    if (isLeftSwipe && images.length > 1) {
+      setCurrentImg(prev => prev < images.length - 1 ? prev + 1 : prev);
+    }
+    if (isRightSwipe && images.length > 1) {
+      setCurrentImg(prev => prev > 0 ? prev - 1 : prev);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 text-gray-800 flex flex-col relative pb-20 md:pb-0">
@@ -307,7 +331,7 @@ export default function PropertyDetail() {
   return (
     <div className="min-h-screen bg-gray-50 text-gray-800 flex flex-col relative pb-20 md:pb-0 overflow-x-hidden">
       
-      {/* TẤM POSTER ẢO */}
+      {/* TẤM POSTER ẢO ĐƯỢC CẬP NHẬT EMOJI TRỰC TIẾP THEO YÊU CẦU */}
       <div 
         className={`fixed top-0 block ${isGeneratingPoster ? 'left-0' : '-left-[9999px]'}`} 
         style={{ width: '1200px', height: '630px', zIndex: -9000, backgroundColor: '#ffffff', fontFamily: '"Montserrat", system-ui, -apple-system, sans-serif' }} 
@@ -317,7 +341,6 @@ export default function PropertyDetail() {
         
         <div style={{ display: 'flex', width: '100%', height: '100%', backgroundColor: '#ffffff', overflow: 'hidden' }}>
            
-           {/* CỘT TRÁI (ẢNH 50%) */}
            <div style={{ width: '50%', height: '100%', position: 'relative' }}>
               <img src={coverBase64} alt="Cover" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               {property.nhanDan && property.nhanDan !== 'Không có' && (
@@ -327,10 +350,8 @@ export default function PropertyDetail() {
               )}
            </div>
 
-           {/* CỘT PHẢI (THÔNG TIN 50%) */}
            <div style={{ width: '50%', height: '100%', display: 'flex', flexDirection: 'column', boxSizing: 'border-box', padding: '50px 40px 40px 40px' }}>
               
-              {/* Tiêu đề & Loại căn */}
               <div style={{ marginBottom: '30px' }}>
                 <p style={{ color: '#d97706', fontWeight: 800, letterSpacing: '0.15em', fontSize: '14px', marginBottom: '10px', textTransform: 'uppercase', margin: '0 0 10px 0' }}>Vinhomes Smart City</p>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -343,7 +364,6 @@ export default function PropertyDetail() {
                 </div>
               </div>
 
-              {/* Lưới Thông tin 2 cột - THÊM VIEWBOX CHUẨN ĐỂ KHÔNG BỊ LỆCH TÂM */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px 16px', marginBottom: '24px' }}>
                 
                 {/* Tòa nhà */}
@@ -379,10 +399,10 @@ export default function PropertyDetail() {
                   </div>
                 </div>
 
-                {/* Nội thất */}
+                {/* Nội thất - ĐÃ ĐỔI SANG EMOJI SOFA 🛋️ THEO YÊU CẦU */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <div style={{ width: '36px', height: '36px', backgroundColor: '#eff6ff', borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center', color: '#2563eb', flexShrink: 0 }}>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M20 9V7a2 2 0 00-2-2H6a2 2 0 00-2 2v2"></path><path strokeLinecap="round" strokeLinejoin="round" d="M4 16c-1.1 0-2-.9-2-2V9a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2v2a2 2 0 01-2 2H8a2 2 0 01-2-2v-2H4z"></path></svg>
+                  <div style={{ width: '36px', height: '36px', backgroundColor: '#eff6ff', borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center', flexShrink: 0 }}>
+                    <span style={{ fontSize: '20px' }}>🛋️</span>
                   </div>
                   <div style={{ overflow: 'hidden' }}>
                      <p style={{ fontSize: '10px', color: '#6b7280', fontWeight: 700, textTransform: 'uppercase', margin: '0 0 2px 0' }}>Nội thất</p>
@@ -391,10 +411,10 @@ export default function PropertyDetail() {
                 </div>
               </div>
 
-              {/* Mức Giá Nổi Bật - SỬ DỤNG ICON TÚI TIỀN ĐẸP, CĂN CHUẨN */}
+              {/* Mức Giá Nổi Bật - ĐÃ ĐỔI SANG EMOJI TÚI TIỀN 💰 THEO YÊU CẦU */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: 'auto' }}>
-                 <div style={{ width: '46px', height: '46px', backgroundColor: '#fffbeb', borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center', color: '#d97706', flexShrink: 0 }}>
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 5c0 1-1.5 2.5-3 2.5S9 6 9 5c0-1.5 1-3 3-3s3 1.5 3 3z"></path><path d="M6 10c-2 3-3 6-1 9s5 4 8 4 6-2 8-4-1-6-3-9"></path><path d="M12 12a2 2 0 100 4 2 2 0 000-4z"></path></svg>
+                 <div style={{ width: '46px', height: '46px', backgroundColor: '#fffbeb', borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center', flexShrink: 0 }}>
+                    <span style={{ fontSize: '28px' }}>💰</span>
                  </div>
                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
                     <span style={{ fontSize: '72px', fontFamily: '"Montserrat", sans-serif', fontWeight: 900, color: '#d97706', lineHeight: 1 }}>{property.price}</span>
@@ -402,7 +422,7 @@ export default function PropertyDetail() {
                  </div>
               </div>
 
-              {/* CHÂN TRANG MỚI: QUÉT QR TO, BỎ TEXT TƯ VẤN VIÊN */}
+              {/* CHÂN TRANG */}
               <div style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '16px', padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', boxSizing: 'border-box' }}>
                  
                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1 }}>
@@ -417,7 +437,6 @@ export default function PropertyDetail() {
                     </div>
                  </div>
 
-                 {/* Cột phải chân trang: QR siêu to */}
                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', paddingLeft: '10px' }}>
                     <div style={{ backgroundColor: '#ffffff', padding: '4px', borderRadius: '8px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}>
                       {qrBase64 ? <img src={qrBase64} style={{ width: '115px', height: '115px', display: 'block' }} alt="QR Code" /> : <div style={{ width: '115px', height: '115px', backgroundColor: '#e5e7eb' }}></div>}
@@ -450,7 +469,6 @@ export default function PropertyDetail() {
       )}
 
       <main className="max-w-[1200px] mx-auto px-4 md:px-8 py-8 flex-grow w-full">
-        {/* Đã gỡ bỏ nút Tải Ảnh ở header để gọn gàng */}
         <div className="flex justify-between items-center mb-6">
           <Link href="/" className="inline-flex items-center text-sm font-bold text-blue-900 hover:text-blue-700 transition"><span className="mr-2">←</span> Quay lại danh sách</Link>
         </div>
@@ -464,7 +482,14 @@ export default function PropertyDetail() {
                   {property.nhanDan}
                 </div>
               )}
-              <div className="relative h-[400px] md:h-[500px] bg-gray-200 group cursor-zoom-in" onClick={() => { setLightboxImg(currentImg); setIsLightboxOpen(true); }}>
+              {/* ĐÃ THÊM TÍNH NĂNG VUỐT ẢNH BẰNG ĐIỆN THOẠI (SWIPE) */}
+              <div 
+                className="relative h-[400px] md:h-[500px] bg-gray-200 group cursor-zoom-in" 
+                onClick={() => { setLightboxImg(currentImg); setIsLightboxOpen(true); }}
+                onTouchStart={onTouchStart}
+                onTouchMove={onTouchMove}
+                onTouchEnd={onTouchEnd}
+              >
                 {images.length > 0 ? (
                   <>
                     <img crossOrigin="anonymous" src={optimizeImg(images[currentImg])} alt="Căn hộ" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.02]" />
@@ -493,11 +518,11 @@ export default function PropertyDetail() {
                   {images.length === 0 && <div className="text-sm text-gray-400 flex items-center px-4 w-full h-16">Chưa có ảnh chi tiết</div>}
                 </div>
                 
-                {/* GIAO DIỆN MỚI: MÃ CĂN NẰM NGANG VÀ NÚT TẢI ẢNH ĐƯỢC CHUYỂN XUỐNG DƯỚI */}
-                <div className="w-[150px] md:w-[160px] shrink-0 flex flex-col gap-2">
+                {/* ĐÃ TỐI ƯU CỤM NÚT COPY MÃ VÀ TẢI ẢNH (Text "Mã căn" đã được đổi đầy đủ) */}
+                <div className="w-[160px] md:w-[170px] shrink-0 flex flex-col gap-2">
                   <div className="bg-blue-50/50 hover:bg-blue-100/50 border border-blue-100 rounded-lg flex items-center justify-between px-3 py-2 cursor-pointer transition relative gap-2 w-full" onClick={handleCopyCode}>
                      <div className="flex items-center gap-1.5">
-                       <span className="text-[10px] text-gray-500 font-bold uppercase whitespace-nowrap">Mã:</span>
+                       <span className="text-[10px] text-gray-500 font-bold uppercase whitespace-nowrap">Mã căn:</span>
                        <span className="font-black text-[13px] text-blue-900 truncate">{displayId}</span>
                      </div>
                      <svg className="w-3.5 h-3.5 shrink-0 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
