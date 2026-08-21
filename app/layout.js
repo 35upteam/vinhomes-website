@@ -1,4 +1,5 @@
 import { Inter } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 
 // KHÔI PHỤC LẠI FONT INTER GỐC CỦA BẠN (CÓ HỖ TRỢ TIẾNG VIỆT)
@@ -25,6 +26,18 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="vi">
+      <head>
+        {/* ĐOẠN MÃ NHÚNG GOOGLE ANALYTICS 4 (GA4) */}
+        <Script src="https://www.googletagmanager.com/gtag/js?id=G-ZX1QY359HK" strategy="afterInteractive" />
+        <Script id="google-analytics" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-ZX1QY359HK');
+          `}
+        </Script>
+      </head>
       <body className={`${inter.className} bg-gray-50 text-gray-800 antialiased`}>
         {children}
       </body>
