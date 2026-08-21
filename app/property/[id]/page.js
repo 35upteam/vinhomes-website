@@ -171,34 +171,31 @@ export default function PropertyDetail() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // HÀM TẠO ẢNH POSTER ĐỂ ĐĂNG FACEBOOK
+  // ĐÃ SỬA: BỎ setTimeout, LUÔN HIỆN DIV POSTER (NHƯNG ĐẨY RA NGOÀI MÀN HÌNH) ĐỂ html2canvas ĐỌC ĐƯỢC
   const handleDownloadPoster = async () => {
     if (!posterRef.current) return;
     setIsGeneratingPoster(true);
     
-    // Đợi 1 chút để component ảo hiển thị lên màn hình trước khi chụp
-    setTimeout(async () => {
-      try {
-        const canvas = await html2canvas(posterRef.current, {
-          scale: 2, // Chụp độ nét cao
-          useCORS: true, // Cho phép tải ảnh chéo từ Cloudinary
-          backgroundColor: "#ffffff",
-        });
-        
-        // Tạo link tải file
-        const image = canvas.toDataURL("image/png");
-        const link = document.createElement('a');
-        link.href = image;
-        link.download = `Can-Ho-${property.maCan}-${property.phanKhu}.png`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-      } catch (error) {
-        console.error("Lỗi tạo ảnh:", error);
-        alert("Lỗi tạo ảnh, vui lòng tải lại trang và thử lại!");
-      }
-      setIsGeneratingPoster(false);
-    }, 100);
+    try {
+      const canvas = await html2canvas(posterRef.current, {
+        scale: 2, 
+        useCORS: true, 
+        allowTaint: true,
+        backgroundColor: "#ffffff",
+      });
+      
+      const image = canvas.toDataURL("image/png");
+      const link = document.createElement('a');
+      link.href = image;
+      link.download = `Can-Ho-${property.maCan}-${property.phanKhu}.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error) {
+      console.error("Lỗi tạo ảnh:", error);
+      alert("Lỗi tạo ảnh, vui lòng tải lại trang và thử lại!");
+    }
+    setIsGeneratingPoster(false);
   };
 
   const scrollSimilar = (direction) => {
@@ -259,7 +256,6 @@ export default function PropertyDetail() {
   const displayId = property.maCan || property.id.substring(0, 5).toUpperCase();
   const titleString = `${property.listingType === 'Cho thuê' ? 'Cho thuê' : 'Bán'} căn hộ ${property.loaiCan || property.type}, tòa ${property.toaNha || property.building}, phân khu ${property.phanKhu}`;
   
-  // Link rút gọn để tạo mã QR Code (tùy chỉnh lại link vercel của bạn)
   const qrLink = `https://quycan-smartcity.vercel.app/property/${property.id}`;
 
   const specs = property.listingType === 'Cho thuê' ? [
@@ -285,16 +281,15 @@ export default function PropertyDetail() {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-800 flex flex-col relative pb-20 md:pb-0">
+    <div className="min-h-screen bg-gray-50 text-gray-800 flex flex-col relative pb-20 md:pb-0 overflow-x-hidden">
       
-      {/* 1. COMPONENT ẢO: TẤM POSTER ĐỂ LƯU ẢNH (Bình thường sẽ ẩn đi) */}
+      {/* ĐÃ SỬA: Đẩy DOM ra ngoài vùng nhìn thấy (fixed -left-[9999px] top-0) thay vì dùng class hidden */}
       <div 
-        className={`${isGeneratingPoster ? 'fixed top-[200vh] left-0 block' : 'hidden'} bg-white border border-gray-200 shadow-2xl`} 
-        style={{ width: '1200px', height: '630px', zIndex: -9999 }} // Tỉ lệ ngang chuẩn Facebook
+        className="fixed -left-[9999px] top-0 bg-white border border-gray-200 shadow-2xl block" 
+        style={{ width: '1200px', height: '630px', zIndex: -9999 }} 
         ref={posterRef}
       >
         <div className="flex w-full h-full bg-blue-900 overflow-hidden">
-           {/* Cột trái: Ảnh căn hộ (Chiếm 60%) */}
            <div className="w-[60%] h-full relative">
               <img crossOrigin="anonymous" src={optimizeImg(images[0] || '/banner.jpg')} alt="Cover" className="w-full h-full object-cover" />
               <div className="absolute inset-0 bg-gradient-to-r from-transparent to-blue-900/90"></div>
@@ -303,9 +298,7 @@ export default function PropertyDetail() {
               )}
            </div>
 
-           {/* Cột phải: Thông tin (Chiếm 40%) */}
            <div className="w-[40%] h-full bg-blue-900 text-white p-10 flex flex-col justify-between border-l-4 border-yellow-400 relative">
-              {/* Vệt trang trí */}
               <div className="absolute top-0 right-0 w-32 h-32 bg-blue-800 rounded-bl-full opacity-50"></div>
               
               <div>
@@ -343,9 +336,9 @@ export default function PropertyDetail() {
                     <p className="text-[10px] text-blue-300 font-bold uppercase tracking-wider mb-1">Mời xem chi tiết tại web & Gọi tư vấn:</p>
                     <p className="text-2xl font-black text-white flex items-center gap-2">📞 0912.791.925</p>
                  </div>
-                 {/* QR CODE DẪN THẲNG VỀ CĂN NÀY TRÊN WEB */}
                  <div className="bg-white p-2 rounded-lg shadow-xl shrink-0">
-                    <img crossOrigin="anonymous" src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(qrLink)}&bgcolor=ffffff&color=1e3a8a`} className="w-16 h-16" alt="QR Code" />
+                    {/* ĐÃ SỬA: Đổi sang QuickChart API chuyên dụng cho phép tải chéo Canvas */}
+                    <img crossOrigin="anonymous" src={`https://quickchart.io/qr?text=${encodeURIComponent(qrLink)}&size=150&dark=1e3a8a`} className="w-16 h-16" alt="QR Code" />
                  </div>
               </div>
            </div>
@@ -375,7 +368,6 @@ export default function PropertyDetail() {
         <div className="flex justify-between items-center mb-6">
           <Link href="/" className="inline-flex items-center text-sm font-bold text-blue-900 hover:text-blue-700 transition"><span className="mr-2">←</span> Quay lại danh sách</Link>
           
-          {/* NÚT TẠO ẢNH SHARE */}
           <button onClick={handleDownloadPoster} disabled={isGeneratingPoster} className="flex items-center gap-2 bg-gradient-to-r from-blue-700 to-blue-900 hover:from-blue-800 hover:to-blue-950 text-white px-5 py-2.5 rounded-full font-bold shadow-md shadow-blue-900/20 transition disabled:opacity-50 text-sm">
              {isGeneratingPoster ? (
                 <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> Đang vẽ ảnh...</>
