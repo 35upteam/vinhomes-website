@@ -7,6 +7,7 @@ import { useParams } from 'next/navigation';
 import { toPng } from 'html-to-image';
 
 const optimizeImg = (url) => url?.includes('cloudinary.com') ? url.replace('/upload/', '/upload/w_1000,c_limit,q_auto,f_auto/') : url;
+const sanitize = (str) => str ? str.toString().replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/&/g, '&amp;') : '';
 
 const slugify = (text) => {
   if(!text) return '';
@@ -64,7 +65,6 @@ export default function PropertyDetail() {
   const [lightboxImg, setLightboxImg] = useState(0);
   const [copied, setCopied] = useState(false);
 
-  // STATE ĐỂ LƯỚT ẢNH TRÊN MOBILE CHO TRANG CHI TIẾT
   const [touchStart, setTouchStart] = useState(null);
   const [touchEnd, setTouchEnd] = useState(null);
   const minSwipeDistance = 50;
@@ -203,12 +203,13 @@ export default function PropertyDetail() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  // ĐÃ FIX BẰNG CÁCH CHỈNH ĐỘ MỜ 0.01 VÀ LUÔN NẰM TRONG MÀN HÌNH
   const handleDownloadPoster = async () => {
     if (!posterRef.current) return;
     setIsGeneratingPoster(true); 
     
     try {
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise(resolve => setTimeout(resolve, 800));
       
       const dataUrl = await toPng(posterRef.current, {
         quality: 1,
@@ -237,16 +238,21 @@ export default function PropertyDetail() {
     }
   };
 
-  const checkSpam = () => {
-    const lastSent = localStorage.getItem('lastFormSubmit');
-    if (lastSent && Date.now() - parseInt(lastSent) < 60000) { alert('Vui lòng đợi 1 phút trước khi gửi yêu cầu tiếp theo!'); return false; }
-    localStorage.setItem('lastFormSubmit', Date.now()); return true;
+  // ĐÃ CHỈNH LẠI: GIẢM XUỐNG 30s VÀ CHIA KEY RIÊNG BIỆT
+  const checkSpam = (formType) => {
+    const lastSent = localStorage.getItem(`lastFormSubmit_${formType}`);
+    if (lastSent && Date.now() - parseInt(lastSent) < 30000) {
+      alert('Vui lòng đợi 30 giây trước khi gửi yêu cầu tiếp theo!');
+      return false;
+    }
+    localStorage.setItem(`lastFormSubmit_${formType}`, Date.now());
+    return true;
   };
 
   // ĐÃ BỔ SUNG AWAIT ĐỂ ĐẢM BẢO GỬI TELEGRAM THÀNH CÔNG RỒI MỚI ĐÓNG POPUP
   const handleFindSubmit = async (e) => {
     e.preventDefault();
-    if (!checkSpam()) return;
+    if (!checkSpam('find')) return;
     const phoneRegex = /^0\d{9}$/;
     if (!phoneRegex.test(findData.soDienThoai)) { setFindPhoneError("Số điện thoại không hợp lệ!"); return; }
     setIsSendingFind(true);
@@ -255,15 +261,16 @@ export default function PropertyDetail() {
 
     const BOT_TOKEN = "7295171731:AAEUgA3z1y3D6o_cK8t6W42aXfN-6I"; const CHAT_ID = "6190858172";
     if (BOT_TOKEN && CHAT_ID) {
-      const message = `🚨 <b>KHÁCH TÌM CĂN MỚI!</b>\n\n👤 <b>Tên khách:</b> ${findData.ten || 'Chưa nhập'}\n📌 <b>Nhu cầu:</b> ${findData.nhuCau}\n🛏 <b>Loại căn:</b> ${findData.loaiCan}\n💰 <b>Tài chính:</b> ${findData.taiChinh}\n🛋 <b>Nội thất:</b> ${findData.noiThat}\n📅 <b>Vào ở:</b> ${findData.nhuCau === 'Cho thuê' ? findData.ngayVaoO || 'Chưa rõ' : 'N/A'}\n📞 <b>SĐT Khách:</b> <code>${findData.soDienThoai}</code>\n📝 <b>Yêu cầu thêm:</b> ${findData.ghiChu || 'Không có'}`;
-      try { await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: CHAT_ID, text: message, parse_mode: 'HTML' }) }); } catch (error) {}
+      const message = `🚨 <b>KHÁCH TÌM CĂN MỚI!</b>\n\n👤 <b>Tên khách:</b> ${sanitize(findData.ten) || 'Chưa nhập'}\n📌 <b>Nhu cầu:</b> ${sanitize(findData.nhuCau)}\n🛏 <b>Loại căn:</b> ${sanitize(findData.loaiCan)}\n💰 <b>Tài chính:</b> ${sanitize(findData.taiChinh)}\n🛋 <b>Nội thất:</b> ${sanitize(findData.noiThat)}\n📅 <b>Vào ở:</b> ${findData.nhuCau === 'Cho thuê' ? sanitize(findData.ngayVaoO) || 'Chưa rõ' : 'N/A'}\n📞 <b>SĐT Khách:</b> <code>${sanitize(findData.soDienThoai)}</code>\n📝 <b>Yêu cầu thêm:</b> ${sanitize(findData.ghiChu) || 'Không có'}`;
+      try { 
+        await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: CHAT_ID, text: message, parse_mode: 'HTML' }) }); 
+      } catch (error) { console.error("Lỗi gửi Telegram", error); }
     }
     setIsSendingFind(false); setIsFindModalOpen(false);
     setFindData({ nhuCau: 'Cho thuê', loaiCan: 'Studio', taiChinh: '', noiThat: 'Đầy đủ nội thất', ngayVaoO: '', soDienThoai: '', ghiChu: '', ten: '' });
     alert("Đã gửi yêu cầu thành công! Chuyên viên An Ninh sẽ liên hệ Zalo anh/chị ngay nhé!");
   };
 
-  // HÀM XỬ LÝ VUỐT ẢNH CHO ẢNH CHÍNH
   const onTouchStart = (e) => {
     setTouchEnd(null);
     setTouchStart(e.targetTouches[0].clientX);
@@ -334,10 +341,10 @@ export default function PropertyDetail() {
   return (
     <div className="min-h-screen bg-gray-50 text-gray-800 flex flex-col relative pb-20 md:pb-0 overflow-x-hidden">
       
-      {/* TẤM POSTER ẢO */}
+      {/* ĐÃ FIX: CHỈNH ĐỘ MỜ 0.01 VÀ LUÔN NẰM TRONG DOM */}
       <div 
-        className={`fixed top-0 block ${isGeneratingPoster ? 'left-0' : '-left-[9999px]'}`} 
-        style={{ width: '1200px', height: '630px', zIndex: -9000, backgroundColor: '#ffffff', fontFamily: '"Montserrat", system-ui, -apple-system, sans-serif' }} 
+        className="fixed top-0 left-0 pointer-events-none" 
+        style={{ width: '1200px', height: '630px', zIndex: -9999, opacity: isGeneratingPoster ? 1 : 0.01, backgroundColor: '#ffffff', fontFamily: '"Montserrat", system-ui, -apple-system, sans-serif' }} 
         ref={posterRef}
       >
         <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800;900&display=swap" rel="stylesheet" />

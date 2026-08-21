@@ -5,6 +5,7 @@ import { collection, query, orderBy, getDocs, addDoc, serverTimestamp } from 'fi
 import Link from 'next/link';
 
 const optimizeImg = (url) => url?.includes('cloudinary.com') ? url.replace('/upload/', '/upload/w_800,c_limit,q_auto,f_auto/') : url;
+const sanitize = (str) => str ? str.toString().replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/&/g, '&amp;') : '';
 
 const SkeletonCard = () => (
   <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden animate-pulse">
@@ -75,13 +76,7 @@ const PropertyCard = ({ item, contactPhone }) => {
       onMouseLeave={() => {setIsHovering(false); setCurrentImg(0);}}
       className="block bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer group flex flex-col relative"
     >
-      <div 
-        className="relative h-56 bg-gray-200 overflow-hidden"
-        onTouchStart={onTouchStart}
-        onTouchMove={onTouchMove}
-        onTouchEnd={onTouchEnd}
-      >
-        {/* ĐÃ TỐI ƯU: TRƯỢT FLEXBOX SIÊU MƯỢT TRÊN ĐIỆN THOẠI */}
+      <div className="relative h-56 bg-gray-200 overflow-hidden" onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}>
         {images.length > 0 ? (
           <div className="flex w-full h-full transition-transform duration-300 ease-out" style={{ transform: `translateX(-${currentImg * 100}%)` }}>
             {images.map((img, idx) => (
@@ -311,20 +306,20 @@ export default function Home() {
   const totalPages = Math.ceil(sortedProperties.length / itemsPerPage);
   const currentProperties = sortedProperties.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
-  const checkSpam = () => {
-    const lastSent = localStorage.getItem('lastFormSubmit');
-    if (lastSent && Date.now() - parseInt(lastSent) < 60000) {
-      alert('Vui lòng đợi 1 phút trước khi gửi yêu cầu tiếp theo!');
+  // ĐÃ CHỈNH LẠI: GIẢM XUỐNG 30s VÀ CHIA KEY RIÊNG BIỆT CHO TỪNG FORM
+  const checkSpam = (formType) => {
+    const lastSent = localStorage.getItem(`lastFormSubmit_${formType}`);
+    if (lastSent && Date.now() - parseInt(lastSent) < 30000) {
+      alert('Vui lòng đợi 30 giây trước khi gửi yêu cầu tiếp theo!');
       return false;
     }
-    localStorage.setItem('lastFormSubmit', Date.now());
+    localStorage.setItem(`lastFormSubmit_${formType}`, Date.now());
     return true;
   };
 
-  // ĐÃ FIX LỖI POPUP KHÔNG NHẢY VỀ TELEGRAM BẰNG CÁCH THÊM AWAIT FETCH
   const handleFindSubmit = async (e) => {
     e.preventDefault();
-    if (!checkSpam()) return;
+    if (!checkSpam('find')) return;
     const phoneRegex = /^0\d{9}$/;
     if (!phoneRegex.test(findData.soDienThoai)) { setFindPhoneError("Số điện thoại không hợp lệ!"); return; }
 
@@ -334,18 +329,19 @@ export default function Home() {
     const BOT_TOKEN = "7295171731:AAEUgA3z1y3D6o_cK8t6W42aXfN-6I"; 
     const CHAT_ID = "6190858172";
     if (BOT_TOKEN && CHAT_ID) {
-      const message = `🚨 <b>KHÁCH TÌM CĂN (Nút Nhờ Tìm)</b>\n\n👤 <b>Khách hàng:</b> ${findData.ten || 'Chưa nhập'}\n📌 <b>Nhu cầu:</b> ${findData.nhuCau}\n🛏 <b>Loại căn:</b> ${findData.loaiCan}\n💰 <b>Tài chính:</b> ${findData.taiChinh}\n🛋 <b>Nội thất:</b> ${findData.noiThat}\n📅 <b>Vào ở:</b> ${findData.nhuCau === 'Cho thuê' ? findData.ngayVaoO || 'Chưa rõ' : 'N/A'}\n📞 <b>SĐT Khách:</b> <code>${findData.soDienThoai}</code>\n📝 <b>Ghi chú:</b> ${findData.ghiChu || 'Không có'}`;
-      try { await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: CHAT_ID, text: message, parse_mode: 'HTML' }) }); } catch (error) {}
+      const message = `🚨 <b>KHÁCH TÌM CĂN (Nút Nhờ Tìm)</b>\n\n👤 <b>Khách hàng:</b> ${sanitize(findData.ten) || 'Chưa nhập'}\n📌 <b>Nhu cầu:</b> ${sanitize(findData.nhuCau)}\n🛏 <b>Loại căn:</b> ${sanitize(findData.loaiCan)}\n💰 <b>Tài chính:</b> ${sanitize(findData.taiChinh)}\n🛋 <b>Nội thất:</b> ${sanitize(findData.noiThat)}\n📅 <b>Vào ở:</b> ${findData.nhuCau === 'Cho thuê' ? sanitize(findData.ngayVaoO) || 'Chưa rõ' : 'N/A'}\n📞 <b>SĐT Khách:</b> <code>${sanitize(findData.soDienThoai)}</code>\n📝 <b>Ghi chú:</b> ${sanitize(findData.ghiChu) || 'Không có'}`;
+      try { 
+        await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: CHAT_ID, text: message, parse_mode: 'HTML' }) }); 
+      } catch (error) { console.error("Lỗi gửi Telegram", error); }
     }
     setIsSendingFind(false); setIsFindModalOpen(false);
     setFindData({ nhuCau: 'Cho thuê', loaiCan: 'Studio', taiChinh: '', noiThat: 'Đầy đủ nội thất', ngayVaoO: '', soDienThoai: '', ghiChu: '', ten: '' });
     alert("Đã gửi yêu cầu thành công! Chuyên viên An Ninh sẽ liên hệ Zalo anh/chị ngay nhé!");
   };
 
-  // ĐÃ FIX LỖI POPUP KHÔNG NHẢY VỀ TELEGRAM BẰNG CÁCH THÊM AWAIT FETCH
   const handleLeadSubmit = async (e) => {
     e.preventDefault();
-    if (!checkSpam()) return;
+    if (!checkSpam('lead')) return;
     const phoneRegex = /^0\d{9}$/;
     if (!phoneRegex.test(leadData.soDienThoai)) { setLeadPhoneError("Số điện thoại không hợp lệ!"); return; }
 
@@ -355,8 +351,10 @@ export default function Home() {
     const BOT_TOKEN = "7295171731:AAEUgA3z1y3D6o_cK8t6W42aXfN-6I"; 
     const CHAT_ID = "6190858172";
     if (BOT_TOKEN && CHAT_ID) {
-      const message = `🚨 <b>KHÁCH TỪ POPUP TỰ ĐỘNG</b>\n\n👤 <b>Tên khách:</b> ${leadData.ten}\n📞 <b>Số điện thoại:</b> <code>${leadData.soDienThoai}</code>\n📌 <b>Nhu cầu:</b> Tìm ${leadData.nhuCau}\n💰 <b>Tài chính:</b> ${leadData.taiChinh || 'Không ghi'}\n📝 <b>Ghi chú thêm:</b> ${leadData.ghiChu || 'Không có'}`;
-      try { await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: CHAT_ID, text: message, parse_mode: 'HTML' }) }); } catch (error) {}
+      const message = `🚨 <b>KHÁCH TỪ POPUP TỰ ĐỘNG</b>\n\n👤 <b>Tên khách:</b> ${sanitize(leadData.ten)}\n📞 <b>Số điện thoại:</b> <code>${sanitize(leadData.soDienThoai)}</code>\n📌 <b>Nhu cầu:</b> Tìm ${sanitize(leadData.nhuCau)}\n💰 <b>Tài chính:</b> ${sanitize(leadData.taiChinh) || 'Không ghi'}\n📝 <b>Ghi chú thêm:</b> ${sanitize(leadData.ghiChu) || 'Không có'}`;
+      try { 
+        await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: CHAT_ID, text: message, parse_mode: 'HTML' }) }); 
+      } catch (error) { console.error("Lỗi gửi Telegram", error); }
     }
     setIsSendingLead(false); setIsLeadPopupOpen(false);
     alert("Gửi yêu cầu thành công! Chuyên viên An Ninh sẽ liên hệ Zalo cho anh/chị trong ít phút.");
@@ -605,49 +603,6 @@ export default function Home() {
                    {isSendingFind ? 'Đang gửi...' : <><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg> Gửi yêu cầu & Nhận báo giá</>}
                  </button>
               </form>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {isLeadPopupOpen && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-fade-in-up text-center relative border-4 border-blue-100">
-            <button onClick={() => setIsLeadPopupOpen(false)} className="absolute top-3 right-3 text-gray-400 hover:text-gray-600 bg-gray-100 rounded-full p-1 z-10"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
-            <div className="bg-gradient-to-br from-blue-700 to-blue-900 p-6 text-white relative">
-              <div className="text-4xl mb-2">👋</div>
-              <h3 className="text-2xl font-black uppercase tracking-tight mb-2">XIN CHÀO ANH/CHỊ!</h3>
-              <p className="text-blue-100 font-medium text-sm">Anh/chị chưa tìm được căn ưng ý?</p>
-            </div>
-            <div className="p-6 text-left">
-              <p className="text-gray-700 font-bold mb-5 text-sm text-center">Hãy để chuyên viên hỗ trợ tìm kiếm và báo giá các căn phù hợp nhất hoàn toàn miễn phí.</p>
-              <form onSubmit={handleLeadSubmit} className="space-y-4">
-                 <div>
-                   <input required type="text" placeholder="Tên của anh/chị..." value={leadData.ten} onChange={(e)=>setLeadData({...leadData, ten: e.target.value})} className="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-blue-600 text-sm font-medium" />
-                 </div>
-                 <div>
-                   <input required type="tel" placeholder="Số điện thoại / Zalo..." value={leadData.soDienThoai} onChange={(e)=>{setLeadData({...leadData, soDienThoai: e.target.value}); setLeadPhoneError('');}} className={`w-full p-3 bg-gray-50 border rounded-lg outline-none text-sm font-medium transition ${leadPhoneError ? 'border-red-500 bg-red-50' : 'border-gray-200 focus:border-blue-600'}`} />
-                   {leadPhoneError && <p className="text-red-500 text-[11px] font-bold mt-1">{leadPhoneError}</p>}
-                 </div>
-                 <div className="flex gap-4">
-                    <label className="flex-1 flex items-center gap-2 cursor-pointer text-sm font-bold text-gray-700"><input type="radio" name="leadNhuCau" value="Mua" checked={leadData.nhuCau === 'Mua'} onChange={(e)=>setLeadData({...leadData, nhuCau: e.target.value})} className="w-4 h-4 text-blue-600" /> Cần Mua</label>
-                    <label className="flex-1 flex items-center gap-2 cursor-pointer text-sm font-bold text-gray-700"><input type="radio" name="leadNhuCau" value="Thuê" checked={leadData.nhuCau === 'Thuê'} onChange={(e)=>setLeadData({...leadData, nhuCau: e.target.value})} className="w-4 h-4 text-blue-600" /> Cần Thuê</label>
-                 </div>
-                 <div className="grid grid-cols-2 gap-4">
-                    <select required value={leadData.loaiCan || ''} onChange={(e)=>setLeadData({...leadData, loaiCan: e.target.value})} className="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-blue-600 text-sm font-medium">
-                        <option value="" disabled hidden>Loại căn...</option>
-                        {['Studio', '1N', '1N+', '2N1WC', '2N2WC', '2N+', '3N', '4N'].map(opt => <option key={opt}>{opt}</option>)}
-                     </select>
-                     <input required type="text" placeholder="Tài chính dự kiến..." value={leadData.taiChinh || ''} onChange={(e)=>setLeadData({...leadData, taiChinh: e.target.value})} className="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-blue-600 text-sm font-medium" />
-                 </div>
-                 <div>
-                   <textarea rows="2" placeholder="Ghi chú thêm (Tầng, hướng, nội thất...)" value={leadData.ghiChu} onChange={(e)=>setLeadData({...leadData, ghiChu: e.target.value})} className="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-blue-600 text-sm font-medium"></textarea>
-                 </div>
-                 <button type="submit" disabled={isSendingLead} className="w-full bg-blue-600 hover:bg-blue-700 text-white p-3.5 rounded-lg font-black uppercase tracking-wider text-sm transition shadow-lg shadow-blue-600/30 disabled:opacity-50">
-                   {isSendingLead ? 'Đang gửi...' : 'Gửi yêu cầu & Nhận báo giá'}
-                 </button>
-              </form>
-              <p className="text-[10px] text-gray-400 mt-4 text-center">Cam kết bảo mật thông tin 100%.</p>
             </div>
           </div>
         </div>
