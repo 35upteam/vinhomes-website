@@ -169,8 +169,8 @@ export default function PropertyDetail() {
       }
       
       const qrLink = `https://quycan-smartcity.vercel.app/property/${property.id}`;
-      // Lấy ảnh nền trắng hoàn toàn cho QR, border xanh navy
-      const qrUrl = `https://quickchart.io/qr?text=${encodeURIComponent(qrLink)}&size=150&dark=1e3a8a&margin=1`;
+      // Đã cập nhật margin nhỏ lại để QR code to hết cỡ
+      const qrUrl = `https://quickchart.io/qr?text=${encodeURIComponent(qrLink)}&size=150&dark=1e3a8a&margin=0`;
       fetch(qrUrl)
         .then(res => res.blob())
         .then(blob => {
@@ -308,7 +308,7 @@ export default function PropertyDetail() {
   return (
     <div className="min-h-screen bg-gray-50 text-gray-800 flex flex-col relative pb-20 md:pb-0 overflow-x-hidden">
       
-      {/* TẤM POSTER ẢO */}
+      {/* TẤM POSTER ẢO ĐÃ ĐƯỢC TINH CHỈNH TỪNG PIXEL */}
       <div 
         className={`fixed top-0 block ${isGeneratingPoster ? 'left-0' : '-left-[9999px]'}`} 
         style={{ width: '1200px', height: '630px', zIndex: -9000, backgroundColor: '#ffffff', fontFamily: '"Montserrat", system-ui, -apple-system, sans-serif' }} 
@@ -329,10 +329,10 @@ export default function PropertyDetail() {
            </div>
 
            {/* CỘT PHẢI (THÔNG TIN 50%) */}
-           <div style={{ width: '50%', height: '100%', display: 'flex', flexDirection: 'column', boxSizing: 'border-box', padding: '30px 40px' }}>
+           <div style={{ width: '50%', height: '100%', display: 'flex', flexDirection: 'column', boxSizing: 'border-box', padding: '50px 40px 40px 40px' }}> {/* Tăng padding-top để khối text cách lề trên xa hơn */}
               
               {/* Tiêu đề & Loại căn đóng khung */}
-              <div style={{ marginBottom: '24px' }}>
+              <div style={{ marginBottom: '30px' }}>
                 <p style={{ color: '#d97706', fontWeight: 800, letterSpacing: '0.15em', fontSize: '14px', marginBottom: '10px', textTransform: 'uppercase', margin: '0 0 10px 0' }}>Vinhomes Smart City</p>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                    <h1 style={{ fontSize: '32px', fontWeight: 900, color: '#1e3a8a', margin: 0, textTransform: 'uppercase' }}>
@@ -392,12 +392,11 @@ export default function PropertyDetail() {
                 </div>
               </div>
 
-              {/* Mức Giá Nổi Bật (Có Icon Tag Giá) */}
+              {/* Mức Giá Nổi Bật (Có Icon ĐỒNG XU) */}
               <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginBottom: 'auto' }}>
                  <div style={{ width: '40px', height: '40px', backgroundColor: '#fffbeb', borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center', color: '#d97706', flexShrink: 0, alignSelf: 'center', marginRight: '4px' }}>
-                    <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/></svg>
+                    <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                  </div>
-                 {/* Sửa lại Font weight và căn chuẩn */}
                  <span style={{ fontSize: '72px', fontFamily: '"Montserrat", sans-serif', fontWeight: 900, color: '#d97706', lineHeight: 1 }}>{property.price}</span>
                  <span style={{ fontSize: '24px', fontFamily: '"Montserrat", sans-serif', fontWeight: 800, color: '#b45309' }}>{property.listingType === 'Chuyển nhượng' ? 'Tỷ' : 'Tr/tháng'}</span>
               </div>
@@ -405,25 +404,24 @@ export default function PropertyDetail() {
               {/* CHÂN TRANG MỚI: QUÉT QR + ĐIỆN THOẠI CHUẨN */}
               <div style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '16px', padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', boxSizing: 'border-box' }}>
                  
-                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', flex: 1 }}>
-                    <p style={{ fontSize: '15px', fontWeight: 800, color: '#1e3a8a', margin: 0, lineHeight: 1.4, textTransform: 'uppercase' }}>
+                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1 }}>
+                    <p style={{ fontSize: '14px', fontWeight: 800, color: '#1e3a8a', margin: 0, lineHeight: 1.4, textTransform: 'uppercase' }}>
                       Quét mã QR để xem thêm<br/>quỹ căn cập nhật 24/7
                     </p>
-                    {/* Icon điện thoại đã fix, không bị cắt */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
-                      <div style={{ backgroundColor: '#1e3a8a', color: '#ffffff', width: '24px', height: '24px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px' }}>
+                      <div style={{ backgroundColor: '#1e3a8a', color: '#ffffff', width: '26px', height: '26px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                          <svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24"><path d="M20 15.5c-1.2 0-2.4-.2-3.6-.6-.3-.1-.7 0-1 .2l-2.2 2.2c-2.8-1.4-5.1-3.8-6.6-6.6l2.2-2.2c.3-.3.4-.7.2-1-.4-1.2-.6-2.4-.6-3.6 0-.6-.4-1-1-1H4c-.6 0-1 .4-1 1 0 9.4 7.6 17 17 17 .6 0 1-.4 1-1v-3.5c0-.6-.4-1-1-1zM19 12h2a9 9 0 00-9-9v2c3.9 0 7.1 3.2 7.1 7.1zM15 12h2c0-2.8-2.2-5-5-5v2c1.7 0 3 1.3 3 3z"/></svg>
                       </div>
-                      <span style={{ fontSize: '18px', color: '#1e3a8a', fontWeight: 800 }}>0912.791.925</span>
+                      <span style={{ fontSize: '20px', color: '#1e3a8a', fontWeight: 900 }}>0912.791.925</span>
                     </div>
                  </div>
 
                  {/* Cột phải chân trang: QR to + Link web */}
-                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', paddingLeft: '16px' }}>
+                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', paddingLeft: '10px' }}>
                     <div style={{ backgroundColor: '#ffffff', padding: '4px', borderRadius: '8px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}>
-                      {qrBase64 ? <img src={qrBase64} style={{ width: '90px', height: '90px', display: 'block' }} alt="QR Code" /> : <div style={{ width: '90px', height: '90px', backgroundColor: '#e5e7eb' }}></div>}
+                      {qrBase64 ? <img src={qrBase64} style={{ width: '120px', height: '120px', display: 'block' }} alt="QR Code" /> : <div style={{ width: '120px', height: '120px', backgroundColor: '#e5e7eb' }}></div>}
                     </div>
-                    <span style={{ fontSize: '10px', color: '#6b7280', fontWeight: 600 }}>quycan-smartcity.vercel.app</span>
+                    <span style={{ fontSize: '10px', color: '#2563eb', fontWeight: 800 }}>quycan-smartcity.vercel.app</span>
                  </div>
               </div>
 
@@ -451,16 +449,9 @@ export default function PropertyDetail() {
       )}
 
       <main className="max-w-[1200px] mx-auto px-4 md:px-8 py-8 flex-grow w-full">
+        {/* ĐÃ XÓA NÚT TẢI ẢNH Ở GÓC TRÊN CÙNG ĐỂ GIAO DIỆN GỌN GÀNG HƠN */}
         <div className="flex justify-between items-center mb-6">
           <Link href="/" className="inline-flex items-center text-sm font-bold text-blue-900 hover:text-blue-700 transition"><span className="mr-2">←</span> Quay lại danh sách</Link>
-          
-          <button onClick={handleDownloadPoster} disabled={isGeneratingPoster || !qrBase64} className="flex items-center gap-2 bg-gradient-to-r from-blue-700 to-blue-900 hover:from-blue-800 hover:to-blue-950 text-white px-5 py-2.5 rounded-full font-bold shadow-md shadow-blue-900/20 transition disabled:opacity-50 text-sm">
-             {isGeneratingPoster ? (
-                <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> Đang vẽ ảnh...</>
-             ) : (
-                <><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg> Tải Ảnh Đăng FB</>
-             )}
-          </button>
         </div>
 
         <div className="flex flex-col lg:flex-row gap-8 items-start">
@@ -491,8 +482,8 @@ export default function PropertyDetail() {
                 )}
               </div>
               
-              <div className="flex bg-gray-50 border-t border-gray-100 p-2 gap-2 min-h-[80px]">
-                <div className="flex-1 flex gap-2 overflow-x-auto hide-scrollbar snap-x">
+              <div className="flex bg-gray-50 border-t border-gray-100 p-3 gap-3 min-h-[80px]">
+                <div className="flex-1 flex gap-2 overflow-x-auto hide-scrollbar snap-x items-center">
                   {images.map((img, idx) => (
                     <div key={idx} onClick={() => setCurrentImg(idx)} className={`snap-center flex-shrink-0 w-24 h-16 rounded-md cursor-pointer overflow-hidden border-2 transition-all ${currentImg === idx ? 'border-blue-600 shadow-md scale-105' : 'border-transparent opacity-60 hover:opacity-100'}`}>
                       <img crossOrigin="anonymous" src={optimizeImg(img)} loading="lazy" className="w-full h-full object-cover" />
@@ -501,13 +492,25 @@ export default function PropertyDetail() {
                   {images.length === 0 && <div className="text-sm text-gray-400 flex items-center px-4 w-full h-16">Chưa có ảnh chi tiết</div>}
                 </div>
                 
-                <div className="w-[110px] md:w-[130px] shrink-0 bg-blue-50/50 hover:bg-blue-100/50 border border-blue-100 rounded-lg flex flex-col items-center justify-center p-2 cursor-pointer transition relative" onClick={handleCopyCode}>
-                   <span className="text-[10px] text-blue-600 font-bold uppercase mb-1">Mã Căn</span>
-                   <div className="flex items-center gap-1.5 text-blue-900">
-                     <span className="font-black text-sm md:text-base truncate max-w-[80px]">{displayId}</span>
-                     <svg className="w-4 h-4 shrink-0 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
-                   </div>
-                   {copied && <span className="absolute -top-3 right-2 bg-green-500 text-white text-[9px] px-2 py-0.5 rounded shadow">Đã copy!</span>}
+                {/* ĐÃ TỐI ƯU CỤM NÚT COPY MÃ VÀ TẢI ẢNH (XẾP LIỀN NHAU) */}
+                <div className="w-[120px] md:w-[140px] shrink-0 flex flex-col gap-2">
+                  <div className="bg-blue-50/50 hover:bg-blue-100/50 border border-blue-100 rounded-lg flex flex-col items-center justify-center p-2 cursor-pointer transition relative" onClick={handleCopyCode}>
+                     <span className="text-[9px] text-blue-600 font-bold uppercase mb-0.5">Mã Căn</span>
+                     <div className="flex items-center gap-1.5 text-blue-900">
+                       <span className="font-black text-sm truncate max-w-[80px]">{displayId}</span>
+                       <svg className="w-3.5 h-3.5 shrink-0 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                     </div>
+                     {copied && <span className="absolute -top-3 right-2 bg-green-500 text-white text-[9px] px-2 py-0.5 rounded shadow">Đã copy!</span>}
+                  </div>
+                  
+                  {/* Nút Tải ảnh được chuyển xuống đây, rất tiện lợi */}
+                  <button onClick={handleDownloadPoster} disabled={isGeneratingPoster || !qrBase64} className="w-full bg-gradient-to-r from-blue-700 to-blue-900 hover:from-blue-800 hover:to-blue-950 text-white p-2 rounded-lg font-bold shadow-sm transition disabled:opacity-50 text-[10px] flex items-center justify-center gap-1.5 uppercase">
+                     {isGeneratingPoster ? (
+                        <><div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div> Vẽ ảnh...</>
+                     ) : (
+                        <><svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg> Tải Poster</>
+                     )}
+                  </button>
                 </div>
               </div>
             </div>
