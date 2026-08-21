@@ -203,7 +203,6 @@ export default function PropertyDetail() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // ĐÃ FIX BẰNG CÁCH CHỈNH ĐỘ MỜ 0.01 VÀ LUÔN NẰM TRONG MÀN HÌNH
   const handleDownloadPoster = async () => {
     if (!posterRef.current) return;
     setIsGeneratingPoster(true); 
@@ -238,7 +237,6 @@ export default function PropertyDetail() {
     }
   };
 
-  // ĐÃ CHỈNH LẠI: GIẢM XUỐNG 30s VÀ CHIA KEY RIÊNG BIỆT
   const checkSpam = (formType) => {
     const lastSent = localStorage.getItem(`lastFormSubmit_${formType}`);
     if (lastSent && Date.now() - parseInt(lastSent) < 30000) {
@@ -249,7 +247,6 @@ export default function PropertyDetail() {
     return true;
   };
 
-  // ĐÃ BỔ SUNG AWAIT ĐỂ ĐẢM BẢO GỬI TELEGRAM THÀNH CÔNG RỒI MỚI ĐÓNG POPUP
   const handleFindSubmit = async (e) => {
     e.preventDefault();
     if (!checkSpam('find')) return;
@@ -341,7 +338,7 @@ export default function PropertyDetail() {
   return (
     <div className="min-h-screen bg-gray-50 text-gray-800 flex flex-col relative pb-20 md:pb-0 overflow-x-hidden">
       
-      {/* ĐÃ FIX: CHỈNH ĐỘ MỜ 0.01 VÀ LUÔN NẰM TRONG DOM */}
+      {/* TẤM POSTER ẢO */}
       <div 
         className="fixed top-0 left-0 pointer-events-none" 
         style={{ width: '1200px', height: '630px', zIndex: -9999, opacity: isGeneratingPoster ? 1 : 0.01, backgroundColor: '#ffffff', fontFamily: '"Montserrat", system-ui, -apple-system, sans-serif' }} 
@@ -432,7 +429,7 @@ export default function PropertyDetail() {
                  </div>
               </div>
 
-              {/* CHÂN TRANG ĐÃ NGẮT DÒNG CHUẨN */}
+              {/* CHÂN TRANG */}
               <div style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '16px', padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', boxSizing: 'border-box' }}>
                  
                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1 }}>
@@ -492,7 +489,7 @@ export default function PropertyDetail() {
                   {property.nhanDan}
                 </div>
               )}
-              {/* ĐÃ TỐI ƯU CẢM ỨNG TRƯỢT FLEXBOX TRÊN TRANG CHI TIẾT */}
+              {/* ĐÃ TỐI ƯU: TRƯỢT FLEXBOX SIÊU MƯỢT TRÊN ĐIỆN THOẠI */}
               <div 
                 className="relative h-[400px] md:h-[500px] bg-gray-200 group cursor-zoom-in overflow-hidden" 
                 onClick={() => { setLightboxImg(currentImg); setIsLightboxOpen(true); }}
@@ -561,9 +558,10 @@ export default function PropertyDetail() {
                     <span className="text-4xl md:text-5xl font-black text-blue-700 tracking-tight">{property.price}</span>
                     <span className="text-lg font-bold text-blue-700/80">{property.listingType === 'Chuyển nhượng' ? 'Tỷ' : 'Triệu/tháng'}</span>
                  </div>
+                 {/* BỎ CHỮ LINK Ở ĐÂY CHỈ CÒN CHIA SẺ */}
                  <button onClick={handleShare} className="flex items-center gap-1.5 text-blue-600 hover:text-blue-800 font-semibold text-sm transition bg-blue-50 hover:bg-blue-100 px-4 py-2 rounded-full shadow-sm">
                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path></svg>
-                   Chia sẻ Link
+                   Chia sẻ
                  </button>
               </div>
             </div>
@@ -639,7 +637,7 @@ export default function PropertyDetail() {
               <div className="space-y-3">
                 <a href={`tel:${CONTACT_PHONE}`} className="flex items-center justify-center gap-2 w-full bg-blue-600 text-white py-3.5 rounded-xl font-bold hover:bg-blue-700 transition shadow-md shadow-blue-600/20">📞 Gọi {CONTACT_PHONE.replace(/(\d{4})(\d{3})(\d{3})/, '$1 $2 $3')}</a>
                 <a href={`https://zalo.me/${CONTACT_PHONE}?text=${encodeURIComponent(`Xin chào, tôi quan tâm căn Mã ${displayId} (${property?.listingType} ${property?.loaiCan} tòa ${property?.toaNha}) trên web.`)}`} target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 w-full bg-white border-2 border-blue-100 text-blue-800 py-3 rounded-xl font-bold hover:bg-blue-50 transition">💬 Nhận tư vấn căn này</a>
-                <button onClick={handleShare} className="flex items-center justify-center gap-2 w-full bg-gray-50 border border-gray-200 text-gray-700 py-3 rounded-xl font-bold hover:bg-gray-100 transition mt-2">🔗 Chia sẻ thông tin căn</button>
+                <button onClick={handleShare} className="flex items-center justify-center gap-2 w-full bg-gray-50 border border-gray-200 text-gray-700 py-3 rounded-xl font-bold hover:bg-gray-100 transition mt-2">🔗 Chia sẻ</button>
               </div>
               <div className="mt-6 bg-gray-50 p-4 rounded-xl border border-gray-100 text-center">
                 <div className="w-32 h-32 mx-auto bg-white border border-gray-200 p-2 rounded-lg shadow-sm mb-3 flex items-center justify-center"><img src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://zalo.me/${CONTACT_PHONE}`} alt="QR Code Zalo" className="w-full h-full object-cover rounded" /></div>
