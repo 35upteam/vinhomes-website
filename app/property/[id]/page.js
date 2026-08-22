@@ -213,23 +213,25 @@ export default function PropertyDetail() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // Kỹ thuật chụp ảnh mồi đặc trị iOS Safari (ĐÃ XÓA CACHEBUST)
+  // Kỹ thuật chụp ảnh mồi đặc trị iOS Safari
   const handleDownloadPoster = async () => {
     if (!posterRef.current) return;
     setIsGeneratingPoster(true); 
     
     try {
-      // Chụp mồi 2 lần để ép Safari render Canvas và nạp ảnh
-      try { await toPng(posterRef.current, { pixelRatio: 0.1 }); } catch (e) {}
-      await new Promise(resolve => setTimeout(resolve, 150));
-      try { await toPng(posterRef.current, { pixelRatio: 0.5 }); } catch (e) {}
-      await new Promise(resolve => setTimeout(resolve, 150));
+      // Đợi 1.5 giây để Poster được đưa vào Viewport và iOS nạp ảnh
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      // Chụp mồi để ép Safari render Canvas 
+      try { await toPng(posterRef.current, { cacheBust: false }); } catch (e) {}
+      await new Promise(resolve => setTimeout(resolve, 500));
 
       // Chụp thật chất lượng cao
       const dataUrl = await toPng(posterRef.current, {
         quality: 1,
         backgroundColor: "#ffffff",
-        pixelRatio: 2
+        pixelRatio: 2,
+        cacheBust: false
       });
       
       const link = document.createElement('a');
@@ -356,22 +358,40 @@ export default function PropertyDetail() {
       {/* TẢI FONT BÊN NGOÀI ĐỂ KHÔNG BỊ NGHẼN KHI CHỤP ẢNH */}
       <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800;900&display=swap" rel="stylesheet" />
 
-      {/* GIẤU POSTER BẰNG CÁCH ĐẨY RA NGOÀI VÀ ẨN ĐI */}
-      <div style={{ position: 'fixed', top: '-9999px', left: '-9999px', pointerEvents: 'none', opacity: 0 }}>
+      {/* MÀN HÌNH CHỜ (LOADING) CHE ĐI TẤM POSTER ĐANG RENDER */}
+      {isGeneratingPoster && (
+        <div className="fixed inset-0 bg-white/95 backdrop-blur-md z-[99999] flex flex-col items-center justify-center">
+            <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
+            <p className="text-lg font-black text-blue-900 uppercase tracking-wider text-center px-4">Đang xử lý ảnh...</p>
+            <p className="text-sm font-medium text-gray-600 mt-2 text-center px-4">Vui lòng đợi giây lát.</p>
+        </div>
+      )}
+
+      {/* THUẬT TOÁN KẸP CHẢ DÀNH CHO SAFARI: Kéo thẳng Poster vào màn hình nhưng giấu đằng sau lớp Màn Hình Chờ (Loading) */}
+      <div 
+        style={{ 
+          position: 'fixed', 
+          top: isGeneratingPoster ? 0 : '-9999px', 
+          left: isGeneratingPoster ? 0 : '-9999px', 
+          pointerEvents: 'none', 
+          zIndex: isGeneratingPoster ? 99998 : -100, 
+          opacity: 1 
+        }}
+      >
         <div 
           ref={posterRef}
           style={{ width: '1200px', height: '630px', backgroundColor: '#ffffff', fontFamily: '"Montserrat", system-ui, -apple-system, sans-serif' }} 
         >
-          <div style={{ display: 'flex', width: '1200px', height: '630px', backgroundColor: '#ffffff', overflow: 'hidden' }}>
+          <div style={{ display: 'flex', width: '100%', height: '100%', backgroundColor: '#ffffff', overflow: 'hidden' }}>
              
-             {/* BÊN TRÁI: KHAI BÁO CỨNG WIDTH/HEIGHT, CHỈ SỬ DỤNG base64 ĐỂ SAFARI KHÔNG TỪ CHỐI */}
+             {/* BÊN TRÁI: Dùng kích thước cứng 600x630 và KHÔNG dùng crossOrigin */}
              <div style={{ width: '600px', height: '630px', position: 'relative', backgroundColor: '#e5e7eb', flexShrink: 0 }}>
                 <img 
-                  src={coverBase64 || '/banner.jpg'} 
+                  src={coverBase64 !== '/banner.jpg' ? coverBase64 : (property?.images?.length > 0 ? optimizePosterImg(property.images[0]) : '/banner.jpg')} 
                   alt="Cover" 
                   width="600"
                   height="630"
-                  style={{ width: '600px', height: '630px', objectFit: 'cover', display: 'block' }} 
+                  style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} 
                 />
                 {property.nhanDan && property.nhanDan !== 'Không có' && (
                   <div style={{ position: 'absolute', top: '30px', left: '30px', backgroundColor: '#dc2626', color: '#ffffff', padding: '10px 24px', borderRadius: '8px', fontSize: '1.25rem', fontWeight: 900, textTransform: 'uppercase', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
@@ -380,8 +400,7 @@ export default function PropertyDetail() {
                 )}
              </div>
 
-             {/* BÊN PHẢI: GIAO DIỆN BẢN 778 DÒNG CỦA BẠN (GIỮ NGUYÊN 100%) */}
-             <div style={{ width: '600px', height: '630px', display: 'flex', flexDirection: 'column', boxSizing: 'border-box', padding: '50px 40px 40px 40px', flexShrink: 0 }}>
+             <div style={{ width: '600px', height: '100%', display: 'flex', flexDirection: 'column', boxSizing: 'border-box', padding: '50px 40px 40px 40px', flexShrink: 0 }}>
                 
                 <div style={{ marginBottom: '30px' }}>
                   <p style={{ color: '#d97706', fontWeight: 800, letterSpacing: '0.15em', fontSize: '14px', marginBottom: '10px', textTransform: 'uppercase', margin: '0 0 10px 0' }}>Vinhomes Smart City</p>
@@ -476,7 +495,7 @@ export default function PropertyDetail() {
       </div>
       {/* KẾT THÚC COMPONENT POSTER ẢO */}
 
-      {/* TOÀN BỘ GIAO DIỆN WEB BÊN DƯỚI ĐƯỢC GIỮ NGUYÊN BẢN CỦA BẠN CHỈ THÊM isGeneratingPoster VÀO NÚT TẢI */}
+      {/* GIAO DIỆN HIỂN THỊ WEB GIỮ NGUYÊN 100% CỦA BẠN */}
       <header className="bg-white sticky top-0 z-50 px-4 md:px-8 py-3 flex justify-between items-center shadow-sm">
         <Link href="/" onClick={clearFilterCacheAndReset} className="flex items-center hover:opacity-80 transition"><img src="/logo.png" alt="Quỹ Căn Smart City" className="h-10 md:h-12 w-auto object-contain" /></Link>
         <div className="flex items-center gap-3 md:gap-4">
@@ -486,7 +505,7 @@ export default function PropertyDetail() {
       </header>
 
       {isLightboxOpen && property && (
-        <div className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center">
+        <div className="fixed inset0 z-[100] bg-black/95 flex items-center justify-center">
            <button onClick={() => setIsLightboxOpen(false)} className="absolute top-6 right-6 text-white hover:text-gray-300 p-2 z-10"><svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
            <button onClick={() => setLightboxImg(p => p > 0 ? p - 1 : (property.images?.length || 1) - 1)} className="absolute left-4 top-1/2 -translate-y-1/2 text-white p-4 hover:bg-white/10 rounded-full z-10"><svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path></svg></button>
            <img src={optimizeImg(property.images[lightboxImg])} alt="Full" className="max-w-full max-h-[90vh] object-contain" />
@@ -653,7 +672,7 @@ export default function PropertyDetail() {
               <div className="space-y-3">
                 <a href={`tel:${CONTACT_PHONE}`} className="flex items-center justify-center gap-2 w-full bg-blue-600 text-white py-3.5 rounded-xl font-bold hover:bg-blue-700 transition shadow-md shadow-blue-600/20">📞 Gọi {CONTACT_PHONE.replace(/(\d{4})(\d{3})(\d{3})/, '$1 $2 $3')}</a>
                 <a href={`https://zalo.me/${CONTACT_PHONE}?text=${encodeURIComponent(`Xin chào, tôi quan tâm căn Mã ${displayId} (${property?.listingType} ${property?.loaiCan} tòa ${property?.toaNha}) trên web.`)}`} target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 w-full bg-white border-2 border-blue-100 text-blue-800 py-3 rounded-xl font-bold hover:bg-blue-50 transition">💬 Nhận tư vấn căn này</a>
-                <button onClick={handleShare} className="flex items-center justify-center gap-2 w-full bg-gray-50 border border-gray-200 text-gray-700 py-3 rounded-xl font-bold hover:bg-gray-100 transition mt-2">🔗 Chia sẻ</button>
+                <button onClick={handleShare} className="flex items-center justify-center gap-2 w-full bg-gray-50 border border-gray-200 text-gray-700 py-3 rounded-xl font-bold hover:bg-gray-100 transition mt-2">🔗 Chia sẻ thông tin căn</button>
               </div>
               <div className="mt-6 bg-gray-50 p-4 rounded-xl border border-gray-100 text-center">
                 <div className="w-32 h-32 mx-auto bg-white border border-gray-200 p-2 rounded-lg shadow-sm mb-3 flex items-center justify-center"><img src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://zalo.me/${CONTACT_PHONE}`} alt="QR Code Zalo" className="w-full h-full object-cover rounded" /></div>
