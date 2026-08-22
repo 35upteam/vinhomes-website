@@ -8,7 +8,7 @@ import { toPng } from 'html-to-image';
 
 const optimizeImg = (url) => url?.includes('cloudinary.com') ? url.replace('/upload/', '/upload/w_1000,c_limit,q_auto,f_auto/') : url;
 
-// ĐÃ THÊM: Hàm ép nén kích thước ảnh riêng cho Poster để chống nghẽn RAM trên iPhone
+// Hàm ép nén kích thước ảnh riêng cho Poster để chống nghẽn RAM trên iPhone
 const optimizePosterImg = (url) => url?.includes('cloudinary.com') ? url.replace('/upload/', '/upload/w_600,h_630,c_fill,q_80,f_auto/') : url;
 
 const sanitize = (str) => str ? str.toString().replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/&/g, '&amp;') : '';
@@ -166,16 +166,19 @@ export default function PropertyDetail() {
   useEffect(() => {
     if (property) {
       if (property.images && property.images.length > 0) {
-        // ĐÃ FIX: Sử dụng optimizePosterImg thay vì ảnh gốc
+        // TẢI ẢNH ĐÃ ĐƯỢC NÉN KÍCH THƯỚC CHUẨN 600x630
         const imgUrl = optimizePosterImg(property.images[0]);
-        fetch(imgUrl, { mode: 'cors', cache: 'no-cache' })
+        fetch(imgUrl)
           .then(res => res.blob())
           .then(blob => {
             const reader = new FileReader();
             reader.onloadend = () => setCoverBase64(reader.result);
             reader.readAsDataURL(blob);
           })
-          .catch(e => console.error("Lỗi load ảnh nền:", e));
+          .catch(e => {
+            console.error("Lỗi load ảnh nền:", e);
+            setCoverBase64('/banner.jpg');
+          });
       } else {
         setCoverBase64('/banner.jpg');
       }
@@ -210,26 +213,23 @@ export default function PropertyDetail() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // ĐÃ SỬA: Kỹ thuật chụp ảnh "3 nhịp" đặc trị iOS Safari
+  // Kỹ thuật chụp ảnh mồi đặc trị iOS Safari (ĐÃ XÓA CACHEBUST)
   const handleDownloadPoster = async () => {
     if (!posterRef.current) return;
     setIsGeneratingPoster(true); 
     
     try {
-      // Đợi 1.5 giây cho iOS Safari nạp xong toàn bộ ảnh và layout vào màn hình
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // Chụp mồi lần 1 (Chất lượng thấp)
-      try { await toPng(posterRef.current, { pixelRatio: 0.1, skipAutoScale: true, cacheBust: true }); } catch (e) {}
-      
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Chụp thật (Chất lượng cao)
+      // Chụp mồi 2 lần để ép Safari render Canvas và nạp ảnh
+      try { await toPng(posterRef.current, { pixelRatio: 0.1 }); } catch (e) {}
+      await new Promise(resolve => setTimeout(resolve, 150));
+      try { await toPng(posterRef.current, { pixelRatio: 0.5 }); } catch (e) {}
+      await new Promise(resolve => setTimeout(resolve, 150));
+
+      // Chụp thật chất lượng cao
       const dataUrl = await toPng(posterRef.current, {
         quality: 1,
         backgroundColor: "#ffffff",
-        pixelRatio: 2, 
-        cacheBust: true, 
+        pixelRatio: 2
       });
       
       const link = document.createElement('a');
@@ -351,32 +351,23 @@ export default function PropertyDetail() {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-800 flex flex-col relative pb-20 md:pb-0 overflow-x-hidden">
+    <div className="min-h-screen bg-gray-50 text-gray-800 flex flex-col relative z-0 pb-20 md:pb-0 overflow-x-hidden">
       
       {/* TẢI FONT BÊN NGOÀI ĐỂ KHÔNG BỊ NGHẼN KHI CHỤP ẢNH */}
       <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800;900&display=swap" rel="stylesheet" />
 
-      {/* ĐÃ THÊM: MÀN HÌNH CHỜ (LOADING) CHE ĐI TẤM POSTER ĐANG RENDER */}
-      {isGeneratingPoster && (
-        <div className="fixed inset-0 bg-white/95 backdrop-blur-md z-[99999] flex flex-col items-center justify-center">
-            <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
-            <p className="text-lg font-black text-blue-900 uppercase tracking-wider text-center px-4">Đang xử lý ảnh...</p>
-            <p className="text-sm font-medium text-gray-600 mt-2 text-center px-4">Vui lòng không tắt màn hình.</p>
-        </div>
-      )}
-
-      {/* ĐÃ SỬA: GIẤU POSTER VÀO VIEWPORT BẰNG OPACITY 0.01 VÀ KHAI BÁO CỨNG WIDTH */}
-      <div style={{ position: 'fixed', top: 0, left: 0, pointerEvents: 'none', zIndex: -100, opacity: 0.01 }}>
+      {/* GIẤU POSTER BẰNG CÁCH ĐẨY RA NGOÀI VÀ ẨN ĐI */}
+      <div style={{ position: 'fixed', top: '-9999px', left: '-9999px', pointerEvents: 'none', opacity: 0 }}>
         <div 
           ref={posterRef}
           style={{ width: '1200px', height: '630px', backgroundColor: '#ffffff', fontFamily: '"Montserrat", system-ui, -apple-system, sans-serif' }} 
         >
           <div style={{ display: 'flex', width: '1200px', height: '630px', backgroundColor: '#ffffff', overflow: 'hidden' }}>
              
-             {/* BÊN TRÁI: Dùng kích thước cứng 600x630 và KHÔNG dùng crossOrigin */}
+             {/* BÊN TRÁI: KHAI BÁO CỨNG WIDTH/HEIGHT, CHỈ SỬ DỤNG base64 ĐỂ SAFARI KHÔNG TỪ CHỐI */}
              <div style={{ width: '600px', height: '630px', position: 'relative', backgroundColor: '#e5e7eb', flexShrink: 0 }}>
                 <img 
-                  src={coverBase64 !== '/banner.jpg' ? coverBase64 : (property?.images?.length > 0 ? optimizePosterImg(property.images[0]) : '/banner.jpg')} 
+                  src={coverBase64 || '/banner.jpg'} 
                   alt="Cover" 
                   width="600"
                   height="630"
@@ -389,6 +380,7 @@ export default function PropertyDetail() {
                 )}
              </div>
 
+             {/* BÊN PHẢI: GIAO DIỆN BẢN 778 DÒNG CỦA BẠN (GIỮ NGUYÊN 100%) */}
              <div style={{ width: '600px', height: '630px', display: 'flex', flexDirection: 'column', boxSizing: 'border-box', padding: '50px 40px 40px 40px', flexShrink: 0 }}>
                 
                 <div style={{ marginBottom: '30px' }}>
@@ -484,7 +476,7 @@ export default function PropertyDetail() {
       </div>
       {/* KẾT THÚC COMPONENT POSTER ẢO */}
 
-      {/* GIAO DIỆN WEB CỦA BẠN (GIỮ NGUYÊN 100%) */}
+      {/* TOÀN BỘ GIAO DIỆN WEB BÊN DƯỚI ĐƯỢC GIỮ NGUYÊN BẢN CỦA BẠN CHỈ THÊM isGeneratingPoster VÀO NÚT TẢI */}
       <header className="bg-white sticky top-0 z-50 px-4 md:px-8 py-3 flex justify-between items-center shadow-sm">
         <Link href="/" onClick={clearFilterCacheAndReset} className="flex items-center hover:opacity-80 transition"><img src="/logo.png" alt="Quỹ Căn Smart City" className="h-10 md:h-12 w-auto object-contain" /></Link>
         <div className="flex items-center gap-3 md:gap-4">
