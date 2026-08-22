@@ -8,7 +8,7 @@ import { toPng } from 'html-to-image';
 
 const optimizeImg = (url) => url?.includes('cloudinary.com') ? url.replace('/upload/', '/upload/w_1000,c_limit,q_auto,f_auto/') : url;
 
-// THÊM: Tối ưu đặc biệt để giảm dung lượng ảnh nền Base64 cho iPhone
+// ĐÃ THÊM: Hàm ép nén kích thước ảnh riêng cho Poster để chống nghẽn RAM trên iPhone
 const optimizePosterImg = (url) => url?.includes('cloudinary.com') ? url.replace('/upload/', '/upload/w_600,h_630,c_fill,q_80,f_auto/') : url;
 
 const sanitize = (str) => str ? str.toString().replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/&/g, '&amp;') : '';
@@ -166,7 +166,7 @@ export default function PropertyDetail() {
   useEffect(() => {
     if (property) {
       if (property.images && property.images.length > 0) {
-        // TẢI ẢNH ĐÃ ĐƯỢC ÉP KÍCH THƯỚC CHUẨN 600x630
+        // ĐÃ SỬA: Ép kích thước Poster để iPhone load mượt
         const imgUrl = optimizePosterImg(property.images[0]);
         fetch(imgUrl, { mode: 'cors', cache: 'no-cache' })
           .then(res => res.blob())
@@ -210,21 +210,18 @@ export default function PropertyDetail() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // ĐÃ SỬA LẠI LOGIC CHỤP ẢNH MỒI 3 NHỊP CHO IPHONE
+  // ĐÃ SỬA: Kỹ thuật chụp ảnh "3 nhịp" đặc trị iOS Safari
   const handleDownloadPoster = async () => {
     if (!posterRef.current) return;
     setIsGeneratingPoster(true); 
     
     try {
-      // Đợi Poster lọt vào màn hình
       await new Promise(resolve => setTimeout(resolve, 1500));
       
-      // Chụp mồi 
       try { await toPng(posterRef.current, { pixelRatio: 0.1, skipAutoScale: true, cacheBust: true }); } catch (e) {}
       
       await new Promise(resolve => setTimeout(resolve, 500));
       
-      // Chụp thật
       const dataUrl = await toPng(posterRef.current, {
         quality: 1,
         backgroundColor: "#ffffff",
@@ -352,26 +349,25 @@ export default function PropertyDetail() {
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-800 flex flex-col relative pb-20 md:pb-0 overflow-x-hidden">
-      
-      {/* 1. MÀN HÌNH CHỜ (LOADING) CHE ĐI TẤM POSTER ĐANG RENDER */}
+
+      {/* ĐÃ THÊM: MÀN HÌNH CHỜ LOADING (CHE POSTER LẠI ĐỂ MẮT KHÁCH HÀNG KHÔNG THẤY) */}
       {isGeneratingPoster && (
         <div className="fixed inset-0 bg-white/95 backdrop-blur-md z-[99999] flex flex-col items-center justify-center">
             <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
-            <p className="text-lg font-black text-blue-900 uppercase tracking-wider text-center px-4">Đang xử lý ảnh...</p>
+            <p className="text-lg font-black text-blue-900 uppercase tracking-wider text-center px-4">Đang vẽ ảnh Poster...</p>
             <p className="text-sm font-medium text-gray-600 mt-2 text-center px-4">Vui lòng không tắt màn hình.</p>
         </div>
       )}
 
-      {/* 2. GIẤU POSTER Ở TRONG HỘP TÀNG HÌNH ĐỂ TRỊ SAFARI IPHONE */}
+      {/* ĐÃ SỬA: GIẤU POSTER VÀO HỘP TÀNG HÌNH VÀ ÉP WIDTH 600px */}
       <div style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden', pointerEvents: 'none', zIndex: -100 }}>
         <div 
           ref={posterRef}
           style={{ width: '1200px', height: '630px', backgroundColor: '#ffffff', fontFamily: 'sans-serif' }} 
         >
-          {/* TOÀN BỘ CODE POSTER Ở DƯỚI ĐÂY GIỮ NGUYÊN BẢN CŨ CỦA BẠN CHỈ THÊM WIDTH=600 CHO IMG */}
           <div style={{ display: 'flex', width: '100%', height: '100%', backgroundColor: '#ffffff', overflow: 'hidden' }}>
              
-             {/* BÊN TRÁI: KHAI BÁO CỨNG KÍCH THƯỚC + CROSSORIGIN */}
+             {/* BÊN TRÁI: Dùng kích thước cứng 600x630 và crossOrigin */}
              <div style={{ width: '600px', height: '630px', position: 'relative', backgroundColor: '#e5e7eb' }}>
                 <img 
                   crossOrigin="anonymous"
@@ -388,7 +384,7 @@ export default function PropertyDetail() {
                 )}
              </div>
 
-             {/* BÊN PHẢI: CODE CŨ CỦA BẠN 100% */}
+             {/* BÊN PHẢI: GIỮ NGUYÊN BẢN CŨ BẠN GỬI (Đổi width thành 600px cho chuẩn hộp) */}
              <div style={{ width: '600px', height: '100%', display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }}>
                 
                 <div style={{ padding: '50px 50px 30px 50px', flex: 1, display: 'flex', flexDirection: 'column' }}>
@@ -436,9 +432,7 @@ export default function PropertyDetail() {
           </div>
         </div>
       </div>
-      {/* KẾT THÚC COMPONENT POSTER ẢO */}
 
-      {/* TỪ ĐÂY TRỞ XUỐNG LÀ GIAO DIỆN WEB CŨ CỦA BẠN (GIỮ NGUYÊN 100%) */}
       <header className="bg-white sticky top-0 z-50 px-4 md:px-8 py-3 flex justify-between items-center shadow-sm">
         <Link href="/" onClick={clearFilterCacheAndReset} className="flex items-center hover:opacity-80 transition"><img src="/logo.png" alt="Quỹ Căn Smart City" className="h-10 md:h-12 w-auto object-contain" /></Link>
         <div className="flex items-center gap-3 md:gap-4">
@@ -479,24 +473,15 @@ export default function PropertyDetail() {
                   {property.nhanDan}
                 </div>
               )}
-              <div 
-                className="relative h-[400px] md:h-[500px] bg-gray-200 group cursor-zoom-in overflow-hidden" 
-                onClick={() => { setLightboxImg(currentImg); setIsLightboxOpen(true); }}
-                onTouchStart={onTouchStart}
-                onTouchMove={onTouchMove}
-                onTouchEnd={onTouchEnd}
-              >
+              <div className="relative h-[400px] md:h-[500px] bg-gray-200 group cursor-zoom-in" onClick={() => { setLightboxImg(currentImg); setIsLightboxOpen(true); }}>
                 {images.length > 0 ? (
-                  <div className="flex w-full h-full transition-transform duration-300 ease-out" style={{ transform: `translateX(-${currentImg * 100}%)` }}>
-                    {images.map((img, idx) => (
-                      <img key={idx} crossOrigin="anonymous" src={optimizeImg(img)} alt="Căn hộ" loading={idx === 0 ? "eager" : "lazy"} className="w-full h-full object-cover flex-shrink-0 group-hover:scale-105 transition-transform duration-700 pointer-events-none" />
-                    ))}
-                  </div>
+                  <>
+                    <img crossOrigin="anonymous" src={optimizeImg(images[currentImg])} alt="Căn hộ" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.02]" />
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition flex items-center justify-center">
+                       <svg className="w-12 h-12 text-white opacity-0 group-hover:opacity-100 transition shadow-sm drop-shadow-md" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"></path></svg>
+                    </div>
+                  </>
                 ) : <div className="flex items-center justify-center h-full text-gray-400">Chưa có ảnh</div>}
-                
-                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition flex items-center justify-center pointer-events-none">
-                   <svg className="w-12 h-12 text-white opacity-0 group-hover:opacity-100 transition shadow-sm drop-shadow-md" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"></path></svg>
-                </div>
                 
                 {images.length > 1 && (
                   <>
@@ -545,7 +530,7 @@ export default function PropertyDetail() {
             </div>
 
             <div className="bg-white rounded-2xl border border-gray-100 p-6 md:p-8 shadow-sm mb-8">
-              <h3 className="font-bold text-blue-900 mb-6 text-lg border-b border-gray-100 pb-3">Thông tin chi tiết</h3>
+              <h3 className="font-bold text-blue-900 mb-6 text-lg border-b border-gray-100 pb-3">Thôngquan chi tiết</h3>
               <ul className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-0 text-[13px] md:text-sm">
                 {specs.map((s, i) => (
                   <li key={i} className="flex py-3.5 border-b border-gray-100 items-center justify-between md:justify-start md:gap-8">
