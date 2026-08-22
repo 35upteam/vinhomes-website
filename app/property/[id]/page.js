@@ -235,7 +235,12 @@ export default function PropertyDetail() {
       });
       
       const link = document.createElement('a');
-      link.download = `Can-Ho-${property.maCan}-${property.phanKhu}.png`;
+      
+      // TẠO TÊN FILE THEO CẤU TRÚC MỚI: Thuê/Bán - Loại Căn - Phân Khu - Giá
+      const actionLabel = property.listingType === 'Chuyển nhượng' ? 'Bán' : 'Thuê';
+      const unitLabel = property.listingType === 'Chuyển nhượng' ? 'tỷ' : 'triệu';
+      link.download = `${actionLabel} - ${property.loaiCan || property.type} - ${property.phanKhu} - ${property.price} ${unitLabel}.png`;
+      
       link.href = dataUrl;
       link.click();
     } catch (error) {
@@ -358,9 +363,9 @@ export default function PropertyDetail() {
       {/* TẢI FONT BÊN NGOÀI ĐỂ KHÔNG BỊ NGHẼN KHI CHỤP ẢNH */}
       <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800;900&display=swap" rel="stylesheet" />
 
-      {/* ĐÃ XÓA MÀN HÌNH CHỜ THEO YÊU CẦU */}
+      {/* ĐÃ XÓA MÀN HÌNH CHỜ LOADING TRẮNG THEO YÊU CẦU */}
 
-      {/* THUẬT TOÁN KẸP CHẢ DÀNH CHO SAFARI: Kéo thẳng Poster vào màn hình nhưng giấu đi bằng opacity và zIndex âm */}
+      {/* Kéo thẳng Poster vào màn hình để Safari render, nhưng đặt opacity cực thấp để tàng hình, không che web */}
       <div 
         style={{ 
           position: 'fixed', 
@@ -373,19 +378,13 @@ export default function PropertyDetail() {
       >
         <div 
           ref={posterRef}
-          style={{ 
-            width: '1200px', 
-            height: '630px', 
-            backgroundColor: '#ffffff', 
-            fontFamily: '"Montserrat", system-ui, -apple-system, sans-serif' 
-          }} 
+          style={{ width: '1200px', height: '630px', backgroundColor: '#ffffff', fontFamily: '"Montserrat", system-ui, -apple-system, sans-serif' }} 
         >
           <div style={{ display: 'flex', width: '100%', height: '100%', backgroundColor: '#ffffff', overflow: 'hidden' }}>
              
              {/* BÊN TRÁI: Dùng kích thước cứng 600x630 và KHÔNG dùng crossOrigin */}
              <div style={{ width: '600px', height: '630px', position: 'relative', backgroundColor: '#e5e7eb', flexShrink: 0 }}>
                 <img 
-                  crossOrigin="anonymous"
                   src={coverBase64 !== '/banner.jpg' ? coverBase64 : (property?.images?.length > 0 ? optimizePosterImg(property.images[0]) : '/banner.jpg')} 
                   alt="Cover" 
                   width="600"
