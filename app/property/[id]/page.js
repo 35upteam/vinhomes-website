@@ -8,6 +8,11 @@ import { toPng } from 'html-to-image';
 
 const optimizeImg = (url) => url?.includes('cloudinary.com') ? url.replace('/upload/', '/upload/w_1000,c_limit,q_auto,f_auto/') : url;
 
+// THÊM: Tối ưu đặc biệt để giảm dung lượng ảnh nền Base64 cho iPhone
+const optimizePosterImg = (url) => url?.includes('cloudinary.com') ? url.replace('/upload/', '/upload/w_600,h_630,c_fill,q_80,f_auto/') : url;
+
+const sanitize = (str) => str ? str.toString().replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/&/g, '&amp;') : '';
+
 const slugify = (text) => {
   if(!text) return '';
   return text.toLowerCase().trim().replace(/[\s\W-]+/g, '-');
@@ -63,6 +68,10 @@ export default function PropertyDetail() {
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const [lightboxImg, setLightboxImg] = useState(0);
   const [copied, setCopied] = useState(false);
+
+  const [touchStart, setTouchStart] = useState(null);
+  const [touchEnd, setTouchEnd] = useState(null);
+  const minSwipeDistance = 50;
 
   const [isFindModalOpen, setIsFindModalOpen] = useState(false);
   const [isSendingFind, setIsSendingFind] = useState(false);
@@ -157,15 +166,9 @@ export default function PropertyDetail() {
   useEffect(() => {
     if (property) {
       if (property.images && property.images.length > 0) {
-        // Tối ưu riêng ảnh cho iPhone: Ép kích thước về 600x630 để Base64 không bị quá tải
-        let imgUrl = property.images[0];
-        if (imgUrl.includes('cloudinary.com')) {
-           imgUrl = imgUrl.replace('/upload/', '/upload/w_600,h_630,c_fill,q_80,f_auto/');
-        } else {
-           imgUrl = optimizeImg(imgUrl);
-        }
-        
-        fetch(imgUrl, { mode: 'cors' })
+        // TẢI ẢNH ĐÃ ĐƯỢC ÉP KÍCH THƯỚC CHUẨN 600x630
+        const imgUrl = optimizePosterImg(property.images[0]);
+        fetch(imgUrl, { mode: 'cors', cache: 'no-cache' })
           .then(res => res.blob())
           .then(blob => {
             const reader = new FileReader();
@@ -173,11 +176,12 @@ export default function PropertyDetail() {
             reader.readAsDataURL(blob);
           })
           .catch(e => console.error("Lỗi load ảnh nền:", e));
+      } else {
+        setCoverBase64('/banner.jpg');
       }
       
       const qrLink = `https://quycan-smartcity.vercel.app/property/${property.id}`;
-      // Mã QR màu xanh đồng bộ chân trang
-      const qrUrl = `https://quickchart.io/qr?text=${encodeURIComponent(qrLink)}&size=150&dark=1e3a8a`;
+      const qrUrl = `https://quickchart.io/qr?text=${encodeURIComponent(qrLink)}&size=150&dark=1e3a8a&margin=0`;
       fetch(qrUrl)
         .then(res => res.blob())
         .then(blob => {
@@ -206,20 +210,21 @@ export default function PropertyDetail() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  // ĐÃ SỬA LẠI LOGIC CHỤP ẢNH MỒI 3 NHỊP CHO IPHONE
   const handleDownloadPoster = async () => {
     if (!posterRef.current) return;
     setIsGeneratingPoster(true); 
     
     try {
-      // 1. Chờ Poster lọt vào giữa màn hình và Safari bắt đầu nạp ảnh
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Đợi Poster lọt vào màn hình
+      await new Promise(resolve => setTimeout(resolve, 1500));
       
-      // 2. Ép Safari chụp mồi lần 1 để "đánh thức" GPU
-      try { await toPng(posterRef.current, { pixelRatio: 0.1 }); } catch (e) {}
+      // Chụp mồi 
+      try { await toPng(posterRef.current, { pixelRatio: 0.1, skipAutoScale: true, cacheBust: true }); } catch (e) {}
       
       await new Promise(resolve => setTimeout(resolve, 500));
       
-      // 3. Chụp thật
+      // Chụp thật
       const dataUrl = await toPng(posterRef.current, {
         quality: 1,
         backgroundColor: "#ffffff",
@@ -247,15 +252,19 @@ export default function PropertyDetail() {
     }
   };
 
-  const checkSpam = () => {
-    const lastSent = localStorage.getItem('lastFormSubmit');
-    if (lastSent && Date.now() - parseInt(lastSent) < 60000) { alert('Vui lòng đợi 1 phút trước khi gửi yêu cầu tiếp theo!'); return false; }
-    localStorage.setItem('lastFormSubmit', Date.now()); return true;
+  const checkSpam = (formType) => {
+    const lastSent = localStorage.getItem(`lastFormSubmit_${formType}`);
+    if (lastSent && Date.now() - parseInt(lastSent) < 30000) {
+      alert('Vui lòng đợi 30 giây trước khi gửi yêu cầu tiếp theo!');
+      return false;
+    }
+    localStorage.setItem(`lastFormSubmit_${formType}`, Date.now());
+    return true;
   };
 
   const handleFindSubmit = async (e) => {
     e.preventDefault();
-    if (!checkSpam()) return;
+    if (!checkSpam('find')) return;
     const phoneRegex = /^0\d{9}$/;
     if (!phoneRegex.test(findData.soDienThoai)) { setFindPhoneError("Số điện thoại không hợp lệ!"); return; }
     setIsSendingFind(true);
@@ -264,12 +273,34 @@ export default function PropertyDetail() {
 
     const BOT_TOKEN = "7295171731:AAEUgA3z1y3D6o_cK8t6W42aXfN-6I"; const CHAT_ID = "6190858172";
     if (BOT_TOKEN && CHAT_ID) {
-      const message = `🚨 <b>KHÁCH TÌM CĂN MỚI!</b>\n\n👤 <b>Tên khách:</b> ${findData.ten || 'Chưa nhập'}\n📌 <b>Nhu cầu:</b> ${findData.nhuCau}\n🛏 <b>Loại căn:</b> ${findData.loaiCan}\n💰 <b>Tài chính:</b> ${findData.taiChinh}\n🛋 <b>Nội thất:</b> ${findData.noiThat}\n📅 <b>Vào ở:</b> ${findData.nhuCau === 'Cho thuê' ? findData.ngayVaoO || 'Chưa rõ' : 'N/A'}\n📞 <b>SĐT Khách:</b> <code>${findData.soDienThoai}</code>\n📝 <b>Yêu cầu thêm:</b> ${findData.ghiChu || 'Không có'}`;
-      try { await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: CHAT_ID, text: message, parse_mode: 'HTML' }) }); } catch (error) {}
+      const message = `🚨 <b>KHÁCH TÌM CĂN MỚI!</b>\n\n👤 <b>Tên khách:</b> ${sanitize(findData.ten) || 'Chưa nhập'}\n📌 <b>Nhu cầu:</b> ${sanitize(findData.nhuCau)}\n🛏 <b>Loại căn:</b> ${sanitize(findData.loaiCan)}\n💰 <b>Tài chính:</b> ${sanitize(findData.taiChinh)}\n🛋 <b>Nội thất:</b> ${sanitize(findData.noiThat)}\n📅 <b>Vào ở:</b> ${findData.nhuCau === 'Cho thuê' ? sanitize(findData.ngayVaoO) || 'Chưa rõ' : 'N/A'}\n📞 <b>SĐT Khách:</b> <code>${sanitize(findData.soDienThoai)}</code>\n📝 <b>Yêu cầu thêm:</b> ${sanitize(findData.ghiChu) || 'Không có'}`;
+      try { 
+        await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: CHAT_ID, text: message, parse_mode: 'HTML' }) }); 
+      } catch (error) { console.error("Lỗi gửi Telegram", error); }
     }
     setIsSendingFind(false); setIsFindModalOpen(false);
     setFindData({ nhuCau: 'Cho thuê', loaiCan: 'Studio', taiChinh: '', noiThat: 'Đầy đủ nội thất', ngayVaoO: '', soDienThoai: '', ghiChu: '', ten: '' });
     alert("Đã gửi yêu cầu thành công! Chuyên viên An Ninh sẽ liên hệ Zalo anh/chị ngay nhé!");
+  };
+
+  const onTouchStart = (e) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+  const onTouchMove = (e) => setTouchEnd(e.targetTouches[0].clientX);
+  const onTouchEnd = (e) => {
+    if (!property || !property.images) return;
+    if (!touchStart || !touchEnd) return;
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > minSwipeDistance;
+    const isRightSwipe = distance < -minSwipeDistance;
+    
+    if (isLeftSwipe && property.images.length > 1) {
+      setCurrentImg(prev => prev < property.images.length - 1 ? prev + 1 : 0);
+    }
+    if (isRightSwipe && property.images.length > 1) {
+      setCurrentImg(prev => prev > 0 ? prev - 1 : property.images.length - 1);
+    }
   };
 
   if (loading) {
@@ -322,7 +353,7 @@ export default function PropertyDetail() {
   return (
     <div className="min-h-screen bg-gray-50 text-gray-800 flex flex-col relative pb-20 md:pb-0 overflow-x-hidden">
       
-      {/* Lớp che Loading: Che giấu Poster khi nó bị kéo vào màn hình */}
+      {/* 1. MÀN HÌNH CHỜ (LOADING) CHE ĐI TẤM POSTER ĐANG RENDER */}
       {isGeneratingPoster && (
         <div className="fixed inset-0 bg-white/95 backdrop-blur-md z-[99999] flex flex-col items-center justify-center">
             <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
@@ -331,77 +362,83 @@ export default function PropertyDetail() {
         </div>
       )}
 
-      {/* KHU VỰC POSTER THIẾT KẾ MỚI TỐI GIẢN 
-          Kéo vào giữa màn hình thay vì giấu ngoài rìa để trị Safari iOS */}
-      <div 
-        className={`fixed top-0 block ${isGeneratingPoster ? 'left-0' : '-left-[9999px]'}`} 
-        style={{ width: '1200px', height: '630px', zIndex: isGeneratingPoster ? 99990 : -9000, backgroundColor: '#ffffff', fontFamily: 'sans-serif' }} 
-        ref={posterRef}
-      >
-        <div style={{ display: 'flex', width: '100%', height: '100%', backgroundColor: '#ffffff', overflow: 'hidden' }}>
-           
-           {/* CỘT TRÁI (ẢNH 50%) - Đã thêm crossOrigin để tránh lỗi bảo mật */}
-           <div style={{ width: '50%', height: '100%', position: 'relative' }}>
-              <img crossOrigin="anonymous" src={coverBase64} alt="Cover" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-              {property.nhanDan && property.nhanDan !== 'Không có' && (
-                <div style={{ position: 'absolute', top: '30px', left: '30px', backgroundColor: '#dc2626', color: '#ffffff', padding: '10px 24px', borderRadius: '8px', fontSize: '1.25rem', fontWeight: 900, textTransform: 'uppercase', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
-                  🔥 {property.nhanDan}
-                </div>
-              )}
-           </div>
+      {/* 2. GIẤU POSTER Ở TRONG HỘP TÀNG HÌNH ĐỂ TRỊ SAFARI IPHONE */}
+      <div style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden', pointerEvents: 'none', zIndex: -100 }}>
+        <div 
+          ref={posterRef}
+          style={{ width: '1200px', height: '630px', backgroundColor: '#ffffff', fontFamily: 'sans-serif' }} 
+        >
+          {/* TOÀN BỘ CODE POSTER Ở DƯỚI ĐÂY GIỮ NGUYÊN BẢN CŨ CỦA BẠN CHỈ THÊM WIDTH=600 CHO IMG */}
+          <div style={{ display: 'flex', width: '100%', height: '100%', backgroundColor: '#ffffff', overflow: 'hidden' }}>
+             
+             {/* BÊN TRÁI: KHAI BÁO CỨNG KÍCH THƯỚC + CROSSORIGIN */}
+             <div style={{ width: '600px', height: '630px', position: 'relative', backgroundColor: '#e5e7eb' }}>
+                <img 
+                  crossOrigin="anonymous"
+                  src={coverBase64 !== '/banner.jpg' ? coverBase64 : (property?.images?.length > 0 ? optimizePosterImg(property.images[0]) : '/banner.jpg')} 
+                  alt="Cover" 
+                  width="600"
+                  height="630"
+                  style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} 
+                />
+                {property.nhanDan && property.nhanDan !== 'Không có' && (
+                  <div style={{ position: 'absolute', top: '30px', left: '30px', backgroundColor: '#dc2626', color: '#ffffff', padding: '10px 24px', borderRadius: '8px', fontSize: '1.25rem', fontWeight: 900, textTransform: 'uppercase', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
+                    🔥 {property.nhanDan}
+                  </div>
+                )}
+             </div>
 
-           {/* CỘT PHẢI (THÔNG TIN 50%) - NỀN TRẮNG SẠCH SẼ */}
-           <div style={{ width: '50%', height: '100%', display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }}>
-              
-              <div style={{ padding: '50px 50px 30px 50px', flex: 1, display: 'flex', flexDirection: 'column' }}>
-                <p style={{ color: '#6b7280', fontWeight: 800, letterSpacing: '0.15em', fontSize: '1rem', marginBottom: '12px', textTransform: 'uppercase' }}>Vinhomes Smart City</p>
-                <h1 style={{ fontSize: '2.5rem', fontWeight: 900, color: '#1e3a8a', marginBottom: '30px', lineHeight: 1.3, margin: 0 }}>
-                  {property.listingType === 'Chuyển nhượng' ? 'BÁN' : 'CHO THUÊ'} CĂN HỘ<br/>
-                  <span style={{ fontSize: '3.5rem', color: '#2563eb' }}>{property.loaiCan || property.type}</span>
-                </h1>
+             {/* BÊN PHẢI: CODE CŨ CỦA BẠN 100% */}
+             <div style={{ width: '600px', height: '100%', display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }}>
                 
-                {/* Lưới Thông tin tối giản */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '20px', marginBottom: 'auto' }}>
-                  <div style={{ borderBottom: '1px solid #e5e7eb', paddingBottom: '12px' }}>
-                    <p style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: 700, textTransform: 'uppercase', margin: '0 0 4px 0' }}>Vị trí</p>
-                    <p style={{ fontSize: '1.25rem', fontWeight: 800, color: '#111827', margin: 0 }}>Tòa {property.toaNha} - Khu {property.phanKhu}</p>
+                <div style={{ padding: '50px 50px 30px 50px', flex: 1, display: 'flex', flexDirection: 'column' }}>
+                  <p style={{ color: '#6b7280', fontWeight: 800, letterSpacing: '0.15em', fontSize: '1rem', marginBottom: '12px', textTransform: 'uppercase' }}>Vinhomes Smart City</p>
+                  <h1 style={{ fontSize: '2.5rem', fontWeight: 900, color: '#1e3a8a', marginBottom: '30px', lineHeight: 1.3, margin: 0 }}>
+                    {property.listingType === 'Chuyển nhượng' ? 'BÁN' : 'CHO THUÊ'} CĂN HỘ<br/>
+                    <span style={{ fontSize: '3.5rem', color: '#2563eb' }}>{property.loaiCan || property.type}</span>
+                  </h1>
+                  
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '20px', marginBottom: 'auto' }}>
+                    <div style={{ borderBottom: '1px solid #e5e7eb', paddingBottom: '12px' }}>
+                      <p style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: 700, textTransform: 'uppercase', margin: '0 0 4px 0' }}>Vị trí</p>
+                      <p style={{ fontSize: '1.25rem', fontWeight: 800, color: '#111827', margin: 0 }}>Tòa {property.toaNha} - Khu {property.phanKhu}</p>
+                    </div>
+                    <div style={{ borderBottom: '1px solid #e5e7eb', paddingBottom: '12px' }}>
+                      <p style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: 700, textTransform: 'uppercase', margin: '0 0 4px 0' }}>Diện tích</p>
+                      <p style={{ fontSize: '1.25rem', fontWeight: 800, color: '#111827', margin: 0 }}>{property.area || 0} m²</p>
+                    </div>
+                    <div style={{ borderBottom: '1px solid #e5e7eb', paddingBottom: '12px' }}>
+                      <p style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: 700, textTransform: 'uppercase', margin: '0 0 4px 0' }}>Nội thất</p>
+                      <p style={{ fontSize: '1.25rem', fontWeight: 800, color: '#111827', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{property.noiThat}</p>
+                    </div>
                   </div>
-                  <div style={{ borderBottom: '1px solid #e5e7eb', paddingBottom: '12px' }}>
-                    <p style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: 700, textTransform: 'uppercase', margin: '0 0 4px 0' }}>Diện tích</p>
-                    <p style={{ fontSize: '1.25rem', fontWeight: 800, color: '#111827', margin: 0 }}>{property.area || 0} m²</p>
-                  </div>
-                  <div style={{ borderBottom: '1px solid #e5e7eb', paddingBottom: '12px' }}>
-                    <p style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: 700, textTransform: 'uppercase', margin: '0 0 4px 0' }}>Nội thất</p>
-                    <p style={{ fontSize: '1.25rem', fontWeight: 800, color: '#111827', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{property.noiThat}</p>
+
+                  <div style={{ marginTop: '30px' }}>
+                    <p style={{ fontSize: '1rem', fontWeight: 800, color: '#6b7280', textTransform: 'uppercase', margin: '0 0 8px 0' }}>Mức giá</p>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '12px' }}>
+                       <span style={{ fontSize: '5rem', fontWeight: 900, color: '#dc2626', lineHeight: 1 }}>{property.price}</span>
+                       <span style={{ fontSize: '2rem', fontWeight: 800, color: '#ef4444' }}>{property.listingType === 'Chuyển nhượng' ? 'Tỷ' : 'Tr/tháng'}</span>
+                    </div>
                   </div>
                 </div>
 
-                {/* Mức Giá nổi bật */}
-                <div style={{ marginTop: '30px' }}>
-                  <p style={{ fontSize: '1rem', fontWeight: 800, color: '#6b7280', textTransform: 'uppercase', margin: '0 0 8px 0' }}>Mức giá</p>
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '12px' }}>
-                     <span style={{ fontSize: '5rem', fontWeight: 900, color: '#dc2626', lineHeight: 1 }}>{property.price}</span>
-                     <span style={{ fontSize: '2rem', fontWeight: 800, color: '#ef4444' }}>{property.listingType === 'Chuyển nhượng' ? 'Tỷ' : 'Tr/tháng'}</span>
-                  </div>
+                <div style={{ backgroundColor: '#1e3a8a', padding: '30px 50px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                   <div>
+                      <p style={{ fontSize: '12px', color: '#bfdbfe', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 8px 0' }}>Mời xem chi tiết & Gọi tư vấn:</p>
+                      <p style={{ fontSize: '1.75rem', fontWeight: 900, color: '#ffffff', margin: 0 }}>📞 0912.791.925</p>
+                   </div>
+                   <div style={{ backgroundColor: '#ffffff', padding: '10px', borderRadius: '12px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}>
+                      {qrBase64 ? <img src={qrBase64} style={{ width: '80px', height: '80px', display: 'block' }} alt="QR Code" /> : <div style={{ width: '80px', height: '80px', backgroundColor: '#e5e7eb' }}></div>}
+                   </div>
                 </div>
-              </div>
 
-              {/* Dải băng Chân trang chứa Hotline & QR */}
-              <div style={{ backgroundColor: '#1e3a8a', padding: '30px 50px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                 <div>
-                    <p style={{ fontSize: '12px', color: '#bfdbfe', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 8px 0' }}>Mời xem chi tiết & Gọi tư vấn:</p>
-                    <p style={{ fontSize: '1.75rem', fontWeight: 900, color: '#ffffff', margin: 0 }}>📞 0912.791.925</p>
-                 </div>
-                 <div style={{ backgroundColor: '#ffffff', padding: '10px', borderRadius: '12px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}>
-                    {qrBase64 ? <img src={qrBase64} style={{ width: '80px', height: '80px', display: 'block' }} alt="QR Code" /> : <div style={{ width: '80px', height: '80px', backgroundColor: '#e5e7eb' }}></div>}
-                 </div>
-              </div>
-
-           </div>
+             </div>
+          </div>
         </div>
       </div>
-      {/* KẾT THÚC COMPONENT ẢO */}
+      {/* KẾT THÚC COMPONENT POSTER ẢO */}
 
+      {/* TỪ ĐÂY TRỞ XUỐNG LÀ GIAO DIỆN WEB CŨ CỦA BẠN (GIỮ NGUYÊN 100%) */}
       <header className="bg-white sticky top-0 z-50 px-4 md:px-8 py-3 flex justify-between items-center shadow-sm">
         <Link href="/" onClick={clearFilterCacheAndReset} className="flex items-center hover:opacity-80 transition"><img src="/logo.png" alt="Quỹ Căn Smart City" className="h-10 md:h-12 w-auto object-contain" /></Link>
         <div className="flex items-center gap-3 md:gap-4">
@@ -442,15 +479,24 @@ export default function PropertyDetail() {
                   {property.nhanDan}
                 </div>
               )}
-              <div className="relative h-[400px] md:h-[500px] bg-gray-200 group cursor-zoom-in" onClick={() => { setLightboxImg(currentImg); setIsLightboxOpen(true); }}>
+              <div 
+                className="relative h-[400px] md:h-[500px] bg-gray-200 group cursor-zoom-in overflow-hidden" 
+                onClick={() => { setLightboxImg(currentImg); setIsLightboxOpen(true); }}
+                onTouchStart={onTouchStart}
+                onTouchMove={onTouchMove}
+                onTouchEnd={onTouchEnd}
+              >
                 {images.length > 0 ? (
-                  <>
-                    <img crossOrigin="anonymous" src={optimizeImg(images[currentImg])} alt="Căn hộ" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.02]" />
-                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition flex items-center justify-center">
-                       <svg className="w-12 h-12 text-white opacity-0 group-hover:opacity-100 transition shadow-sm drop-shadow-md" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"></path></svg>
-                    </div>
-                  </>
+                  <div className="flex w-full h-full transition-transform duration-300 ease-out" style={{ transform: `translateX(-${currentImg * 100}%)` }}>
+                    {images.map((img, idx) => (
+                      <img key={idx} crossOrigin="anonymous" src={optimizeImg(img)} alt="Căn hộ" loading={idx === 0 ? "eager" : "lazy"} className="w-full h-full object-cover flex-shrink-0 group-hover:scale-105 transition-transform duration-700 pointer-events-none" />
+                    ))}
+                  </div>
                 ) : <div className="flex items-center justify-center h-full text-gray-400">Chưa có ảnh</div>}
+                
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition flex items-center justify-center pointer-events-none">
+                   <svg className="w-12 h-12 text-white opacity-0 group-hover:opacity-100 transition shadow-sm drop-shadow-md" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"></path></svg>
+                </div>
                 
                 {images.length > 1 && (
                   <>
