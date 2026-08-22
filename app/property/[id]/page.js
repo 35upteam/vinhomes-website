@@ -8,7 +8,7 @@ import { toPng } from 'html-to-image';
 
 const optimizeImg = (url) => url?.includes('cloudinary.com') ? url.replace('/upload/', '/upload/w_1000,c_limit,q_auto,f_auto/') : url;
 
-// Hàm nén ảnh Poster để iOS load mượt mà
+// Hàm ép nén kích thước ảnh riêng cho Poster để chống nghẽn RAM trên iPhone
 const optimizePosterImg = (url) => url?.includes('cloudinary.com') ? url.replace('/upload/', '/upload/w_600,h_630,c_fill,q_80,f_auto/') : url;
 
 const sanitize = (str) => str ? str.toString().replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/&/g, '&amp;') : '';
@@ -166,6 +166,7 @@ export default function PropertyDetail() {
   useEffect(() => {
     if (property) {
       if (property.images && property.images.length > 0) {
+        // TẢI ẢNH ĐÃ ĐƯỢC NÉN KÍCH THƯỚC CHUẨN 600x630
         const imgUrl = optimizePosterImg(property.images[0]);
         fetch(imgUrl)
           .then(res => res.blob())
@@ -212,18 +213,20 @@ export default function PropertyDetail() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  // Kỹ thuật chụp ảnh mồi đặc trị iOS Safari
   const handleDownloadPoster = async () => {
     if (!posterRef.current) return;
     setIsGeneratingPoster(true); 
     
     try {
-      // 1. Chụp mồi để đánh thức Engine đồ họa của Safari
-      try { await toPng(posterRef.current, { pixelRatio: 0.1, skipAutoScale: true, cacheBust: false }); } catch (e) {}
-      
-      // 2. Chờ 1.5 giây để nạp RAM
+      // Đợi 1.5 giây để Poster được đưa vào Viewport và iOS nạp ảnh
       await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      // Chụp mồi để ép Safari render Canvas 
+      try { await toPng(posterRef.current, { cacheBust: false }); } catch (e) {}
+      await new Promise(resolve => setTimeout(resolve, 500));
 
-      // 3. Chụp thật
+      // Chụp thật chất lượng cao
       const dataUrl = await toPng(posterRef.current, {
         quality: 1,
         backgroundColor: "#ffffff",
@@ -352,9 +355,10 @@ export default function PropertyDetail() {
   return (
     <div className="min-h-screen bg-gray-50 text-gray-800 flex flex-col relative z-0 pb-20 md:pb-0 overflow-x-hidden">
       
+      {/* TẢI FONT BÊN NGOÀI ĐỂ KHÔNG BỊ NGHẼN KHI CHỤP ẢNH */}
       <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800;900&display=swap" rel="stylesheet" />
 
-      {/* POSTER ẢO NẰM TÀNG HÌNH TRONG GÓC MÀN HÌNH ĐỂ TRỊ LỖI IPHONE */}
+      {/* ĐÃ FIX: Giấu Poster bằng opacity 0.01 và z-index âm, luôn ở trong viewport để Safari render mà không hiện trắng màn hình */}
       <div style={{ position: 'fixed', top: 0, left: 0, pointerEvents: 'none', zIndex: -100, opacity: 0.01 }}>
         <div 
           ref={posterRef}
@@ -437,7 +441,7 @@ export default function PropertyDetail() {
       {isLightboxOpen && property && (
         <div className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center">
            <button onClick={() => setIsLightboxOpen(false)} className="absolute top-6 right-6 text-white hover:text-gray-300 p-2 z-10"><svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
-           <button onClick={() => setLightboxImg(p => p > 0 ? p - 1 : (property.images?.length || 1) - 1)} className="absolute left-4 top-1/2 -translate-y-1/2 text-white p-4 hover:bg-white/10 rounded-full z-10"><svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path></svg></button>
+           <button onClick={() => setLightboxImg(p => p > 0 ? p - 1 : (property.images?.length || 1) - 1)} className="absolute left-4 top-1/2 -translate-y-1/2 text-white p-4 hover:bg-white/10 rounded-full z-10"><svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg></button>
            <img src={optimizeImg(property.images[lightboxImg])} alt="Full" className="max-w-full max-h-[90vh] object-contain" />
            <button onClick={() => setLightboxImg(p => p < (property.images?.length || 1) - 1 ? p + 1 : 0)} className="absolute right-4 top-1/2 -translate-y-1/2 text-white p-4 hover:bg-white/10 rounded-full z-10"><svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg></button>
            <div className="absolute bottom-6 text-white text-sm font-medium">{lightboxImg + 1} / {property.images?.length || 1}</div>
@@ -506,7 +510,7 @@ export default function PropertyDetail() {
 
                    <button onClick={handleDownloadPoster} disabled={isGeneratingPoster || !qrBase64} className="w-full bg-blue-700 hover:bg-blue-800 text-white py-1.5 rounded font-bold shadow-sm transition disabled:opacity-50 text-[11px] flex items-center justify-center gap-1.5 uppercase">
                      {isGeneratingPoster ? (
-                        <><div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div> Đang tải...</>
+                        <><div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div> Vẽ ảnh...</>
                      ) : (
                         <><svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg> Tải Poster</>
                      )}
