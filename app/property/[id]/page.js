@@ -163,8 +163,7 @@ export default function PropertyDetail() {
     if (property) {
       if (property.images && property.images.length > 0) {
         const imgUrl = optimizeImg(property.images[0]);
-        // Thêm mode cors để xử lý triệt để trên iOS
-        fetch(imgUrl, { mode: 'cors' })
+        fetch(imgUrl)
           .then(res => res.blob())
           .then(blob => {
             const reader = new FileReader();
@@ -204,20 +203,22 @@ export default function PropertyDetail() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  // ĐÃ FIX SAFARI BẰNG CÁCH CHỤP MỒI VÀ THAY ĐỔI CẤU TRÚC ẢNH
   const handleDownloadPoster = async () => {
     if (!posterRef.current) return;
     setIsGeneratingPoster(true); 
     
     try {
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // BƯỚC QUAN TRỌNG NHẤT ĐỂ TRỊ IPHONE: CHỤP MỒI (DRY-RUN)
-      // Ép Safari render Canvas 1 lần chất lượng thấp để ảnh được nạp thẳng vào RAM
-      try { await toPng(posterRef.current, { pixelRatio: 0.1, cacheBust: true }); } catch (e) {}
-      
+      // Đợi component lọt vào khung hình hoàn toàn
       await new Promise(resolve => setTimeout(resolve, 300));
       
-      // Chụp thật chất lượng cao
+      // Chụp mồi lần 1 (Chất lượng rất thấp) để ép Safari nạp tài nguyên ảnh
+      try { await toPng(posterRef.current, { pixelRatio: 0.5, cacheBust: true }); } catch (e) {}
+      
+      // Đợi Safari hoàn thành việc đưa ảnh vào RAM
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      // Chụp thật với chất lượng cao nhất
       const dataUrl = await toPng(posterRef.current, {
         quality: 1,
         backgroundColor: "#ffffff",
@@ -346,33 +347,32 @@ export default function PropertyDetail() {
   return (
     <div className="min-h-screen bg-gray-50 text-gray-800 flex flex-col relative pb-20 md:pb-0 overflow-x-hidden">
       
-      {/* TẤM POSTER ẢO ĐÃ ĐƯỢC TỐI ƯU CỰC KỲ KHẮT KHE CHO IPHONE */}
+      {/* KHẮC PHỤC LỖI FONT CHỮ CỦA SAFARI BẰNG CÁCH ĐƯA LINK FONT RA BÊN NGOÀI KHỐI POSTER */}
+      <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800;900&display=swap" rel="stylesheet" />
+
+      {/* TẤM POSTER ẢO */}
       <div 
         className="fixed top-0 left-0 pointer-events-none" 
         style={{ 
           width: '1200px', 
           height: '630px', 
           zIndex: -9999, 
-          opacity: 1, /* ĐỂ 1 CHỨ KHÔNG ĐỂ 0.01 ĐỂ SAFARI KHÔNG TỐI ƯU BỎ QUA */
+          opacity: 1,
           backgroundColor: '#ffffff', 
           fontFamily: '"Montserrat", system-ui, -apple-system, sans-serif' 
         }} 
         ref={posterRef}
       >
-        <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800;900&display=swap" rel="stylesheet" />
-        
         <div style={{ display: 'flex', width: '100%', height: '100%', backgroundColor: '#ffffff', overflow: 'hidden' }}>
            
-           {/* THAY <IMG> BẰNG BACKGROUND-IMAGE CHO SAFARI DỄ CHỊU */}
-           <div style={{ 
-              width: '50%', 
-              height: '100%', 
-              position: 'relative',
-              backgroundImage: `url(${coverBase64})`,
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
-              backgroundColor: '#e5e7eb'
-           }}>
+           {/* ĐÃ SỬA: SỬ DỤNG THẺ IMG CƠ BẢN ĐỂ KHẮC PHỤC TRIỆT ĐỂ SAFARI IPHONE */}
+           <div style={{ width: '50%', height: '100%', position: 'relative', backgroundColor: '#e5e7eb' }}>
+              <img 
+                src={coverBase64} 
+                alt="Cover" 
+                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} 
+                crossOrigin="anonymous" 
+              />
               {property.nhanDan && property.nhanDan !== 'Không có' && (
                 <div style={{ position: 'absolute', top: '30px', left: '30px', backgroundColor: '#dc2626', color: '#ffffff', padding: '10px 24px', borderRadius: '8px', fontSize: '1.25rem', fontWeight: 900, textTransform: 'uppercase', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
                   🔥 {property.nhanDan}
@@ -452,7 +452,7 @@ export default function PropertyDetail() {
                  </div>
               </div>
 
-              {/* CHÂN TRANG */}
+              {/* CHÂN TRANG ĐÃ NGẮT DÒNG CHUẨN */}
               <div style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '16px', padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', boxSizing: 'border-box' }}>
                  
                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1 }}>
