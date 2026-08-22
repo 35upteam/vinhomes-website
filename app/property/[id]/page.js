@@ -163,7 +163,8 @@ export default function PropertyDetail() {
     if (property) {
       if (property.images && property.images.length > 0) {
         const imgUrl = optimizeImg(property.images[0]);
-        fetch(imgUrl)
+        // Thêm mode cors để xử lý triệt để trên iOS
+        fetch(imgUrl, { mode: 'cors' })
           .then(res => res.blob())
           .then(blob => {
             const reader = new FileReader();
@@ -208,8 +209,15 @@ export default function PropertyDetail() {
     setIsGeneratingPoster(true); 
     
     try {
-      await new Promise(resolve => setTimeout(resolve, 800));
+      await new Promise(resolve => setTimeout(resolve, 500));
       
+      // BƯỚC QUAN TRỌNG NHẤT ĐỂ TRỊ IPHONE: CHỤP MỒI (DRY-RUN)
+      // Ép Safari render Canvas 1 lần chất lượng thấp để ảnh được nạp thẳng vào RAM
+      try { await toPng(posterRef.current, { pixelRatio: 0.1, cacheBust: true }); } catch (e) {}
+      
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      // Chụp thật chất lượng cao
       const dataUrl = await toPng(posterRef.current, {
         quality: 1,
         backgroundColor: "#ffffff",
@@ -338,18 +346,33 @@ export default function PropertyDetail() {
   return (
     <div className="min-h-screen bg-gray-50 text-gray-800 flex flex-col relative pb-20 md:pb-0 overflow-x-hidden">
       
-      {/* TẤM POSTER ẢO */}
+      {/* TẤM POSTER ẢO ĐÃ ĐƯỢC TỐI ƯU CỰC KỲ KHẮT KHE CHO IPHONE */}
       <div 
         className="fixed top-0 left-0 pointer-events-none" 
-        style={{ width: '1200px', height: '630px', zIndex: -9999, opacity: isGeneratingPoster ? 1 : 0.01, backgroundColor: '#ffffff', fontFamily: '"Montserrat", system-ui, -apple-system, sans-serif' }} 
+        style={{ 
+          width: '1200px', 
+          height: '630px', 
+          zIndex: -9999, 
+          opacity: 1, /* ĐỂ 1 CHỨ KHÔNG ĐỂ 0.01 ĐỂ SAFARI KHÔNG TỐI ƯU BỎ QUA */
+          backgroundColor: '#ffffff', 
+          fontFamily: '"Montserrat", system-ui, -apple-system, sans-serif' 
+        }} 
         ref={posterRef}
       >
         <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800;900&display=swap" rel="stylesheet" />
         
         <div style={{ display: 'flex', width: '100%', height: '100%', backgroundColor: '#ffffff', overflow: 'hidden' }}>
            
-           <div style={{ width: '50%', height: '100%', position: 'relative' }}>
-              <img src={coverBase64} alt="Cover" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+           {/* THAY <IMG> BẰNG BACKGROUND-IMAGE CHO SAFARI DỄ CHỊU */}
+           <div style={{ 
+              width: '50%', 
+              height: '100%', 
+              position: 'relative',
+              backgroundImage: `url(${coverBase64})`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              backgroundColor: '#e5e7eb'
+           }}>
               {property.nhanDan && property.nhanDan !== 'Không có' && (
                 <div style={{ position: 'absolute', top: '30px', left: '30px', backgroundColor: '#dc2626', color: '#ffffff', padding: '10px 24px', borderRadius: '8px', fontSize: '1.25rem', fontWeight: 900, textTransform: 'uppercase', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
                   🔥 {property.nhanDan}
@@ -489,7 +512,6 @@ export default function PropertyDetail() {
                   {property.nhanDan}
                 </div>
               )}
-              {/* ĐÃ TỐI ƯU: TRƯỢT FLEXBOX SIÊU MƯỢT TRÊN ĐIỆN THOẠI */}
               <div 
                 className="relative h-[400px] md:h-[500px] bg-gray-200 group cursor-zoom-in overflow-hidden" 
                 onClick={() => { setLightboxImg(currentImg); setIsLightboxOpen(true); }}
@@ -558,7 +580,6 @@ export default function PropertyDetail() {
                     <span className="text-4xl md:text-5xl font-black text-blue-700 tracking-tight">{property.price}</span>
                     <span className="text-lg font-bold text-blue-700/80">{property.listingType === 'Chuyển nhượng' ? 'Tỷ' : 'Triệu/tháng'}</span>
                  </div>
-                 {/* BỎ CHỮ LINK Ở ĐÂY CHỈ CÒN CHIA SẺ */}
                  <button onClick={handleShare} className="flex items-center gap-1.5 text-blue-600 hover:text-blue-800 font-semibold text-sm transition bg-blue-50 hover:bg-blue-100 px-4 py-2 rounded-full shadow-sm">
                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path></svg>
                    Chia sẻ
