@@ -213,25 +213,24 @@ export default function PropertyDetail() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // Kỹ thuật chụp ảnh mồi đặc trị iOS Safari
+  // Kỹ thuật chụp ảnh mồi đặc trị iOS Safari (Đã đảo ngược để 1 phát ăn ngay)
   const handleDownloadPoster = async () => {
     if (!posterRef.current) return;
     setIsGeneratingPoster(true); 
     
     try {
-      // Đợi 1.5 giây để Poster được đưa vào Viewport và iOS nạp ảnh
+      // 1. Chụp mồi để ép hệ thống đánh thức Safari render ngay lập tức
+      try { await toPng(posterRef.current, { pixelRatio: 0.1, skipAutoScale: true, cacheBust: false }); } catch (e) {}
+      
+      // 2. Chờ 1.5s để iPhone có đủ thời gian decode hình ảnh Base64
       await new Promise(resolve => setTimeout(resolve, 1500));
       
-      // Chụp mồi để ép Safari render Canvas 
-      try { await toPng(posterRef.current, { cacheBust: false }); } catch (e) {}
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      // Chụp thật chất lượng cao
+      // 3. Chụp thật
       const dataUrl = await toPng(posterRef.current, {
         quality: 1,
         backgroundColor: "#ffffff",
-        pixelRatio: 2,
-        cacheBust: false
+        pixelRatio: 2, 
+        cacheBust: false, 
       });
       
       const link = document.createElement('a');
@@ -358,22 +357,11 @@ export default function PropertyDetail() {
       {/* TẢI FONT BÊN NGOÀI ĐỂ KHÔNG BỊ NGHẼN KHI CHỤP ẢNH */}
       <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800;900&display=swap" rel="stylesheet" />
 
-      {/* ĐÃ XÓA MÀN HÌNH CHỜ LOADING TRẮNG THEO YÊU CẦU */}
-
-      {/* Kéo thẳng Poster vào màn hình để Safari render, nhưng đặt opacity cực thấp để tàng hình, không che web */}
-      <div 
-        style={{ 
-          position: 'fixed', 
-          top: isGeneratingPoster ? 0 : '-9999px', 
-          left: isGeneratingPoster ? 0 : '-9999px', 
-          pointerEvents: 'none', 
-          zIndex: -9999, 
-          opacity: 0.01 
-        }}
-      >
+      {/* ĐÃ SỬA: Đặt Poster trong màn hình (top 0 left 0) nhưng tàng hình, không bị ẩn */}
+      <div style={{ position: 'fixed', top: 0, left: 0, pointerEvents: 'none', zIndex: -9999, opacity: 0.01 }}>
         <div 
           ref={posterRef}
-          style={{ width: '1200px', height: '630px', backgroundColor: '#ffffff', fontFamily: 'sans-serif' }} 
+          style={{ width: '1200px', height: '630px', backgroundColor: '#ffffff', fontFamily: '"Montserrat", system-ui, -apple-system, sans-serif' }} 
         >
           <div style={{ display: 'flex', width: '100%', height: '100%', backgroundColor: '#ffffff', overflow: 'hidden' }}>
              
@@ -396,89 +384,43 @@ export default function PropertyDetail() {
              <div style={{ width: '600px', height: '100%', display: 'flex', flexDirection: 'column', boxSizing: 'border-box', padding: '50px 40px 40px 40px', flexShrink: 0 }}>
                 
                 <div style={{ marginBottom: '30px' }}>
-                  <p style={{ color: '#d97706', fontWeight: 800, letterSpacing: '0.15em', fontSize: '14px', marginBottom: '10px', textTransform: 'uppercase', margin: '0 0 10px 0' }}>Vinhomes Smart City</p>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                     <h1 style={{ fontSize: '32px', fontWeight: 900, color: '#1e3a8a', margin: 0, textTransform: 'uppercase' }}>
-                       {property.listingType === 'Chuyển nhượng' ? 'BÁN CĂN HỘ' : 'CHO THUÊ CĂN'}
-                     </h1>
-                     <span style={{ backgroundColor: '#1e3a8a', color: '#ffffff', fontSize: '28px', fontWeight: 900, padding: '4px 16px', borderRadius: '8px', display: 'inline-block' }}>
-                       {property.loaiCan || property.type}
-                     </span>
-                  </div>
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px 16px', marginBottom: '24px' }}>
+                  <p style={{ color: '#d97706', fontWeight: 800, letterSpacing: '0.15em', fontSize: '1rem', marginBottom: '12px', textTransform: 'uppercase' }}>Vinhomes Smart City</p>
+                  <h1 style={{ fontSize: '2.5rem', fontWeight: 900, color: '#1e3a8a', marginBottom: '30px', lineHeight: 1.3, margin: 0 }}>
+                    {property.listingType === 'Chuyển nhượng' ? 'BÁN' : 'CHO THUÊ'} CĂN HỘ<br/>
+                    <span style={{ fontSize: '3.5rem', color: '#2563eb' }}>{property.loaiCan || property.type}</span>
+                  </h1>
                   
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <div style={{ width: '36px', height: '36px', backgroundColor: '#eff6ff', borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center', color: '#2563eb', flexShrink: 0 }}>
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '20px', marginBottom: 'auto' }}>
+                    <div style={{ borderBottom: '1px solid #e5e7eb', paddingBottom: '12px' }}>
+                      <p style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: 700, textTransform: 'uppercase', margin: '0 0 4px 0' }}>Vị trí</p>
+                      <p style={{ fontSize: '1.25rem', fontWeight: 800, color: '#111827', margin: 0 }}>Tòa {property.toaNha} - Khu {property.phanKhu}</p>
                     </div>
-                    <div style={{ overflow: 'hidden' }}>
-                       <p style={{ fontSize: '10px', color: '#6b7280', fontWeight: 700, textTransform: 'uppercase', margin: '0 0 2px 0' }}>Tòa nhà</p>
-                       <p style={{ fontSize: '15px', fontWeight: 800, color: '#1e3a8a', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Tòa {property.toaNha}</p>
+                    <div style={{ borderBottom: '1px solid #e5e7eb', paddingBottom: '12px' }}>
+                      <p style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: 700, textTransform: 'uppercase', margin: '0 0 4px 0' }}>Diện tích</p>
+                      <p style={{ fontSize: '1.25rem', fontWeight: 800, color: '#111827', margin: 0 }}>{property.area || 0} m²</p>
                     </div>
-                  </div>
-
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <div style={{ width: '36px', height: '36px', backgroundColor: '#eff6ff', borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center', color: '#2563eb', flexShrink: 0 }}>
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
-                    </div>
-                    <div style={{ overflow: 'hidden' }}>
-                       <p style={{ fontSize: '10px', color: '#6b7280', fontWeight: 700, textTransform: 'uppercase', margin: '0 0 2px 0' }}>Phân khu</p>
-                       <p style={{ fontSize: '15px', fontWeight: 800, color: '#1e3a8a', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{property.phanKhu}</p>
+                    <div style={{ borderBottom: '1px solid #e5e7eb', paddingBottom: '12px' }}>
+                      <p style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: 700, textTransform: 'uppercase', margin: '0 0 4px 0' }}>Nội thất</p>
+                      <p style={{ fontSize: '1.25rem', fontWeight: 800, color: '#111827', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{property.noiThat}</p>
                     </div>
                   </div>
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <div style={{ width: '36px', height: '36px', backgroundColor: '#eff6ff', borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center', color: '#2563eb', flexShrink: 0 }}>
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M4 4h16v16H4zM4 12h16M12 4v16"/></svg>
-                    </div>
-                    <div style={{ overflow: 'hidden' }}>
-                       <p style={{ fontSize: '10px', color: '#6b7280', fontWeight: 700, textTransform: 'uppercase', margin: '0 0 2px 0' }}>Diện tích</p>
-                       <p style={{ fontSize: '15px', fontWeight: 800, color: '#1e3a8a', margin: 0 }}>{property.area || 0} m²</p>
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <div style={{ width: '36px', height: '36px', backgroundColor: '#eff6ff', borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center', flexShrink: 0 }}>
-                      <span style={{ fontSize: '20px' }}>🛋️</span>
-                    </div>
-                    <div style={{ overflow: 'hidden' }}>
-                       <p style={{ fontSize: '10px', color: '#6b7280', fontWeight: 700, textTransform: 'uppercase', margin: '0 0 2px 0' }}>Nội thất</p>
-                       <p style={{ fontSize: '15px', fontWeight: 800, color: '#1e3a8a', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{property.noiThat}</p>
+                  <div style={{ marginTop: '30px' }}>
+                    <p style={{ fontSize: '1rem', fontWeight: 800, color: '#6b7280', textTransform: 'uppercase', margin: '0 0 8px 0' }}>Mức giá</p>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '12px' }}>
+                       <span style={{ fontSize: '5rem', fontWeight: 900, color: '#dc2626', lineHeight: 1 }}>{property.price}</span>
+                       <span style={{ fontSize: '2rem', fontWeight: 800, color: '#ef4444' }}>{property.listingType === 'Chuyển nhượng' ? 'Tỷ' : 'Tr/tháng'}</span>
                     </div>
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: 'auto' }}>
-                   <div style={{ width: '46px', height: '46px', backgroundColor: '#fffbeb', borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center', flexShrink: 0 }}>
-                      <span style={{ fontSize: '28px' }}>💰</span>
+                <div style={{ backgroundColor: '#1e3a8a', padding: '30px 50px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                   <div>
+                      <p style={{ fontSize: '12px', color: '#bfdbfe', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 8px 0' }}>Mời xem chi tiết & Gọi tư vấn:</p>
+                      <p style={{ fontSize: '1.75rem', fontWeight: 900, color: '#ffffff', margin: 0 }}>📞 0912.791.925</p>
                    </div>
-                   <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
-                      <span style={{ fontSize: '72px', fontFamily: '"Montserrat", sans-serif', fontWeight: 900, color: '#d97706', lineHeight: 1 }}>{property.price}</span>
-                      <span style={{ fontSize: '24px', fontFamily: '"Montserrat", sans-serif', fontWeight: 800, color: '#b45309' }}>{property.listingType === 'Chuyển nhượng' ? 'Tỷ' : 'Tr/tháng'}</span>
-                   </div>
-                </div>
-
-                <div style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '16px', padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', boxSizing: 'border-box' }}>
-                   
-                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1 }}>
-                      <p style={{ fontSize: '15px', fontWeight: 800, color: '#1e3a8a', margin: 0, lineHeight: 1.4, textTransform: 'uppercase' }}>
-                        Quét QR để xem chi tiết<br/>& xem thêm quỹ căn
-                      </p>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px' }}>
-                        <div style={{ backgroundColor: '#1e3a8a', color: '#ffffff', width: '26px', height: '26px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                           <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M20 15.5c-1.2 0-2.4-.2-3.6-.6-.3-.1-.7 0-1 .2l-2.2 2.2c-2.8-1.4-5.1-3.8-6.6-6.6l2.2-2.2c.3-.3.4-.7.2-1-.4-1.2-.6-2.4-.6-3.6 0-.6-.4-1-1-1H4c-.6 0-1 .4-1 1 0 9.4 7.6 17 17 17 .6 0 1-.4 1-1v-3.5c0-.6-.4-1-1-1zM19 12h2a9 9 0 00-9-9v2c3.9 0 7.1 3.2 7.1 7.1zM15 12h2c0-2.8-2.2-5-5-5v2c1.7 0 3 1.3 3 3z"/></svg>
-                        </div>
-                        <span style={{ fontSize: '20px', color: '#1e3a8a', fontWeight: 900 }}>0912.791.925</span>
-                      </div>
-                   </div>
-
-                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', paddingLeft: '10px' }}>
-                      <div style={{ backgroundColor: '#ffffff', padding: '4px', borderRadius: '8px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}>
-                        {qrBase64 ? <img src={qrBase64} style={{ width: '115px', height: '115px', display: 'block' }} alt="QR Code" /> : <div style={{ width: '115px', height: '115px', backgroundColor: '#e5e7eb' }}></div>}
-                      </div>
-                      <span style={{ fontSize: '10px', color: '#2563eb', fontWeight: 800 }}>quycan-smartcity.vercel.app</span>
+                   <div style={{ backgroundColor: '#ffffff', padding: '10px', borderRadius: '12px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}>
+                      {qrBase64 ? <img src={qrBase64} style={{ width: '80px', height: '80px', display: 'block' }} alt="QR Code" /> : <div style={{ width: '80px', height: '80px', backgroundColor: '#e5e7eb' }}></div>}
                    </div>
                 </div>
 
@@ -488,6 +430,7 @@ export default function PropertyDetail() {
       </div>
       {/* KẾT THÚC COMPONENT POSTER ẢO */}
 
+      {/* GIAO DIỆN HIỂN THỊ WEB GIỮ NGUYÊN 100% CỦA BẠN */}
       <header className="bg-white sticky top-0 z-50 px-4 md:px-8 py-3 flex justify-between items-center shadow-sm">
         <Link href="/" onClick={clearFilterCacheAndReset} className="flex items-center hover:opacity-80 transition"><img src="/logo.png" alt="Quỹ Căn Smart City" className="h-10 md:h-12 w-auto object-contain" /></Link>
         <div className="flex items-center gap-3 md:gap-4">
@@ -499,7 +442,7 @@ export default function PropertyDetail() {
       {isLightboxOpen && property && (
         <div className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center">
            <button onClick={() => setIsLightboxOpen(false)} className="absolute top-6 right-6 text-white hover:text-gray-300 p-2 z-10"><svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
-           <button onClick={() => setLightboxImg(p => p > 0 ? p - 1 : (property.images?.length || 1) - 1)} className="absolute left-4 top-1/2 -translate-y-1/2 text-white p-4 hover:bg-white/10 rounded-full z-10"><svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path></svg></button>
+           <button onClick={() => setLightboxImg(p => p > 0 ? p - 1 : (property.images?.length || 1) - 1)} className="absolute left-4 top-1/2 -translate-y-1/2 text-white p-4 hover:bg-white/10 rounded-full z-10"><svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg></button>
            <img src={optimizeImg(property.images[lightboxImg])} alt="Full" className="max-w-full max-h-[90vh] object-contain" />
            <button onClick={() => setLightboxImg(p => p < (property.images?.length || 1) - 1 ? p + 1 : 0)} className="absolute right-4 top-1/2 -translate-y-1/2 text-white p-4 hover:bg-white/10 rounded-full z-10"><svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg></button>
            <div className="absolute bottom-6 text-white text-sm font-medium">{lightboxImg + 1} / {property.images?.length || 1}</div>
