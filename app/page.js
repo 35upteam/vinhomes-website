@@ -249,7 +249,7 @@ export default function Home() {
         setIsLeadPopupOpen(true);
         sessionStorage.setItem('leadPopupShown', 'true');
       }
-    }, 15000);
+    }, 60000);
     return () => clearTimeout(timer);
   }, []);
 
@@ -306,22 +306,22 @@ export default function Home() {
   const totalPages = Math.ceil(sortedProperties.length / itemsPerPage);
   const currentProperties = sortedProperties.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
-  // ĐÃ CHỈNH LẠI: GIẢM XUỐNG 30s VÀ CHIA KEY RIÊNG BIỆT CHO TỪNG FORM
   const checkSpam = (formType) => {
-    const lastSent = localStorage.getItem(`lastFormSubmit_${formType}`);
+    const key = formType ? `lastFormSubmit_${formType}` : 'lastFormSubmit';
+    const lastSent = localStorage.getItem(key);
     if (lastSent && Date.now() - parseInt(lastSent) < 30000) {
       alert('Vui lòng đợi 30 giây trước khi gửi yêu cầu tiếp theo!');
       return false;
     }
-    localStorage.setItem(`lastFormSubmit_${formType}`, Date.now());
+    localStorage.setItem(key, Date.now());
     return true;
   };
 
   const handleFindSubmit = async (e) => {
     e.preventDefault();
-    if (!checkSpam('find')) return;
     const phoneRegex = /^0\d{9}$/;
     if (!phoneRegex.test(findData.soDienThoai)) { setFindPhoneError("Số điện thoại không hợp lệ!"); return; }
+    if (!checkSpam('find')) return;
 
     setIsSendingFind(true);
     try { await addDoc(collection(db, 'nho_tim_can'), { ...findData, source: 'Nút Nhờ Tìm (Trang chủ)', createdAt: serverTimestamp(), status: 'Chưa xử lý' }); } catch(err) {}
@@ -341,9 +341,9 @@ export default function Home() {
 
   const handleLeadSubmit = async (e) => {
     e.preventDefault();
-    if (!checkSpam('lead')) return;
     const phoneRegex = /^0\d{9}$/;
     if (!phoneRegex.test(leadData.soDienThoai)) { setLeadPhoneError("Số điện thoại không hợp lệ!"); return; }
+    if (!checkSpam('lead')) return;
 
     setIsSendingLead(true);
     try { await addDoc(collection(db, 'nho_tim_can'), { ...leadData, source: 'Popup Tự Động', createdAt: serverTimestamp(), status: 'Chưa xử lý' }); } catch(err) {}
@@ -367,12 +367,13 @@ export default function Home() {
           <img src="/logo.png" alt="Quỹ Căn Smart City" className="h-10 md:h-12 w-auto object-contain" />
         </Link>
         <div className="flex items-center gap-3 md:gap-4">
-           <Link href="/ky-gui" className="hidden md:flex items-center gap-1.5 bg-blue-50 text-blue-800 px-4 py-2 rounded-md font-bold hover:bg-blue-100 transition text-sm border border-blue-100">
-             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 001 1m-6 0h6"></path></svg>
-             Ký gửi căn hộ
+           <Link href="/ky-gui" className="flex items-center gap-1.5 bg-blue-50 text-blue-800 px-4 py-2 rounded-full sm:rounded-md font-bold hover:bg-blue-100 transition text-sm border border-blue-100 shadow-sm sm:shadow-none">
+             <svg className="w-4 h-4 hidden sm:block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 001 1m-6 0h6"></path></svg>
+             <span className="hidden sm:inline">Ký gửi căn hộ</span>
+             <span className="sm:hidden">Ký gửi</span>
            </Link>
-           <a href={`https://zalo.me/${CONTACT_PHONE}`} target="_blank" rel="noreferrer" className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-800 text-white px-5 py-2 rounded-full font-bold hover:opacity-90 transition shadow-md text-sm">
-             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M20 15.5c-1.2 0-2.4-.2-3.6-.6-.3-.1-.7 0-1 .2l-2.2 2.2c-2.8-1.4-5.1-3.8-6.6-6.6l2.2-2.2c.3-.3.4-.7.2-1-.4-1.2-.6-2.4-.6-3.6 0-.6-.4-1-1-1H4c-.6 0-1 .4-1 1 0 9.4 7.6 17 17 17 .6 0 1-.4 1-1v-3.5c0-.6-.4-1-1-1zM19 12h2a9 9 0 00-9-9v2c3.9 0 7.1 3.2 7.1 7.1zM15 12h2c0-2.8-2.2-5-5-5v2c1.7 0 3 1.3 3 3z"/></svg> <span className="hidden sm:inline">Liên hệ tư vấn</span><span className="sm:hidden">Liên hệ</span>
+           <a href={`https://zalo.me/${CONTACT_PHONE}`} target="_blank" rel="noreferrer" className="hidden sm:flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-800 text-white px-5 py-2 rounded-full font-bold hover:opacity-90 transition shadow-md text-sm">
+             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M20 15.5c-1.2 0-2.4-.2-3.6-.6-.3-.1-.7 0-1 .2l-2.2 2.2c-2.8-1.4-5.1-3.8-6.6-6.6l2.2-2.2c.3-.3.4-.7.2-1-.4-1.2-.6-2.4-.6-3.6 0-.6-.4-1-1-1H4c-.6 0-1 .4-1 1 0 9.4 7.6 17 17 17 .6 0 1-.4 1-1v-3.5c0-.6-.4-1-1-1zM19 12h2a9 9 0 00-9-9v2c3.9 0 7.1 3.2 7.1 7.1zM15 12h2c0-2.8-2.2-5-5-5v2c1.7 0 3 1.3 3 3z"/></svg> <span>Liên hệ tư vấn</span>
            </a>
         </div>
       </header>
@@ -540,6 +541,47 @@ export default function Home() {
            </div>
         </div>
       </footer>
+
+      {isLeadPopupOpen && (
+        <div className="fixed inset-0 bg-blue-900/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-fade-in-up">
+            <div className="bg-gradient-to-r from-blue-700 to-blue-900 px-6 py-4 flex justify-between items-center text-white sticky top-0 z-10">
+               <h3 className="text-lg font-bold flex items-center gap-2">👋 Chào anh/chị!</h3>
+               <button onClick={() => setIsLeadPopupOpen(false)} className="text-blue-200 hover:text-white transition"><svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+            </div>
+            <div className="p-6">
+              <p className="text-sm text-gray-600 mb-6 font-medium">Anh/chị đang quan tâm căn hộ tại Smart City? Hãy để lại thông tin, chúng em sẽ hỗ trợ tư vấn và báo giá ngay nhé!</p>
+              <form onSubmit={handleLeadSubmit} className="space-y-4 text-sm">
+                 <div>
+                   <label className="block font-bold text-gray-700 mb-1">Tên của anh/chị *</label>
+                   <input required type="text" placeholder="Nhập tên..." value={leadData.ten} onChange={(e)=>setLeadData({...leadData, ten: e.target.value})} className="w-full p-3 border border-gray-300 rounded-lg outline-none focus:border-blue-600 bg-gray-50 font-medium" />
+                 </div>
+                 <div>
+                   <label className="block font-bold text-gray-700 mb-1">Số điện thoại / Zalo *</label>
+                   <input required type="tel" placeholder="09xxxx..." value={leadData.soDienThoai} onChange={(e)=>{setLeadData({...leadData, soDienThoai: e.target.value}); setLeadPhoneError('');}} className={`w-full p-3 border rounded-lg outline-none transition font-medium ${leadPhoneError ? 'border-red-500 bg-red-50' : 'border-gray-300 focus:border-blue-600 bg-gray-50'}`} />
+                   {leadPhoneError && <p className="text-red-500 text-xs font-bold mt-1">{leadPhoneError}</p>}
+                 </div>
+                 <div className="grid grid-cols-2 gap-4">
+                   <div>
+                     <label className="block font-bold text-gray-700 mb-1">Nhu cầu</label>
+                     <select value={leadData.nhuCau} onChange={(e)=>setLeadData({...leadData, nhuCau: e.target.value})} className="w-full p-3 border border-gray-300 rounded-lg outline-none focus:border-blue-600 bg-white font-medium">
+                        <option>Thuê</option>
+                        <option>Mua</option>
+                     </select>
+                   </div>
+                   <div>
+                     <label className="block font-bold text-gray-700 mb-1">Tài chính</label>
+                     <input type="text" placeholder="VD: 2.5 tỷ" value={leadData.taiChinh} onChange={(e)=>setLeadData({...leadData, taiChinh: e.target.value})} className="w-full p-3 border border-gray-300 rounded-lg outline-none focus:border-blue-600 bg-gray-50 font-medium" />
+                   </div>
+                 </div>
+                 <button type="submit" disabled={isSendingLead} className="w-full bg-blue-700 hover:bg-blue-800 text-white p-3.5 rounded-lg font-bold text-base transition shadow-md disabled:bg-gray-400 flex items-center justify-center gap-2 mt-2">
+                   {isSendingLead ? 'Đang gửi...' : 'Nhận tư vấn ngay'}
+                 </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
 
       {isFindModalOpen && (
         <div className="fixed inset-0 bg-blue-900/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">

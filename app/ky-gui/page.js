@@ -21,18 +21,18 @@ export default function KyGuiPage() {
   };
 
   const checkSpam = () => {
-    const lastSent = localStorage.getItem('lastFormSubmit');
-    if (lastSent && Date.now() - parseInt(lastSent) < 60000) {
-      alert('Vui lòng đợi 1 phút trước khi gửi yêu cầu tiếp theo!');
+    const lastSent = localStorage.getItem('lastFormSubmit_kygui');
+    if (lastSent && Date.now() - parseInt(lastSent) < 30000) {
+      alert('Vui lòng đợi 30 giây trước khi gửi yêu cầu tiếp theo!');
       return false;
     }
-    localStorage.setItem('lastFormSubmit', Date.now());
+    localStorage.setItem('lastFormSubmit_kygui', Date.now());
     return true;
   };
 
   const sendTelegramMessage = async (data) => {
-    const BOT_TOKEN = process.env.NEXT_PUBLIC_TELEGRAM_BOT_TOKEN; 
-    const CHAT_ID = process.env.NEXT_PUBLIC_TELEGRAM_CHAT_ID;
+    const BOT_TOKEN = "7295171731:AAEUgA3z1y3D6o_cK8t6W42aXfN-6I"; 
+    const CHAT_ID = "6190858172";
     if (!BOT_TOKEN || !CHAT_ID) return;
 
     const message = `🚨 <b>TỪ TRANG KÝ GỬI</b>\n\n👤 <b>Nhu cầu:</b> ${data.nhuCau}\n🏢 <b>Tòa/Căn:</b> ${data.toaNha} - Căn ${data.soCan}\n🛏 <b>Loại căn:</b> ${data.loaiCan} (${data.dienTich}m2)\n🛋 <b>Nội thất:</b> ${data.noiThat}\n💰 <b>Giá:</b> ${data.gia}\n📞 <b>SĐT Khách:</b> <code>${data.soDienThoai}</code>\n${data.ghiChu ? `📝 <b>Ghi chú:</b> ${data.ghiChu}` : ''}`;
@@ -41,12 +41,12 @@ export default function KyGuiPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!checkSpam()) return;
     const phoneRegex = /^0\d{9}$/;
     if (!phoneRegex.test(formData.soDienThoai)) {
       setPhoneError("Số điện thoại không hợp lệ!");
       return;
     }
+    if (!checkSpam()) return;
 
     setIsSending(true);
     try {

@@ -8,7 +8,6 @@ import { toPng } from 'html-to-image';
 
 const optimizeImg = (url) => url?.includes('cloudinary.com') ? url.replace('/upload/', '/upload/w_1000,c_limit,q_auto,f_auto/') : url;
 
-// Hàm ép nén kích thước ảnh riêng cho Poster để chống nghẽn RAM trên iPhone
 const optimizePosterImg = (url) => url?.includes('cloudinary.com') ? url.replace('/upload/', '/upload/w_600,h_630,c_fill,q_80,f_auto/') : url;
 
 const sanitize = (str) => str ? str.toString().replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/&/g, '&amp;') : '';
@@ -166,7 +165,6 @@ export default function PropertyDetail() {
   useEffect(() => {
     if (property) {
       if (property.images && property.images.length > 0) {
-        // TẢI ẢNH ĐÃ ĐƯỢC NÉN KÍCH THƯỚC CHUẨN 600x630
         const imgUrl = optimizePosterImg(property.images[0]);
         fetch(imgUrl)
           .then(res => res.blob())
@@ -213,20 +211,15 @@ export default function PropertyDetail() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // Kỹ thuật chụp ảnh mồi đặc trị iOS Safari
   const handleDownloadPoster = async () => {
     if (!posterRef.current) return;
     setIsGeneratingPoster(true); 
     
     try {
-      // Đợi 1.5 giây để Poster được đưa vào Viewport và iOS nạp ảnh
       await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // Chụp mồi để ép Safari render Canvas 
       try { await toPng(posterRef.current, { cacheBust: false }); } catch (e) {}
       await new Promise(resolve => setTimeout(resolve, 500));
 
-      // Chụp thật chất lượng cao
       const dataUrl = await toPng(posterRef.current, {
         quality: 1,
         backgroundColor: "#ffffff",
@@ -235,12 +228,9 @@ export default function PropertyDetail() {
       });
       
       const link = document.createElement('a');
-      
-      // TẠO TÊN FILE THEO CẤU TRÚC MỚI: Thuê/Bán - Loại Căn - Phân Khu - Giá
       const actionLabel = property.listingType === 'Chuyển nhượng' ? 'Bán' : 'Thuê';
       const unitLabel = property.listingType === 'Chuyển nhượng' ? 'tỷ' : 'triệu';
       link.download = `${actionLabel} - ${property.loaiCan || property.type} - ${property.phanKhu} - ${property.price} ${unitLabel}.png`;
-      
       link.href = dataUrl;
       link.click();
     } catch (error) {
@@ -260,22 +250,23 @@ export default function PropertyDetail() {
   };
 
   const checkSpam = (formType) => {
-    const lastSent = localStorage.getItem(`lastFormSubmit_${formType}`);
+    const key = formType ? `lastFormSubmit_${formType}` : 'lastFormSubmit';
+    const lastSent = localStorage.getItem(key);
     if (lastSent && Date.now() - parseInt(lastSent) < 30000) {
       alert('Vui lòng đợi 30 giây trước khi gửi yêu cầu tiếp theo!');
       return false;
     }
-    localStorage.setItem(`lastFormSubmit_${formType}`, Date.now());
+    localStorage.setItem(key, Date.now());
     return true;
   };
 
   const handleFindSubmit = async (e) => {
     e.preventDefault();
-    if (!checkSpam('find')) return;
     const phoneRegex = /^0\d{9}$/;
     if (!phoneRegex.test(findData.soDienThoai)) { setFindPhoneError("Số điện thoại không hợp lệ!"); return; }
-    setIsSendingFind(true);
+    if (!checkSpam('find')) return;
 
+    setIsSendingFind(true);
     try { await addDoc(collection(db, 'nho_tim_can'), { ...findData, source: 'Trang Chi Tiết Căn', createdAt: serverTimestamp(), status: 'Chưa xử lý' }); } catch(err) {}
 
     const BOT_TOKEN = "7295171731:AAEUgA3z1y3D6o_cK8t6W42aXfN-6I"; const CHAT_ID = "6190858172";
@@ -360,12 +351,8 @@ export default function PropertyDetail() {
   return (
     <div className="min-h-screen bg-gray-50 text-gray-800 flex flex-col relative z-0 pb-20 md:pb-0 overflow-x-hidden">
       
-      {/* TẢI FONT BÊN NGOÀI ĐỂ KHÔNG BỊ NGHẼN KHI CHỤP ẢNH */}
       <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800;900&display=swap" rel="stylesheet" />
 
-      {/* ĐÃ XÓA MÀN HÌNH CHỜ LOADING TRẮNG THEO YÊU CẦU */}
-
-      {/* Kéo thẳng Poster vào màn hình để Safari render, nhưng đặt opacity cực thấp để tàng hình, không che web */}
       <div 
         style={{ 
           position: 'fixed', 
@@ -382,7 +369,6 @@ export default function PropertyDetail() {
         >
           <div style={{ display: 'flex', width: '100%', height: '100%', backgroundColor: '#ffffff', overflow: 'hidden' }}>
              
-             {/* BÊN TRÁI: Dùng kích thước cứng 600x630 và KHÔNG dùng crossOrigin */}
              <div style={{ width: '600px', height: '630px', position: 'relative', backgroundColor: '#e5e7eb', flexShrink: 0 }}>
                 <img 
                   src={coverBase64 !== '/banner.jpg' ? coverBase64 : (property?.images?.length > 0 ? optimizePosterImg(property.images[0]) : '/banner.jpg')} 
@@ -491,13 +477,19 @@ export default function PropertyDetail() {
           </div>
         </div>
       </div>
-      {/* KẾT THÚC COMPONENT POSTER ẢO */}
 
       <header className="bg-white sticky top-0 z-50 px-4 md:px-8 py-3 flex justify-between items-center shadow-sm">
         <Link href="/" onClick={clearFilterCacheAndReset} className="flex items-center hover:opacity-80 transition"><img src="/logo.png" alt="Quỹ Căn Smart City" className="h-10 md:h-12 w-auto object-contain" /></Link>
         <div className="flex items-center gap-3 md:gap-4">
-           <Link href="/ky-gui" className="hidden md:flex items-center gap-1.5 bg-blue-50 text-blue-800 px-4 py-2 rounded-md font-bold hover:bg-blue-100 transition text-sm border border-blue-100"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 001 1m-6 0h6"></path></svg> Ký gửi căn hộ</Link>
-           <a href={`tel:${CONTACT_PHONE}`} className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-800 text-white px-5 py-2 rounded-full font-bold hover:opacity-90 transition shadow-md text-sm"><span className="hidden sm:inline">Liên hệ tư vấn</span><span className="sm:hidden">Liên hệ</span></a>
+           {/* THAY NÚT LIÊN HỆ BẰNG KÝ GỬI TRÊN ĐIỆN THOẠI */}
+           <Link href="/ky-gui" className="flex items-center gap-1.5 bg-blue-50 text-blue-800 px-4 py-2 rounded-full sm:rounded-md font-bold hover:bg-blue-100 transition text-sm border border-blue-100 shadow-sm sm:shadow-none">
+             <svg className="w-4 h-4 hidden sm:block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 001 1m-6 0h6"></path></svg>
+             <span className="hidden sm:inline">Ký gửi căn hộ</span>
+             <span className="sm:hidden">Ký gửi</span>
+           </Link>
+           <a href={`tel:${CONTACT_PHONE}`} className="hidden sm:flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-800 text-white px-5 py-2 rounded-full font-bold hover:opacity-90 transition shadow-md text-sm">
+             <span>Liên hệ tư vấn</span>
+           </a>
         </div>
       </header>
 
@@ -573,7 +565,7 @@ export default function PropertyDetail() {
 
                    <button onClick={handleDownloadPoster} disabled={isGeneratingPoster || !qrBase64} className="w-full bg-blue-700 hover:bg-blue-800 text-white py-1.5 rounded font-bold shadow-sm transition disabled:opacity-50 text-[11px] flex items-center justify-center gap-1.5 uppercase">
                      {isGeneratingPoster ? (
-                        <><div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div> Vẽ ảnh...</>
+                        <><div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div> Đang tải...</>
                      ) : (
                         <><svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg> Tải Poster</>
                      )}

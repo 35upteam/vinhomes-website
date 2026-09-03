@@ -65,7 +65,6 @@ const PropertyCard = ({ item, contactPhone }) => {
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
       >
-        {/* ĐÃ TỐI ƯU: TRƯỢT FLEXBOX SIÊU MƯỢT TRÊN ĐIỆN THOẠI */}
         {images.length > 0 ? (
           <div className="flex w-full h-full transition-transform duration-300 ease-out" style={{ transform: `translateX(-${currentImg * 100}%)` }}>
             {images.map((img, idx) => (
@@ -187,19 +186,18 @@ export default function SubdivisionLandingPage() {
   };
 
   const checkSpam = () => {
-    const lastSent = localStorage.getItem('lastFormSubmit');
-    if (lastSent && Date.now() - parseInt(lastSent) < 60000) { alert('Vui lòng đợi 1 phút trước khi gửi yêu cầu tiếp theo!'); return false; }
-    localStorage.setItem('lastFormSubmit', Date.now()); return true;
+    const lastSent = localStorage.getItem('lastFormSubmit_phankhu');
+    if (lastSent && Date.now() - parseInt(lastSent) < 30000) { alert('Vui lòng đợi 30 giây trước khi gửi yêu cầu tiếp theo!'); return false; }
+    localStorage.setItem('lastFormSubmit_phankhu', Date.now()); return true;
   };
 
-  // ĐÃ FIX LỖI POPUP KHÔNG NHẢY VỀ TELEGRAM BẰNG CÁCH THÊM AWAIT FETCH
   const handleFindSubmit = async (e) => {
     e.preventDefault();
-    if (!checkSpam()) return;
     const phoneRegex = /^0\d{9}$/;
     if (!phoneRegex.test(findData.soDienThoai)) { setFindPhoneError("Số điện thoại không hợp lệ!"); return; }
+    if (!checkSpam()) return;
+    
     setIsSendingFind(true);
-
     try { await addDoc(collection(db, 'nho_tim_can'), { ...findData, source: `Trang Phân Khu ${exactName}`, createdAt: serverTimestamp(), status: 'Chưa xử lý' }); } catch(err) {}
 
     const BOT_TOKEN = "7295171731:AAEUgA3z1y3D6o_cK8t6W42aXfN-6I"; const CHAT_ID = "6190858172";
@@ -219,7 +217,15 @@ export default function SubdivisionLandingPage() {
       <header className="bg-white sticky top-0 z-50 px-4 md:px-8 py-3 flex justify-between items-center shadow-sm">
         <Link href="/" className="flex items-center hover:opacity-80 transition"><img src="/logo.png" alt="Quỹ Căn Smart City" className="h-10 md:h-12 w-auto object-contain" /></Link>
         <div className="flex items-center gap-3 md:gap-4">
-           <a href={`https://zalo.me/${CONTACT_PHONE}`} target="_blank" rel="noreferrer" className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-800 text-white px-5 py-2 rounded-full font-bold hover:opacity-90 transition shadow-md text-sm"><span className="hidden sm:inline">Liên hệ tư vấn</span><span className="sm:hidden">Liên hệ</span></a>
+           {/* THAY NÚT LIÊN HỆ BẰNG KÝ GỬI TRÊN ĐIỆN THOẠI */}
+           <Link href="/ky-gui" className="flex items-center gap-1.5 bg-blue-50 text-blue-800 px-4 py-2 rounded-full sm:rounded-md font-bold hover:bg-blue-100 transition text-sm border border-blue-100 shadow-sm sm:shadow-none">
+             <svg className="w-4 h-4 hidden sm:block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 001 1m-6 0h6"></path></svg>
+             <span className="hidden sm:inline">Ký gửi căn hộ</span>
+             <span className="sm:hidden">Ký gửi</span>
+           </Link>
+           <a href={`https://zalo.me/${CONTACT_PHONE}`} target="_blank" rel="noreferrer" className="hidden sm:flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-800 text-white px-5 py-2 rounded-full font-bold hover:opacity-90 transition shadow-md text-sm">
+             <span className="hidden sm:inline">Liên hệ tư vấn</span>
+           </a>
         </div>
       </header>
 
