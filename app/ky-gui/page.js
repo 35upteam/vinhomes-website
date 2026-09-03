@@ -22,8 +22,8 @@ export default function KyGuiPage() {
 
   const checkSpam = () => {
     const lastSent = localStorage.getItem('lastFormSubmit_kygui');
-    if (lastSent && Date.now() - parseInt(lastSent) < 30000) {
-      alert('Vui lòng đợi 30 giây trước khi gửi yêu cầu tiếp theo!');
+    if (lastSent && Date.now() - parseInt(lastSent) < 10000) {
+      alert('Vui lòng đợi 10 giây trước khi gửi yêu cầu tiếp theo!');
       return false;
     }
     localStorage.setItem('lastFormSubmit_kygui', Date.now());
@@ -36,7 +36,10 @@ export default function KyGuiPage() {
     if (!BOT_TOKEN || !CHAT_ID) return;
 
     const message = `🚨 <b>TỪ TRANG KÝ GỬI</b>\n\n👤 <b>Nhu cầu:</b> ${data.nhuCau}\n🏢 <b>Tòa/Căn:</b> ${data.toaNha} - Căn ${data.soCan}\n🛏 <b>Loại căn:</b> ${data.loaiCan} (${data.dienTich}m2)\n🛋 <b>Nội thất:</b> ${data.noiThat}\n💰 <b>Giá:</b> ${data.gia}\n📞 <b>SĐT Khách:</b> <code>${data.soDienThoai}</code>\n${data.ghiChu ? `📝 <b>Ghi chú:</b> ${data.ghiChu}` : ''}`;
-    try { await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: CHAT_ID, text: message, parse_mode: 'HTML' }) }); } catch (err) {}
+    try { 
+      const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: CHAT_ID, text: message, parse_mode: 'HTML' }) }); 
+      if (!res.ok) console.error("Lỗi API Telegram:", await res.text());
+    } catch (err) { console.error("Lỗi gửi Telegram:", err); }
   };
 
   const handleSubmit = async (e) => {

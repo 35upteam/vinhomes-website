@@ -187,7 +187,7 @@ export default function SubdivisionLandingPage() {
 
   const checkSpam = () => {
     const lastSent = localStorage.getItem('lastFormSubmit_phankhu');
-    if (lastSent && Date.now() - parseInt(lastSent) < 30000) { alert('Vui lòng đợi 30 giây trước khi gửi yêu cầu tiếp theo!'); return false; }
+    if (lastSent && Date.now() - parseInt(lastSent) < 10000) { alert('Vui lòng đợi 10 giây trước khi gửi yêu cầu tiếp theo!'); return false; }
     localStorage.setItem('lastFormSubmit_phankhu', Date.now()); return true;
   };
 
@@ -203,11 +203,14 @@ export default function SubdivisionLandingPage() {
     const BOT_TOKEN = "7295171731:AAEUgA3z1y3D6o_cK8t6W42aXfN-6I"; const CHAT_ID = "6190858172";
     if (BOT_TOKEN && CHAT_ID) {
       const message = `🚨 <b>KHÁCH TÌM CĂN MỚI!</b>\n\n👤 <b>Tên khách:</b> ${findData.ten || 'Chưa nhập'}\n📌 <b>Nhu cầu:</b> ${findData.nhuCau}\n🛏 <b>Loại căn:</b> ${findData.loaiCan}\n💰 <b>Tài chính:</b> ${findData.taiChinh}\n🛋 <b>Nội thất:</b> ${findData.noiThat}\n📅 <b>Vào ở:</b> ${findData.nhuCau === 'Cho thuê' ? findData.ngayVaoO || 'Chưa rõ' : 'N/A'}\n📞 <b>SĐT Khách:</b> <code>${findData.soDienThoai}</code>\n📝 <b>Yêu cầu thêm:</b> ${findData.ghiChu || 'Không có'}`;
-      try { await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: CHAT_ID, text: message, parse_mode: 'HTML' }) }); } catch (error) {}
+      try { 
+        const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: CHAT_ID, text: message, parse_mode: 'HTML' }) }); 
+        if (!res.ok) console.error("Lỗi Telegram API:", await res.text());
+      } catch (error) { console.error("Lỗi gửi Telegram", error); }
     }
     setIsSendingFind(false); setIsFindModalOpen(false);
     setFindData({ nhuCau: 'Cho thuê', loaiCan: 'Studio', taiChinh: '', noiThat: 'Đầy đủ nội thất', ngayVaoO: '', soDienThoai: '', ghiChu: '', ten: '' });
-    alert("Đã gửi yêu cầu thành công! Chuyên viên An Ninh sẽ liên hệ Zalo anh/chị ngay nhé!");
+    alert("Đã gửi yêu cầu thành công, chúng tôi sẽ sớm liên hệ lại với bạn!");
   };
 
   if (!exactName) return <div className="text-center py-20 font-bold">Không tìm thấy phân khu!</div>;
@@ -219,12 +222,11 @@ export default function SubdivisionLandingPage() {
         <div className="flex items-center gap-3 md:gap-4">
            {/* THAY NÚT LIÊN HỆ BẰNG KÝ GỬI TRÊN ĐIỆN THOẠI */}
            <Link href="/ky-gui" className="flex items-center gap-1.5 bg-blue-50 text-blue-800 px-4 py-2 rounded-full sm:rounded-md font-bold hover:bg-blue-100 transition text-sm border border-blue-100 shadow-sm sm:shadow-none">
-             <svg className="w-4 h-4 hidden sm:block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 001 1m-6 0h6"></path></svg>
-             <span className="hidden sm:inline">Ký gửi căn hộ</span>
-             <span className="sm:hidden">Ký gửi</span>
+             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 001 1m-6 0h6"></path></svg>
+             <span>Ký gửi căn hộ</span>
            </Link>
            <a href={`https://zalo.me/${CONTACT_PHONE}`} target="_blank" rel="noreferrer" className="hidden sm:flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-800 text-white px-5 py-2 rounded-full font-bold hover:opacity-90 transition shadow-md text-sm">
-             <span className="hidden sm:inline">Liên hệ tư vấn</span>
+             <span>Liên hệ tư vấn</span>
            </a>
         </div>
       </header>

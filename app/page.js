@@ -173,7 +173,8 @@ export default function Home() {
   const [findData, setFindData] = useState({ nhuCau: 'Cho thuê', loaiCan: 'Studio', taiChinh: '', noiThat: 'Đầy đủ nội thất', ngayVaoO: '', soDienThoai: '', ghiChu: '', ten: '' });
 
   const [isLeadPopupOpen, setIsLeadPopupOpen] = useState(false);
-  const [leadData, setLeadData] = useState({ ten: '', soDienThoai: '', nhuCau: 'Mua', taiChinh: '', ghiChu: '' });
+  // Bổ sung thuộc tính loaiCan và mongMuon cho popup
+  const [leadData, setLeadData] = useState({ ten: '', soDienThoai: '', nhuCau: 'Mua', loaiCan: 'Studio', taiChinh: '', mongMuon: '' });
   const [isSendingLead, setIsSendingLead] = useState(false);
   const [leadPhoneError, setLeadPhoneError] = useState('');
 
@@ -249,7 +250,7 @@ export default function Home() {
         setIsLeadPopupOpen(true);
         sessionStorage.setItem('leadPopupShown', 'true');
       }
-    }, 60000);
+    }, 60000); // Popup hiện sau 1 phút
     return () => clearTimeout(timer);
   }, []);
 
@@ -309,8 +310,8 @@ export default function Home() {
   const checkSpam = (formType) => {
     const key = formType ? `lastFormSubmit_${formType}` : 'lastFormSubmit';
     const lastSent = localStorage.getItem(key);
-    if (lastSent && Date.now() - parseInt(lastSent) < 30000) {
-      alert('Vui lòng đợi 30 giây trước khi gửi yêu cầu tiếp theo!');
+    if (lastSent && Date.now() - parseInt(lastSent) < 10000) {
+      alert('Vui lòng đợi 10 giây trước khi gửi yêu cầu tiếp theo!');
       return false;
     }
     localStorage.setItem(key, Date.now());
@@ -329,14 +330,15 @@ export default function Home() {
     const BOT_TOKEN = "7295171731:AAEUgA3z1y3D6o_cK8t6W42aXfN-6I"; 
     const CHAT_ID = "6190858172";
     if (BOT_TOKEN && CHAT_ID) {
-      const message = `🚨 <b>KHÁCH TÌM CĂN (Nút Nhờ Tìm)</b>\n\n👤 <b>Khách hàng:</b> ${sanitize(findData.ten) || 'Chưa nhập'}\n📌 <b>Nhu cầu:</b> ${sanitize(findData.nhuCau)}\n🛏 <b>Loại căn:</b> ${sanitize(findData.loaiCan)}\n💰 <b>Tài chính:</b> ${sanitize(findData.taiChinh)}\n🛋 <b>Nội thất:</b> ${sanitize(findData.noiThat)}\n📅 <b>Vào ở:</b> ${findData.nhuCau === 'Cho thuê' ? sanitize(findData.ngayVaoO) || 'Chưa rõ' : 'N/A'}\n📞 <b>SĐT Khách:</b> <code>${sanitize(findData.soDienThoai)}</code>\n📝 <b>Ghi chú:</b> ${sanitize(findData.ghiChu) || 'Không có'}`;
+      const message = `🚨 <b>KHÁCH TÌM CĂN MỚI! (Nút Nhờ Tìm)</b>\n\n👤 <b>Khách hàng:</b> ${sanitize(findData.ten) || 'Chưa nhập'}\n📌 <b>Nhu cầu:</b> ${sanitize(findData.nhuCau)}\n🛏 <b>Loại căn:</b> ${sanitize(findData.loaiCan)}\n💰 <b>Tài chính:</b> ${sanitize(findData.taiChinh)}\n🛋 <b>Nội thất:</b> ${sanitize(findData.noiThat)}\n📅 <b>Vào ở:</b> ${findData.nhuCau === 'Cho thuê' ? sanitize(findData.ngayVaoO) || 'Chưa rõ' : 'N/A'}\n📞 <b>SĐT Khách:</b> <code>${sanitize(findData.soDienThoai)}</code>\n📝 <b>Ghi chú:</b> ${sanitize(findData.ghiChu) || 'Không có'}`;
       try { 
-        await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: CHAT_ID, text: message, parse_mode: 'HTML' }) }); 
+        const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: CHAT_ID, text: message, parse_mode: 'HTML' }) }); 
+        if (!res.ok) console.error("Lỗi Telegram API:", await res.text());
       } catch (error) { console.error("Lỗi gửi Telegram", error); }
     }
     setIsSendingFind(false); setIsFindModalOpen(false);
     setFindData({ nhuCau: 'Cho thuê', loaiCan: 'Studio', taiChinh: '', noiThat: 'Đầy đủ nội thất', ngayVaoO: '', soDienThoai: '', ghiChu: '', ten: '' });
-    alert("Đã gửi yêu cầu thành công! Chuyên viên An Ninh sẽ liên hệ Zalo anh/chị ngay nhé!");
+    alert("Đã gửi yêu cầu thành công, chúng tôi sẽ sớm liên hệ lại với bạn!");
   };
 
   const handleLeadSubmit = async (e) => {
@@ -351,13 +353,14 @@ export default function Home() {
     const BOT_TOKEN = "7295171731:AAEUgA3z1y3D6o_cK8t6W42aXfN-6I"; 
     const CHAT_ID = "6190858172";
     if (BOT_TOKEN && CHAT_ID) {
-      const message = `🚨 <b>KHÁCH TỪ POPUP TỰ ĐỘNG</b>\n\n👤 <b>Tên khách:</b> ${sanitize(leadData.ten)}\n📞 <b>Số điện thoại:</b> <code>${sanitize(leadData.soDienThoai)}</code>\n📌 <b>Nhu cầu:</b> Tìm ${sanitize(leadData.nhuCau)}\n💰 <b>Tài chính:</b> ${sanitize(leadData.taiChinh) || 'Không ghi'}\n📝 <b>Ghi chú thêm:</b> ${sanitize(leadData.ghiChu) || 'Không có'}`;
+      const message = `🚨 <b>KHÁCH TỪ POPUP TỰ ĐỘNG</b>\n\n👤 <b>Tên khách:</b> ${sanitize(leadData.ten)}\n📞 <b>Số điện thoại:</b> <code>${sanitize(leadData.soDienThoai)}</code>\n📌 <b>Nhu cầu:</b> Tìm ${sanitize(leadData.nhuCau)}\n🛏 <b>Loại căn:</b> ${sanitize(leadData.loaiCan)}\n💰 <b>Tài chính:</b> ${sanitize(leadData.taiChinh) || 'Không ghi'}\n📝 <b>Mong muốn:</b> ${sanitize(leadData.mongMuon) || 'Không có'}`;
       try { 
-        await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: CHAT_ID, text: message, parse_mode: 'HTML' }) }); 
+        const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: CHAT_ID, text: message, parse_mode: 'HTML' }) }); 
+        if (!res.ok) console.error("Lỗi Telegram API:", await res.text());
       } catch (error) { console.error("Lỗi gửi Telegram", error); }
     }
     setIsSendingLead(false); setIsLeadPopupOpen(false);
-    alert("Gửi yêu cầu thành công! Chuyên viên An Ninh sẽ liên hệ Zalo cho anh/chị trong ít phút.");
+    alert("Đã gửi yêu cầu thành công, chúng tôi sẽ sớm liên hệ lại với bạn!");
   };
 
   return (
@@ -367,10 +370,10 @@ export default function Home() {
           <img src="/logo.png" alt="Quỹ Căn Smart City" className="h-10 md:h-12 w-auto object-contain" />
         </Link>
         <div className="flex items-center gap-3 md:gap-4">
+           {/* THAY NÚT LIÊN HỆ BẰNG KÝ GỬI TRÊN ĐIỆN THOẠI */}
            <Link href="/ky-gui" className="flex items-center gap-1.5 bg-blue-50 text-blue-800 px-4 py-2 rounded-full sm:rounded-md font-bold hover:bg-blue-100 transition text-sm border border-blue-100 shadow-sm sm:shadow-none">
-             <svg className="w-4 h-4 hidden sm:block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 001 1m-6 0h6"></path></svg>
-             <span className="hidden sm:inline">Ký gửi căn hộ</span>
-             <span className="sm:hidden">Ký gửi</span>
+             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 001 1m-6 0h6"></path></svg>
+             <span>Ký gửi căn hộ</span>
            </Link>
            <a href={`https://zalo.me/${CONTACT_PHONE}`} target="_blank" rel="noreferrer" className="hidden sm:flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-800 text-white px-5 py-2 rounded-full font-bold hover:opacity-90 transition shadow-md text-sm">
              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M20 15.5c-1.2 0-2.4-.2-3.6-.6-.3-.1-.7 0-1 .2l-2.2 2.2c-2.8-1.4-5.1-3.8-6.6-6.6l2.2-2.2c.3-.3.4-.7.2-1-.4-1.2-.6-2.4-.6-3.6 0-.6-.4-1-1-1H4c-.6 0-1 .4-1 1 0 9.4 7.6 17 17 17 .6 0 1-.4 1-1v-3.5c0-.6-.4-1-1-1zM19 12h2a9 9 0 00-9-9v2c3.9 0 7.1 3.2 7.1 7.1zM15 12h2c0-2.8-2.2-5-5-5v2c1.7 0 3 1.3 3 3z"/></svg> <span>Liên hệ tư vấn</span>
@@ -542,10 +545,11 @@ export default function Home() {
         </div>
       </footer>
 
+      {/* POPUP THÔNG MINH ĐÃ ĐƯỢC CHỈNH SỬA THÊM TRƯỜNG LOẠI CĂN, MONG MUỐN */}
       {isLeadPopupOpen && (
         <div className="fixed inset-0 bg-blue-900/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-fade-in-up">
-            <div className="bg-gradient-to-r from-blue-700 to-blue-900 px-6 py-4 flex justify-between items-center text-white sticky top-0 z-10">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-y-auto max-h-[90vh] animate-fade-in-up">
+            <div className="bg-blue-900 px-6 py-4 flex justify-between items-center text-white sticky top-0 z-10">
                <h3 className="text-lg font-bold flex items-center gap-2">👋 Chào anh/chị!</h3>
                <button onClick={() => setIsLeadPopupOpen(false)} className="text-blue-200 hover:text-white transition"><svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
             </div>
@@ -570,9 +574,19 @@ export default function Home() {
                      </select>
                    </div>
                    <div>
-                     <label className="block font-bold text-gray-700 mb-1">Tài chính</label>
-                     <input type="text" placeholder="VD: 2.5 tỷ" value={leadData.taiChinh} onChange={(e)=>setLeadData({...leadData, taiChinh: e.target.value})} className="w-full p-3 border border-gray-300 rounded-lg outline-none focus:border-blue-600 bg-gray-50 font-medium" />
+                     <label className="block font-bold text-gray-700 mb-1">Loại căn</label>
+                     <select value={leadData.loaiCan} onChange={(e)=>setLeadData({...leadData, loaiCan: e.target.value})} className="w-full p-3 border border-gray-300 rounded-lg outline-none focus:border-blue-600 bg-white font-medium">
+                        {['Studio', '1N', '1N+', '2N1WC', '2N2WC', '2N+', '3N', '4N'].map(opt => <option key={opt}>{opt}</option>)}
+                     </select>
                    </div>
+                 </div>
+                 <div>
+                   <label className="block font-bold text-gray-700 mb-1">Tài chính (Không bắt buộc)</label>
+                   <input type="text" placeholder="VD: 2.5 tỷ" value={leadData.taiChinh} onChange={(e)=>setLeadData({...leadData, taiChinh: e.target.value})} className="w-full p-3 border border-gray-300 rounded-lg outline-none focus:border-blue-600 bg-gray-50 font-medium" />
+                 </div>
+                 <div>
+                   <label className="block font-bold text-gray-700 mb-1">Mong muốn (Không bắt buộc)</label>
+                   <textarea rows="2" placeholder="VD: Cần view thoáng, tầng trung..." value={leadData.mongMuon} onChange={(e)=>setLeadData({...leadData, mongMuon: e.target.value})} className="w-full p-3 border border-gray-300 rounded-lg outline-none focus:border-blue-600 bg-gray-50 font-medium"></textarea>
                  </div>
                  <button type="submit" disabled={isSendingLead} className="w-full bg-blue-700 hover:bg-blue-800 text-white p-3.5 rounded-lg font-bold text-base transition shadow-md disabled:bg-gray-400 flex items-center justify-center gap-2 mt-2">
                    {isSendingLead ? 'Đang gửi...' : 'Nhận tư vấn ngay'}
