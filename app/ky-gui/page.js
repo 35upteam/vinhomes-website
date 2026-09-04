@@ -86,7 +86,6 @@ export default function KyGuiPage() {
       </header>
 
       <main className="max-w-[1200px] mx-auto px-4 md:px-8 py-12 flex flex-col lg:flex-row gap-12 w-full flex-grow">
-        {/* ĐÃ FIX: Khối text này chỉ dính (sticky) trên bản PC bằng lg:sticky */}
         <div className="w-full lg:w-5/12 lg:self-start lg:sticky lg:top-28">
           <span className="inline-block bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-bold mb-4 border border-green-200">
             ● Đang có khách hỏi mua/thuê mỗi ngày
@@ -191,7 +190,7 @@ export default function KyGuiPage() {
         <div className="max-w-[1400px] mx-auto grid grid-cols-1 md:grid-cols-2 gap-12 text-sm text-gray-600">
            <div className="md:pr-10">
              <div className="flex items-center mb-6"><img src="/logo.png" alt="Quỹ Căn Smart City Logo" className="h-10 md:h-12 w-auto object-contain" /></div>
-             <p className="leading-relaxed font-light mb-4">Quỹ Căn Smart City – Chuyên trang tổng hợp nguồn hàng mua bán, chuyển nhượng, cho thuê căn hộ tại Vinhomes Smart City Tây Mỗ. Cập nhật quỹ căn mới mỗi ngày tại mọi phân khu.</p>
+             <p className="leading-relaxed font-medium mb-4">Quỹ Căn Smart City – Chuyên trang tổng hợp nguồn hàng mua bán, chuyển nhượng, cho thuê căn hộ tại Vinhomes Smart City Tây Mỗ. Cập nhật quỹ căn mới mỗi ngày tại mọi phân khu.</p>
              <p className="text-xs text-gray-400">© 2026 Quỹ Căn Smart City.</p>
            </div>
            <div className="md:pl-10 md:border-l border-gray-100">
@@ -204,11 +203,10 @@ export default function KyGuiPage() {
         </div>
       </footer>
       
-      {/* ĐÃ FIX: Nút Zalo rung trên điện thoại thay cho bottom bar */}
       <a href={`https://zalo.me/${CONTACT_PHONE}?text=${encodeURIComponent(`Xin chào, tôi muốn ký gửi căn hộ.`)}`} target="_blank" rel="noreferrer" onClick={(e)=>{if(typeof window !== 'undefined' && window.gtag) window.gtag('event', 'click_zalo', {'event_category': 'lead', 'event_label': 'Floating_Mobile_KyGui'});}} className="fixed bottom-6 right-6 z-[100] md:hidden flex items-center justify-center w-14 h-14 rounded-full">
          <div className="absolute inset-0 bg-blue-500 rounded-full animate-ping opacity-75"></div>
-         <div className="relative bg-blue-600 rounded-full w-full h-full flex items-center justify-center border-2 border-white shadow-xl">
-            <span className="text-white font-black text-[12px] tracking-wide">ZALO</span>
+         <div className="relative bg-white rounded-full w-full h-full flex items-center justify-center shadow-xl p-1.5 border border-gray-100">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/a/a1/Zalo_Logo.svg" alt="Zalo" className="w-full h-full object-contain" />
          </div>
       </a>
     </div>

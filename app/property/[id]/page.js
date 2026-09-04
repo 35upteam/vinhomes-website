@@ -308,12 +308,17 @@ export default function PropertyDetail() {
     setIsSendingFind(true);
     try { await addDoc(collection(db, 'nho_tim_can'), { ...findData, source: 'Trang Chi Tiết Căn', createdAt: serverTimestamp(), status: 'Chưa xử lý' }); } catch(err) {}
 
-    const message = `🚨 <b>KHÁCH TÌM CĂN MỚI! (Chi tiết căn)</b>\n\n👤 <b>Tên khách:</b> ${sanitize(findData.ten) || 'Chưa nhập'}\n📌 <b>Nhu cầu:</b> ${sanitize(findData.nhuCau)}\n🛏 <b>Loại căn:</b> ${sanitize(findData.loaiCan)}\n💰 <b>Tài chính:</b> ${sanitize(findData.taiChinh)}\n🛋 <b>Nội thất:</b> ${sanitize(findData.noiThat)}\n📅 <b>Vào ở:</b> ${findData.nhuCau === 'Cho thuê' ? sanitize(findData.ngayVaoO) || 'Chưa rõ' : 'N/A'}\n📞 <b>SĐT Khách:</b> <code>${sanitize(findData.soDienThoai)}</code>\n📝 <b>Yêu cầu thêm:</b> ${sanitize(findData.ghiChu) || 'Không có'}`;
-    
-    try { 
-      await fetch('/api/telegram', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: message, parse_mode: 'HTML' }) }); 
-    } catch (error) { console.error("Lỗi gửi Telegram", error); }
-    
+    const BOT_TOKEN = process.env.NEXT_PUBLIC_TELEGRAM_BOT_TOKEN || "7295171731:AAEUgA3z1y3D6o_cK8t6W42aXfN-6I"; 
+    const CHAT_ID = process.env.NEXT_PUBLIC_TELEGRAM_CHAT_ID || "6190858172";
+    if (BOT_TOKEN && CHAT_ID) {
+      const message = `🚨 <b>KHÁCH TÌM CĂN MỚI! (Chi tiết căn)</b>\n\n👤 <b>Tên khách:</b> ${sanitize(findData.ten) || 'Chưa nhập'}\n📌 <b>Nhu cầu:</b> ${sanitize(findData.nhuCau)}\n🛏 <b>Loại căn:</b> ${sanitize(findData.loaiCan)}\n💰 <b>Tài chính:</b> ${sanitize(findData.taiChinh)}\n🛋 <b>Nội thất:</b> ${sanitize(findData.noiThat)}\n📅 <b>Vào ở:</b> ${findData.nhuCau === 'Cho thuê' ? sanitize(findData.ngayVaoO) || 'Chưa rõ' : 'N/A'}\n📞 <b>SĐT Khách:</b> <code>${sanitize(findData.soDienThoai)}</code>\n📝 <b>Yêu cầu thêm:</b> ${sanitize(findData.ghiChu) || 'Không có'}`;
+      try { 
+        const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: CHAT_ID, text: message, parse_mode: 'HTML' }) }); 
+        if (!res.ok) {
+          await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: CHAT_ID, text: message.replace(/<[^>]*>?/gm, '') }) });
+        }
+      } catch (error) { console.error("Lỗi gửi Telegram", error); }
+    }
     setIsSendingFind(false); setIsFindModalOpen(false);
     setFindData({ nhuCau: 'Cho thuê', loaiCan: 'Studio', taiChinh: '', noiThat: 'Đầy đủ nội thất', ngayVaoO: '', soDienThoai: '', ghiChu: '', ten: '' });
     alert("Đã gửi yêu cầu thành công, chúng tôi sẽ sớm liên hệ lại với bạn!");
@@ -557,7 +562,9 @@ export default function PropertyDetail() {
              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 001 1m-6 0h6"></path></svg>
              <span className="inline">Ký gửi căn hộ</span>
            </Link>
+           {/* ĐÃ BỔ SUNG LẠI: Icon SVG vào nút Liên hệ trên màn hình lớn */}
            <a href={`tel:${CONTACT_PHONE}`} className="hidden sm:flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-800 text-white px-5 py-2 rounded-full font-bold hover:opacity-90 transition shadow-md text-sm">
+             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M20 15.5c-1.2 0-2.4-.2-3.6-.6-.3-.1-.7 0-1 .2l-2.2 2.2c-2.8-1.4-5.1-3.8-6.6-6.6l2.2-2.2c.3-.3.4-.7.2-1-.4-1.2-.6-2.4-.6-3.6 0-.6-.4-1-1-1H4c-.6 0-1 .4-1 1 0 9.4 7.6 17 17 17 .6 0 1-.4 1-1v-3.5c0-.6-.4-1-1-1zM19 12h2a9 9 0 00-9-9v2c3.9 0 7.1 3.2 7.1 7.1zM15 12h2c0-2.8-2.2-5-5-5v2c1.7 0 3 1.3 3 3z"/></svg>
              <span>Liên hệ tư vấn</span>
            </a>
         </div>
@@ -572,10 +579,12 @@ export default function PropertyDetail() {
         >
            <button onClick={() => setIsLightboxOpen(false)} className="absolute top-6 right-6 text-white hover:text-gray-300 p-2 z-10"><svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
            
+           {/* Nút mũi tên sang trái */}
            <button onClick={() => setLightboxImg(p => p > 0 ? p - 1 : (property.images?.length || 1) - 1)} className="absolute left-4 top-1/2 -translate-y-1/2 text-white p-4 hover:bg-white/10 rounded-full z-10"><svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path></svg></button>
            
            <img src={optimizeImg(property.images[lightboxImg])} alt="Full" className="max-w-full max-h-[90vh] object-contain transition-transform" />
            
+           {/* Nút mũi tên sang phải */}
            <button onClick={() => setLightboxImg(p => p < (property.images?.length || 1) - 1 ? p + 1 : 0)} className="absolute right-4 top-1/2 -translate-y-1/2 text-white p-4 hover:bg-white/10 rounded-full z-10"><svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg></button>
            <div className="absolute bottom-6 text-white text-sm font-medium">{lightboxImg + 1} / {property.images?.length || 1}</div>
            
@@ -719,13 +728,13 @@ export default function PropertyDetail() {
               </div>
             )}
 
-            <div className="bg-gradient-to-r from-blue-50 to-white border border-blue-100 rounded-2xl p-6 md:p-8 flex flex-col md:flex-row justify-between items-center gap-6 shadow-sm mb-10 w-full mt-8">
+            <div className="bg-white border border-gray-200 rounded-xl p-6 md:p-8 flex flex-col md:flex-row justify-between items-center gap-6 shadow-sm mb-10 w-full mt-4">
               <div>
-                <h4 className="text-xl font-bold text-blue-900 mb-2">Không cần tự lướt hết quỹ căn</h4>
-                <p className="text-sm text-gray-600 font-medium">Gửi nhu cầu của bạn, chúng tôi sẽ chọn 3-5 căn phù hợp nhất để gửi lại bạn nhanh nhất.</p>
+                  <h4 className="text-xl font-bold text-blue-900 mb-2">Không cần tự lướt hết quỹ căn</h4>
+                  <p className="text-sm text-gray-600 font-medium">Gửi nhu cầu của bạn, chúng tôi sẽ chọn 3-5 căn phù hợp nhất để gửi lại bạn nhanh nhất.</p>
               </div>
               <button onClick={() => { setFindData({...findData, nhuCau: property.listingType, loaiCan: property.loaiCan || property.type}); setIsFindModalOpen(true); }} className="bg-blue-800 hover:bg-blue-900 text-white px-8 py-3.5 rounded-xl font-bold whitespace-nowrap transition shadow-lg shadow-blue-900/20 flex items-center gap-2 w-full md:w-auto justify-center">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg> Nhờ tìm căn phù hợp
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg> Nhờ tìm căn phù hợp
               </button>
             </div>
           </div>
@@ -825,7 +834,7 @@ export default function PropertyDetail() {
                  </div>
                  <div>
                    <label className="block font-bold text-gray-700 mb-1">Yêu cầu thêm</label>
-                   <textarea rows="2" placeholder="VD: Cần tầng trung, ưu tiên view công viên..." value={findData.ghiChu} onChange={(e)=>setFindData({...findData, ghiChu: e.target.value})} className="w-full p-3 border border-gray-300 rounded-lg outline-none focus:border-blue-600 bg-gray-50 font-medium"></textarea>
+                   <textarea rows="2" placeholder={`VD: Cần tìm căn bên khu ${exactName} giá tốt nhất...`} value={findData.ghiChu} onChange={(e)=>setFindData({...findData, ghiChu: e.target.value})} className="w-full p-3 border border-gray-300 rounded-lg outline-none focus:border-blue-600 bg-gray-50 font-medium"></textarea>
                  </div>
                  <button type="submit" disabled={isSendingFind} className="w-full bg-blue-700 hover:bg-blue-800 text-white p-3.5 rounded-lg font-bold text-base transition shadow-md disabled:bg-gray-400 flex items-center justify-center gap-2 mt-2">
                    {isSendingFind ? 'Đang gửi...' : <><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg> Gửi yêu cầu & Nhận báo giá</>}
@@ -836,10 +845,11 @@ export default function PropertyDetail() {
         </div>
       )}
 
-      <a href={`https://zalo.me/${CONTACT_PHONE}?text=${encodeURIComponent(`Xin chào, tôi quan tâm căn Mã ${displayId} trên web.`)}`} target="_blank" rel="noreferrer" onClick={(e)=>{if(typeof window !== 'undefined' && window.gtag) window.gtag('event', 'click_zalo', {'event_category': 'lead', 'event_label': 'Floating_Mobile'});}} className="fixed bottom-6 right-6 z-[100] md:hidden flex items-center justify-center w-14 h-14 rounded-full">
+      {/* ĐÃ THÊM ICON ZALO */}
+      <a href={`https://zalo.me/${CONTACT_PHONE}?text=${encodeURIComponent(`Xin chào, tôi quan tâm các căn trên web.`)}`} target="_blank" rel="noreferrer" onClick={(e)=>{if(typeof window !== 'undefined' && window.gtag) window.gtag('event', 'click_zalo', {'event_category': 'lead', 'event_label': 'Floating_Mobile'});}} className="fixed bottom-6 right-6 z-[100] md:hidden flex items-center justify-center w-14 h-14 rounded-full">
          <div className="absolute inset-0 bg-blue-500 rounded-full animate-ping opacity-75"></div>
-         <div className="relative bg-blue-600 rounded-full w-full h-full flex items-center justify-center border-2 border-white shadow-xl">
-            <span className="text-white font-black text-[12px] tracking-wide">ZALO</span>
+         <div className="relative bg-white rounded-full w-full h-full flex items-center justify-center shadow-xl p-1.5 border border-gray-100">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/a/a1/Zalo_Logo.svg" alt="Zalo" className="w-full h-full object-contain" />
          </div>
       </a>
 

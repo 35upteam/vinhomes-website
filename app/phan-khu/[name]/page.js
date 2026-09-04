@@ -201,12 +201,8 @@ export default function SubdivisionLandingPage() {
 
   const checkSpam = () => {
     const lastSent = localStorage.getItem('lastFormSubmit_phankhu');
-    if (lastSent && Date.now() - parseInt(lastSent) < 10000) { 
-      alert('Vui lòng đợi 10 giây trước khi gửi yêu cầu tiếp theo!'); 
-      return false; 
-    }
-    localStorage.setItem('lastFormSubmit_phankhu', Date.now()); 
-    return true;
+    if (lastSent && Date.now() - parseInt(lastSent) < 10000) { alert('Vui lòng đợi 10 giây trước khi gửi yêu cầu tiếp theo!'); return false; }
+    localStorage.setItem('lastFormSubmit_phankhu', Date.now()); return true;
   };
 
   const handleFindSubmit = async (e) => {
@@ -244,12 +240,13 @@ export default function SubdivisionLandingPage() {
       <header className="bg-white sticky top-0 z-50 px-4 md:px-8 py-3 flex justify-between items-center shadow-sm">
         <Link href="/" className="flex items-center hover:opacity-80 transition"><img src="/logo.png" alt="Quỹ Căn Smart City" className="h-10 md:h-12 w-auto object-contain" /></Link>
         <div className="flex items-center gap-3 md:gap-4">
-           {/* ĐÃ FIX: Hiện icon nút Ký gửi trên mobile kèm Text */}
+           {/* Đã bổ sung icon đầy đủ */}
            <Link href="/ky-gui" className="flex items-center gap-1.5 bg-blue-50 text-blue-800 px-4 py-2 rounded-full sm:rounded-md font-bold hover:bg-blue-100 transition text-sm border border-blue-100 shadow-sm sm:shadow-none">
              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 001 1m-6 0h6"></path></svg>
              <span className="inline">Ký gửi căn hộ</span>
            </Link>
            <a href={`https://zalo.me/${CONTACT_PHONE}`} target="_blank" rel="noreferrer" className="hidden sm:flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-800 text-white px-5 py-2 rounded-full font-bold hover:opacity-90 transition shadow-md text-sm">
+             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M20 15.5c-1.2 0-2.4-.2-3.6-.6-.3-.1-.7 0-1 .2l-2.2 2.2c-2.8-1.4-5.1-3.8-6.6-6.6l2.2-2.2c.3-.3.4-.7.2-1-.4-1.2-.6-2.4-.6-3.6 0-.6-.4-1-1-1H4c-.6 0-1 .4-1 1 0 9.4 7.6 17 17 17 .6 0 1-.4 1-1v-3.5c0-.6-.4-1-1-1zM19 12h2a9 9 0 00-9-9v2c3.9 0 7.1 3.2 7.1 7.1zM15 12h2c0-2.8-2.2-5-5-5v2c1.7 0 3 1.3 3 3z"/></svg>
              <span className="hidden sm:inline">Liên hệ tư vấn</span>
            </a>
         </div>
@@ -343,7 +340,6 @@ export default function SubdivisionLandingPage() {
               {currentProperties.map(item => <PropertyCard key={item.id} item={item} contactPhone={CONTACT_PHONE} />)}
             </div>
             
-            {/* Phân trang - Đã cấu hình chia 6 căn cho trang Phân Khu */}
             {totalPages > 1 && (
               <div className="flex justify-center items-center gap-2 mt-4 mb-8">
                 <button onClick={() => { setCurrentPage(p => Math.max(1, p - 1)); window.scrollTo({top: 0, behavior: 'smooth'}); }} disabled={currentPage === 1} className="w-10 h-10 flex items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 hover:bg-gray-50 disabled:opacity-50 transition shadow-sm">‹</button>
@@ -377,7 +373,6 @@ export default function SubdivisionLandingPage() {
            <div className="md:pl-10 md:border-l border-gray-100">
              <h3 className="font-extrabold text-blue-900 mb-5 text-lg uppercase tracking-wider">Liên hệ tư vấn</h3>
              <div className="space-y-4 font-medium text-[15px]">
-               {/* ĐÃ XÓA TÊN BÊN TRONG FOOTER */}
                <p className="flex items-center gap-3">📞 <a href={`tel:${CONTACT_PHONE}`} className="font-bold text-blue-600 hover:text-blue-800 transition text-lg">{CONTACT_PHONE.replace(/(\d{4})(\d{3})(\d{3})/, '$1 $2 $3')}</a> <span className="text-gray-400 text-xs ml-1">(SĐT / Zalo)</span></p>
                <p className="flex items-center gap-3">📍 Vinhomes Smart City, Tây Mỗ, Nam Từ Liêm, Hà Nội</p>
              </div>
@@ -452,11 +447,11 @@ export default function SubdivisionLandingPage() {
         </div>
       )}
 
-      {/* ĐÃ FIX: NÚT ZALO RUNG TRÊN ĐIỆN THOẠI */}
+      {/* ICON ZALO NỔI MOBILE ĐÃ ĐƯỢC CẬP NHẬT */}
       <a href={`https://zalo.me/${CONTACT_PHONE}?text=${encodeURIComponent(`Xin chào, tôi quan tâm các căn trên web.`)}`} target="_blank" rel="noreferrer" onClick={(e)=>{if(typeof window !== 'undefined' && window.gtag) window.gtag('event', 'click_zalo', {'event_category': 'lead', 'event_label': 'Floating_Mobile'});}} className="fixed bottom-6 right-6 z-[100] md:hidden flex items-center justify-center w-14 h-14 rounded-full">
          <div className="absolute inset-0 bg-blue-500 rounded-full animate-ping opacity-75"></div>
-         <div className="relative bg-blue-600 rounded-full w-full h-full flex items-center justify-center border-2 border-white shadow-xl">
-            <span className="text-white font-black text-[12px] tracking-wide">ZALO</span>
+         <div className="relative bg-white rounded-full w-full h-full flex items-center justify-center shadow-xl p-1.5 border border-gray-100">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/a/a1/Zalo_Logo.svg" alt="Zalo" className="w-full h-full object-contain" />
          </div>
       </a>
 
