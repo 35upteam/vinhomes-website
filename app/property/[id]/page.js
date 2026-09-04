@@ -7,8 +7,6 @@ import { useParams } from 'next/navigation';
 import { toPng } from 'html-to-image';
 
 const optimizeImg = (url) => url?.includes('cloudinary.com') ? url.replace('/upload/', '/upload/w_1000,c_limit,q_auto,f_auto/') : url;
-
-// Hàm ép nén kích thước ảnh riêng cho Poster để chống nghẽn RAM trên iPhone
 const optimizePosterImg = (url) => url?.includes('cloudinary.com') ? url.replace('/upload/', '/upload/w_600,h_630,c_fill,q_80,f_auto/') : url;
 
 const sanitize = (str) => str ? str.toString().replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/&/g, '&amp;') : '';
@@ -60,6 +58,7 @@ export default function PropertyDetail() {
   const scrollRef = useRef(null);
   const [property, setProperty] = useState(null);
   const [similarProps, setSimilarProps] = useState([]);
+  const [showTopBtn, setShowTopBtn] = useState(false);
   
   const [pkConfig, setPkConfig] = useState({ phi: 'Đang cập nhật', tongQuan: '', uuDiem: '', tienIch: '' });
   const [loading, setLoading] = useState(true);
@@ -72,6 +71,10 @@ export default function PropertyDetail() {
   const [touchStart, setTouchStart] = useState(null);
   const [touchEnd, setTouchEnd] = useState(null);
   const minSwipeDistance = 50;
+
+  // State cho Lightbox vuốt dọc
+  const [lbTouchStartY, setLbTouchStartY] = useState(null);
+  const [lbTouchEndY, setLbTouchEndY] = useState(null);
 
   const [isFindModalOpen, setIsFindModalOpen] = useState(false);
   const [isSendingFind, setIsSendingFind] = useState(false);
@@ -93,9 +96,21 @@ export default function PropertyDetail() {
   };
 
   useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 400) setShowTopBtn(true);
+      else setShowTopBtn(false);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  useEffect(() => {
     const fetchData = async () => {
       let foundInCache = false;
-
       const cachedStr = sessionStorage.getItem('cachedProperties');
       if (cachedStr) {
         try {
@@ -104,6 +119,18 @@ export default function PropertyDetail() {
           if (cachedProp) {
             setProperty(cachedProp);
             document.title = `[${cachedProp.listingType}] Căn ${cachedProp.loaiCan} - ${cachedProp.phanKhu} | Quỹ Căn Smart City`;
+            
+            // Tối ưu SEO: Đẩy Thẻ Meta Open Graph động
+            let ogTitle = document.querySelector('meta[property="og:title"]');
+            if (!ogTitle) { ogTitle = document.createElement('meta'); ogTitle.setAttribute('property', 'og:title'); document.head.appendChild(ogTitle); }
+            ogTitle.setAttribute('content', `[${cachedProp.listingType}] Căn ${cachedProp.loaiCan} - ${cachedProp.phanKhu}`);
+            
+            if (cachedProp.images && cachedProp.images.length > 0) {
+               let ogImage = document.querySelector('meta[property="og:image"]');
+               if (!ogImage) { ogImage = document.createElement('meta'); ogImage.setAttribute('property', 'og:image'); document.head.appendChild(ogImage); }
+               ogImage.setAttribute('content', optimizePosterImg(cachedProp.images[0]));
+            }
+
             setLoading(false);
             foundInCache = true;
             
@@ -129,6 +156,17 @@ export default function PropertyDetail() {
           if (!foundInCache) {
             setProperty(propData);
             document.title = `[${propData.listingType}] Căn ${propData.loaiCan} - ${propData.phanKhu} | Quỹ Căn Smart City`;
+            
+            let ogTitle = document.querySelector('meta[property="og:title"]');
+            if (!ogTitle) { ogTitle = document.createElement('meta'); ogTitle.setAttribute('property', 'og:title'); document.head.appendChild(ogTitle); }
+            ogTitle.setAttribute('content', `[${propData.listingType}] Căn ${propData.loaiCan} - ${propData.phanKhu}`);
+            
+            if (propData.images && propData.images.length > 0) {
+               let ogImage = document.querySelector('meta[property="og:image"]');
+               if (!ogImage) { ogImage = document.createElement('meta'); ogImage.setAttribute('property', 'og:image'); document.head.appendChild(ogImage); }
+               ogImage.setAttribute('content', optimizePosterImg(propData.images[0]));
+            }
+
             setLoading(false);
           }
           
@@ -166,7 +204,6 @@ export default function PropertyDetail() {
   useEffect(() => {
     if (property) {
       if (property.images && property.images.length > 0) {
-        // TẢI ẢNH ĐÃ ĐƯỢC NÉN KÍCH THƯỚC CHUẨN 600x630
         const imgUrl = optimizePosterImg(property.images[0]);
         fetch(imgUrl)
           .then(res => res.blob())
@@ -213,20 +250,15 @@ export default function PropertyDetail() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // Kỹ thuật chụp ảnh mồi đặc trị iOS Safari
   const handleDownloadPoster = async () => {
     if (!posterRef.current) return;
     setIsGeneratingPoster(true); 
     
     try {
-      // Đợi 1.5 giây để Poster được đưa vào Viewport và iOS nạp ảnh
       await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // Chụp mồi để ép Safari render Canvas 
       try { await toPng(posterRef.current, { cacheBust: false }); } catch (e) {}
       await new Promise(resolve => setTimeout(resolve, 500));
 
-      // Chụp thật chất lượng cao
       const dataUrl = await toPng(posterRef.current, {
         quality: 1,
         backgroundColor: "#ffffff",
@@ -235,12 +267,9 @@ export default function PropertyDetail() {
       });
       
       const link = document.createElement('a');
-      
-      // TẠO TÊN FILE THEO CẤU TRÚC MỚI: Thuê/Bán - Loại Căn - Phân Khu - Giá
       const actionLabel = property.listingType === 'Chuyển nhượng' ? 'Bán' : 'Thuê';
       const unitLabel = property.listingType === 'Chuyển nhượng' ? 'tỷ' : 'triệu';
       link.download = `${actionLabel} - ${property.loaiCan || property.type} - ${property.phanKhu} - ${property.price} ${unitLabel}.png`;
-      
       link.href = dataUrl;
       link.click();
     } catch (error) {
@@ -315,6 +344,17 @@ export default function PropertyDetail() {
     }
   };
 
+  // Logic vuốt để đóng Lightbox
+  const onLbTouchStart = (e) => setLbTouchStartY(e.targetTouches[0].clientY);
+  const onLbTouchMove = (e) => setLbTouchEndY(e.targetTouches[0].clientY);
+  const onLbTouchEnd = () => {
+    if (!lbTouchStartY || !lbTouchEndY) return;
+    const distanceY = lbTouchEndY - lbTouchStartY;
+    if (distanceY > 80 || distanceY < -80) {
+      setIsLightboxOpen(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 text-gray-800 flex flex-col relative pb-20 md:pb-0">
@@ -365,10 +405,14 @@ export default function PropertyDetail() {
   return (
     <div className="min-h-screen bg-gray-50 text-gray-800 flex flex-col relative z-0 pb-20 md:pb-0 overflow-x-hidden">
       
-      {/* TẢI FONT BÊN NGOÀI ĐỂ KHÔNG BỊ NGHẼN KHI CHỤP ẢNH */}
+      {showTopBtn && (
+        <button onClick={scrollToTop} className="fixed bottom-24 right-4 md:bottom-8 md:right-8 bg-blue-600 text-white w-10 h-10 md:w-12 md:h-12 rounded-full shadow-lg flex items-center justify-center hover:bg-blue-700 transition z-50 animate-fade-in-up">
+          <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 15l7-7 7 7"></path></svg>
+        </button>
+      )}
+
       <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800;900&display=swap" rel="stylesheet" />
 
-      {/* Kéo thẳng Poster vào màn hình để Safari render, nhưng đặt opacity cực thấp để tàng hình, không che web */}
       <div 
         style={{ 
           position: 'fixed', 
@@ -385,7 +429,6 @@ export default function PropertyDetail() {
         >
           <div style={{ display: 'flex', width: '100%', height: '100%', backgroundColor: '#ffffff', overflow: 'hidden' }}>
              
-             {/* BÊN TRÁI: Dùng kích thước cứng 600x630 và KHÔNG dùng crossOrigin */}
              <div style={{ width: '600px', height: '630px', position: 'relative', backgroundColor: '#e5e7eb', flexShrink: 0 }}>
                 <img 
                   src={coverBase64 !== '/banner.jpg' ? coverBase64 : (property?.images?.length > 0 ? optimizePosterImg(property.images[0]) : '/banner.jpg')} 
@@ -494,7 +537,6 @@ export default function PropertyDetail() {
           </div>
         </div>
       </div>
-      {/* KẾT THÚC COMPONENT POSTER ẢO */}
 
       <header className="bg-white sticky top-0 z-50 px-4 md:px-8 py-3 flex justify-between items-center shadow-sm">
         <Link href="/" onClick={clearFilterCacheAndReset} className="flex items-center hover:opacity-80 transition"><img src="/logo.png" alt="Quỹ Căn Smart City" className="h-10 md:h-12 w-auto object-contain" /></Link>
@@ -502,7 +544,8 @@ export default function PropertyDetail() {
            {/* THAY NÚT LIÊN HỆ BẰNG KÝ GỬI TRÊN ĐIỆN THOẠI */}
            <Link href="/ky-gui" className="flex items-center gap-1.5 bg-blue-50 text-blue-800 px-4 py-2 rounded-full sm:rounded-md font-bold hover:bg-blue-100 transition text-sm border border-blue-100 shadow-sm sm:shadow-none">
              <svg className="w-4 h-4 hidden sm:block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 001 1m-6 0h6"></path></svg>
-             <span>Ký gửi căn hộ</span>
+             <span className="hidden sm:inline">Ký gửi căn hộ</span>
+             <span className="sm:hidden">Ký gửi</span>
            </Link>
            <a href={`tel:${CONTACT_PHONE}`} className="hidden sm:flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-800 text-white px-5 py-2 rounded-full font-bold hover:opacity-90 transition shadow-md text-sm">
              <span>Liên hệ tư vấn</span>
@@ -511,12 +554,22 @@ export default function PropertyDetail() {
       </header>
 
       {isLightboxOpen && property && (
-        <div className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center">
+        <div 
+          className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center transition-opacity"
+          onTouchStart={onLbTouchStart}
+          onTouchMove={onLbTouchMove}
+          onTouchEnd={onLbTouchEnd}
+        >
            <button onClick={() => setIsLightboxOpen(false)} className="absolute top-6 right-6 text-white hover:text-gray-300 p-2 z-10"><svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
            <button onClick={() => setLightboxImg(p => p > 0 ? p - 1 : (property.images?.length || 1) - 1)} className="absolute left-4 top-1/2 -translate-y-1/2 text-white p-4 hover:bg-white/10 rounded-full z-10"><svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg></button>
-           <img src={optimizeImg(property.images[lightboxImg])} alt="Full" className="max-w-full max-h-[90vh] object-contain" />
+           
+           <img src={optimizeImg(property.images[lightboxImg])} alt="Full" className="max-w-full max-h-[90vh] object-contain transition-transform" />
+           
            <button onClick={() => setLightboxImg(p => p < (property.images?.length || 1) - 1 ? p + 1 : 0)} className="absolute right-4 top-1/2 -translate-y-1/2 text-white p-4 hover:bg-white/10 rounded-full z-10"><svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg></button>
            <div className="absolute bottom-6 text-white text-sm font-medium">{lightboxImg + 1} / {property.images?.length || 1}</div>
+           
+           {/* Dòng chữ hướng dẫn cho UX di động */}
+           <div className="absolute top-8 left-1/2 -translate-x-1/2 text-white/50 text-xs font-medium md:hidden pointer-events-none">Vuốt lên/xuống để đóng</div>
         </div>
       )}
 
@@ -608,7 +661,7 @@ export default function PropertyDetail() {
             </div>
 
             <div className="bg-white rounded-2xl border border-gray-100 p-6 md:p-8 shadow-sm mb-8">
-              <h3 className="font-bold text-blue-900 mb-6 text-lg border-b border-gray-100 pb-3">Thông tin chi tiết</h3>
+              <h3 className="font-bold text-blue-900 mb-6 text-lg border-b border-gray-100 pb-3">Thông chi tiết</h3>
               <ul className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-0 text-[13px] md:text-sm">
                 {specs.map((s, i) => (
                   <li key={i} className="flex py-3.5 border-b border-gray-100 items-center justify-between md:justify-start md:gap-8">
@@ -678,7 +731,7 @@ export default function PropertyDetail() {
               <div className="space-y-3">
                 <a href={`tel:${CONTACT_PHONE}`} className="flex items-center justify-center gap-2 w-full bg-blue-600 text-white py-3.5 rounded-xl font-bold hover:bg-blue-700 transition shadow-md shadow-blue-600/20">📞 Gọi {CONTACT_PHONE.replace(/(\d{4})(\d{3})(\d{3})/, '$1 $2 $3')}</a>
                 <a href={`https://zalo.me/${CONTACT_PHONE}?text=${encodeURIComponent(`Xin chào, tôi quan tâm căn Mã ${displayId} (${property?.listingType} ${property?.loaiCan} tòa ${property?.toaNha}) trên web.`)}`} target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 w-full bg-white border-2 border-blue-100 text-blue-800 py-3 rounded-xl font-bold hover:bg-blue-50 transition">💬 Nhận tư vấn căn này</a>
-                <button onClick={handleShare} className="flex items-center justify-center gap-2 w-full bg-gray-50 border border-gray-200 text-gray-700 py-3 rounded-xl font-bold hover:bg-gray-100 transition mt-2">🔗 Chia sẻ</button>
+                <button onClick={handleShare} className="flex items-center justify-center gap-2 w-full bg-gray-50 border border-gray-200 text-gray-700 py-3 rounded-xl font-bold hover:bg-gray-100 transition mt-2">🔗 Chia sẻ thông tin căn</button>
               </div>
               <div className="mt-6 bg-gray-50 p-4 rounded-xl border border-gray-100 text-center">
                 <div className="w-32 h-32 mx-auto bg-white border border-gray-200 p-2 rounded-lg shadow-sm mb-3 flex items-center justify-center"><img src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://zalo.me/${CONTACT_PHONE}`} alt="QR Code Zalo" className="w-full h-full object-cover rounded" /></div>
@@ -699,7 +752,6 @@ export default function PropertyDetail() {
            <div className="md:pl-10 md:border-l border-gray-100">
              <h3 className="font-extrabold text-blue-900 mb-5 text-lg uppercase tracking-wider">Liên hệ tư vấn</h3>
              <div className="space-y-4 font-medium text-[15px]">
-               <p className="flex items-center gap-3">👤 <strong className="text-gray-800">Nguyễn An Ninh</strong></p>
                <p className="flex items-center gap-3">📞 <a href={`tel:${CONTACT_PHONE}`} className="font-bold text-blue-600 hover:text-blue-800 transition text-lg">{CONTACT_PHONE.replace(/(\d{4})(\d{3})(\d{3})/, '$1 $2 $3')}</a> <span className="text-gray-400 text-xs ml-1">(SĐT / Zalo)</span></p>
                <p className="flex items-center gap-3">📍 Vinhomes Smart City, Tây Mỗ, Nam Từ Liêm, Hà Nội</p>
              </div>

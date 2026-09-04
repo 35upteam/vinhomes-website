@@ -153,6 +153,7 @@ export default function Home() {
   const [properties, setProperties] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isRestored, setIsRestored] = useState(false);
+  const [showTopBtn, setShowTopBtn] = useState(false);
   
   const [activeTab, setActiveTab] = useState('Cho thuê');
   const [sortBy, setSortBy] = useState('newest');
@@ -186,6 +187,19 @@ export default function Home() {
     setFilters({ phanKhu: 'Tất cả phân khu', loaiCan: [], khoangTang: 'Tất cả tầng', huongBanCong: 'Tất cả hướng', noiThat: 'Tất cả nội thất', mucGia: 'Tất cả mức giá' });
     setCurrentPage(1);
     setSortBy('newest');
+  };
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 400) setShowTopBtn(true);
+      else setShowTopBtn(false);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   useEffect(() => {
@@ -368,6 +382,13 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-800 flex flex-col relative pb-20 md:pb-0">
+      
+      {showTopBtn && (
+        <button onClick={scrollToTop} className="fixed bottom-24 right-4 md:bottom-8 md:right-8 bg-blue-600 text-white w-10 h-10 md:w-12 md:h-12 rounded-full shadow-lg flex items-center justify-center hover:bg-blue-700 transition z-50 animate-fade-in-up">
+          <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 15l7-7 7 7"></path></svg>
+        </button>
+      )}
+
       <header className="bg-white sticky top-0 z-50 px-4 md:px-8 py-3 flex justify-between items-center shadow-sm">
         <Link href="/" onClick={clearFilterCacheAndReset} className="flex items-center hover:opacity-80 transition">
           <img src="/logo.png" alt="Quỹ Căn Smart City" className="h-10 md:h-12 w-auto object-contain" />
@@ -378,7 +399,7 @@ export default function Home() {
              <span>Ký gửi căn hộ</span>
            </Link>
            <a href={`https://zalo.me/${CONTACT_PHONE}`} target="_blank" rel="noreferrer" className="hidden sm:flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-800 text-white px-5 py-2 rounded-full font-bold hover:opacity-90 transition shadow-md text-sm">
-             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M20 15.5c-1.2 0-2.4-.2-3.6-.6-.3-.1-.7 0-1 .2l-2.2 2.2c-2.8-1.4-5.1-3.8-6.6-6.6l2.2-2.2c.3-.3.4-.7.2-1-.4-1.2-.6-2.4-.6-3.6 0-.6-.4-1-1-1H4c-.6 0-1 .4-1 1 0 9.4 7.6 17 17 17 .6 0 1-.4-1-1v-3.5c0-.6-.4-1-1-1zM19 12h2a9 9 0 00-9-9v2c3.9 0 7.1 3.2 7.1 7.1zM15 12h2c0-2.8-2.2-5-5-5v2c1.7 0 3 1.3 3 3z"/></svg> <span>Liên hệ tư vấn</span>
+             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M20 15.5c-1.2 0-2.4-.2-3.6-.6-.3-.1-.7 0-1 .2l-2.2 2.2c-2.8-1.4-5.1-3.8-6.6-6.6l2.2-2.2c.3-.3.4-.7.2-1-.4-1.2-.6-2.4-.6-3.6 0-.6-.4-1-1-1H4c-.6 0-1 .4-1 1 0 9.4 7.6 17 17 17 .6 0 1-.4 1-1v-3.5c0-.6-.4-1-1-1zM19 12h2a9 9 0 00-9-9v2c3.9 0 7.1 3.2 7.1 7.1zM15 12h2c0-2.8-2.2-5-5-5v2c1.7 0 3 1.3 3 3z"/></svg> <span>Liên hệ tư vấn</span>
            </a>
         </div>
       </header>
@@ -539,7 +560,6 @@ export default function Home() {
            <div className="md:pl-10 md:border-l border-gray-100">
              <h3 className="font-extrabold text-blue-900 mb-5 text-lg uppercase tracking-wider">Liên hệ tư vấn</h3>
              <div className="space-y-4 font-medium text-[15px]">
-               <p className="flex items-center gap-3">👤 <strong className="text-gray-800">Nguyễn An Ninh</strong></p>
                <p className="flex items-center gap-3">📞 <a href={`tel:${CONTACT_PHONE}`} className="font-bold text-blue-600 hover:text-blue-800 transition text-lg">{CONTACT_PHONE.replace(/(\d{4})(\d{3})(\d{3})/, '$1 $2 $3')}</a> <span className="text-gray-400 text-xs ml-1">(SĐT / Zalo)</span></p>
                <p className="flex items-center gap-3">📍 Vinhomes Smart City, Tây Mỗ, Nam Từ Liêm, Hà Nội</p>
              </div>
@@ -547,11 +567,10 @@ export default function Home() {
         </div>
       </footer>
 
-      {/* POPUP THÔNG MINH */}
       {isLeadPopupOpen && (
         <div className="fixed inset-0 bg-blue-900/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-y-auto max-h-[90vh] animate-fade-in-up">
-            <div className="bg-gradient-to-r from-blue-700 to-blue-900 px-6 py-4 flex justify-between items-center text-white sticky top-0 z-10">
+            <div className="bg-blue-900 px-6 py-4 flex justify-between items-center text-white sticky top-0 z-10">
                <h3 className="text-lg font-bold flex items-center gap-2">👋 Chào anh/chị!</h3>
                <button onClick={() => setIsLeadPopupOpen(false)} className="text-blue-200 hover:text-white transition"><svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
             </div>
