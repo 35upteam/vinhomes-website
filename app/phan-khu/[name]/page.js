@@ -214,7 +214,8 @@ export default function SubdivisionLandingPage() {
     setIsSendingFind(true);
     try { await addDoc(collection(db, 'nho_tim_can'), { ...findData, source: `Trang Phân Khu ${exactName}`, createdAt: serverTimestamp(), status: 'Chưa xử lý' }); } catch(err) {}
 
-    const BOT_TOKEN = process.env.NEXT_PUBLIC_TELEGRAM_BOT_TOKEN || "7295171731:AAEUgA3z1y3D6o_cK8t6W42aXfN-6I"; const CHAT_ID = process.env.NEXT_PUBLIC_TELEGRAM_CHAT_ID || "6190858172";
+    const BOT_TOKEN = process.env.NEXT_PUBLIC_TELEGRAM_BOT_TOKEN || "7295171731:AAEUgA3z1y3D6o_cK8t6W42aXfN-6I"; 
+    const CHAT_ID = process.env.NEXT_PUBLIC_TELEGRAM_CHAT_ID || "6190858172";
     if (BOT_TOKEN && CHAT_ID) {
       const message = `🚨 <b>KHÁCH TÌM CĂN MỚI!</b>\n\n👤 <b>Tên khách:</b> ${findData.ten || 'Chưa nhập'}\n📌 <b>Nhu cầu:</b> ${findData.nhuCau}\n🛏 <b>Loại căn:</b> ${findData.loaiCan}\n💰 <b>Tài chính:</b> ${findData.taiChinh}\n🛋 <b>Nội thất:</b> ${findData.noiThat}\n📅 <b>Vào ở:</b> ${findData.nhuCau === 'Cho thuê' ? findData.ngayVaoO || 'Chưa rõ' : 'N/A'}\n📞 <b>SĐT Khách:</b> <code>${findData.soDienThoai}</code>\n📝 <b>Yêu cầu thêm:</b> ${findData.ghiChu || 'Không có'}`;
       try { 
@@ -243,8 +244,9 @@ export default function SubdivisionLandingPage() {
       <header className="bg-white sticky top-0 z-50 px-4 md:px-8 py-3 flex justify-between items-center shadow-sm">
         <Link href="/" className="flex items-center hover:opacity-80 transition"><img src="/logo.png" alt="Quỹ Căn Smart City" className="h-10 md:h-12 w-auto object-contain" /></Link>
         <div className="flex items-center gap-3 md:gap-4">
+           {/* ĐÃ FIX: Hiện icon nút Ký gửi trên mobile */}
            <Link href="/ky-gui" className="flex items-center gap-1.5 bg-blue-50 text-blue-800 px-4 py-2 rounded-full sm:rounded-md font-bold hover:bg-blue-100 transition text-sm border border-blue-100 shadow-sm sm:shadow-none">
-             <svg className="w-4 h-4 hidden sm:block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 001 1m-6 0h6"></path></svg>
+             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 001 1m-6 0h6"></path></svg>
              <span className="hidden sm:inline">Ký gửi căn hộ</span>
              <span className="sm:hidden">Ký gửi</span>
            </Link>
@@ -342,6 +344,7 @@ export default function SubdivisionLandingPage() {
               {currentProperties.map(item => <PropertyCard key={item.id} item={item} contactPhone={CONTACT_PHONE} />)}
             </div>
             
+            {/* Phân trang - Đã cấu hình chia 6 căn cho trang Phân Khu */}
             {totalPages > 1 && (
               <div className="flex justify-center items-center gap-2 mt-4 mb-8">
                 <button onClick={() => { setCurrentPage(p => Math.max(1, p - 1)); window.scrollTo({top: 0, behavior: 'smooth'}); }} disabled={currentPage === 1} className="w-10 h-10 flex items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 hover:bg-gray-50 disabled:opacity-50 transition shadow-sm">‹</button>
@@ -375,6 +378,7 @@ export default function SubdivisionLandingPage() {
            <div className="md:pl-10 md:border-l border-gray-100">
              <h3 className="font-extrabold text-blue-900 mb-5 text-lg uppercase tracking-wider">Liên hệ tư vấn</h3>
              <div className="space-y-4 font-medium text-[15px]">
+               {/* ĐÃ XÓA TÊN BÊN TRONG FOOTER */}
                <p className="flex items-center gap-3">📞 <a href={`tel:${CONTACT_PHONE}`} className="font-bold text-blue-600 hover:text-blue-800 transition text-lg">{CONTACT_PHONE.replace(/(\d{4})(\d{3})(\d{3})/, '$1 $2 $3')}</a> <span className="text-gray-400 text-xs ml-1">(SĐT / Zalo)</span></p>
                <p className="flex items-center gap-3">📍 Vinhomes Smart City, Tây Mỗ, Nam Từ Liêm, Hà Nội</p>
              </div>

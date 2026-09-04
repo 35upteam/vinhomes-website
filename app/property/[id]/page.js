@@ -72,8 +72,10 @@ export default function PropertyDetail() {
   const [touchEnd, setTouchEnd] = useState(null);
   const minSwipeDistance = 50;
 
-  // State cho Lightbox vuốt dọc
+  // State cho Lightbox vuốt (Trái/Phải để chuyển, Lên/Xuống để đóng)
+  const [lbTouchStartX, setLbTouchStartX] = useState(null);
   const [lbTouchStartY, setLbTouchStartY] = useState(null);
+  const [lbTouchEndX, setLbTouchEndX] = useState(null);
   const [lbTouchEndY, setLbTouchEndY] = useState(null);
 
   const [isFindModalOpen, setIsFindModalOpen] = useState(false);
@@ -120,7 +122,6 @@ export default function PropertyDetail() {
             setProperty(cachedProp);
             document.title = `[${cachedProp.listingType}] Căn ${cachedProp.loaiCan} - ${cachedProp.phanKhu} | Quỹ Căn Smart City`;
             
-            // Tối ưu SEO: Đẩy Thẻ Meta Open Graph động
             let ogTitle = document.querySelector('meta[property="og:title"]');
             if (!ogTitle) { ogTitle = document.createElement('meta'); ogTitle.setAttribute('property', 'og:title'); document.head.appendChild(ogTitle); }
             ogTitle.setAttribute('content', `[${cachedProp.listingType}] Căn ${cachedProp.loaiCan} - ${cachedProp.phanKhu}`);
@@ -344,14 +345,34 @@ export default function PropertyDetail() {
     }
   };
 
-  // Logic vuốt để đóng Lightbox
-  const onLbTouchStart = (e) => setLbTouchStartY(e.targetTouches[0].clientY);
-  const onLbTouchMove = (e) => setLbTouchEndY(e.targetTouches[0].clientY);
+  // Cải tiến: Vuốt ngang để đổi ảnh, Vuốt dọc để thoát Lightbox
+  const onLbTouchStart = (e) => {
+    setLbTouchStartX(e.targetTouches[0].clientX);
+    setLbTouchStartY(e.targetTouches[0].clientY);
+    setLbTouchEndX(null);
+    setLbTouchEndY(null);
+  };
+  const onLbTouchMove = (e) => {
+    setLbTouchEndX(e.targetTouches[0].clientX);
+    setLbTouchEndY(e.targetTouches[0].clientY);
+  };
   const onLbTouchEnd = () => {
-    if (!lbTouchStartY || !lbTouchEndY) return;
-    const distanceY = lbTouchEndY - lbTouchStartY;
-    if (distanceY > 80 || distanceY < -80) {
-      setIsLightboxOpen(false);
+    if (!lbTouchStartX || !lbTouchStartY || !lbTouchEndX || !lbTouchEndY) return;
+    const distanceX = lbTouchStartX - lbTouchEndX;
+    const distanceY = lbTouchStartY - lbTouchEndY;
+    
+    if (Math.abs(distanceX) > Math.abs(distanceY)) {
+       // Vuốt ngang
+       if (distanceX > 50) {
+          setLightboxImg(p => p < (property.images?.length || 1) - 1 ? p + 1 : 0);
+       } else if (distanceX < -50) {
+          setLightboxImg(p => p > 0 ? p - 1 : (property.images?.length || 1) - 1);
+       }
+    } else {
+       // Vuốt dọc
+       if (distanceY > 80 || distanceY < -80) {
+          setIsLightboxOpen(false);
+       }
     }
   };
 
@@ -541,9 +562,9 @@ export default function PropertyDetail() {
       <header className="bg-white sticky top-0 z-50 px-4 md:px-8 py-3 flex justify-between items-center shadow-sm">
         <Link href="/" onClick={clearFilterCacheAndReset} className="flex items-center hover:opacity-80 transition"><img src="/logo.png" alt="Quỹ Căn Smart City" className="h-10 md:h-12 w-auto object-contain" /></Link>
         <div className="flex items-center gap-3 md:gap-4">
-           {/* THAY NÚT LIÊN HỆ BẰNG KÝ GỬI TRÊN ĐIỆN THOẠI */}
+           {/* ĐÃ FIX: Icon Ký gửi hiện trên mobile */}
            <Link href="/ky-gui" className="flex items-center gap-1.5 bg-blue-50 text-blue-800 px-4 py-2 rounded-full sm:rounded-md font-bold hover:bg-blue-100 transition text-sm border border-blue-100 shadow-sm sm:shadow-none">
-             <svg className="w-4 h-4 hidden sm:block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 001 1m-6 0h6"></path></svg>
+             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 001 1m-6 0h6"></path></svg>
              <span className="hidden sm:inline">Ký gửi căn hộ</span>
              <span className="sm:hidden">Ký gửi</span>
            </Link>
@@ -568,8 +589,7 @@ export default function PropertyDetail() {
            <button onClick={() => setLightboxImg(p => p < (property.images?.length || 1) - 1 ? p + 1 : 0)} className="absolute right-4 top-1/2 -translate-y-1/2 text-white p-4 hover:bg-white/10 rounded-full z-10"><svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg></button>
            <div className="absolute bottom-6 text-white text-sm font-medium">{lightboxImg + 1} / {property.images?.length || 1}</div>
            
-           {/* Dòng chữ hướng dẫn cho UX di động */}
-           <div className="absolute top-8 left-1/2 -translate-x-1/2 text-white/50 text-xs font-medium md:hidden pointer-events-none">Vuốt lên/xuống để đóng</div>
+           <div className="absolute top-8 left-1/2 -translate-x-1/2 text-white/50 text-xs font-medium md:hidden pointer-events-none">Vuốt trái/phải đổi ảnh - Vuốt lên/xuống đóng</div>
         </div>
       )}
 
@@ -661,7 +681,7 @@ export default function PropertyDetail() {
             </div>
 
             <div className="bg-white rounded-2xl border border-gray-100 p-6 md:p-8 shadow-sm mb-8">
-              <h3 className="font-bold text-blue-900 mb-6 text-lg border-b border-gray-100 pb-3">Thông chi tiết</h3>
+              <h3 className="font-bold text-blue-900 mb-6 text-lg border-b border-gray-100 pb-3">Thông tin chi tiết</h3>
               <ul className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-0 text-[13px] md:text-sm">
                 {specs.map((s, i) => (
                   <li key={i} className="flex py-3.5 border-b border-gray-100 items-center justify-between md:justify-start md:gap-8">
@@ -731,7 +751,7 @@ export default function PropertyDetail() {
               <div className="space-y-3">
                 <a href={`tel:${CONTACT_PHONE}`} className="flex items-center justify-center gap-2 w-full bg-blue-600 text-white py-3.5 rounded-xl font-bold hover:bg-blue-700 transition shadow-md shadow-blue-600/20">📞 Gọi {CONTACT_PHONE.replace(/(\d{4})(\d{3})(\d{3})/, '$1 $2 $3')}</a>
                 <a href={`https://zalo.me/${CONTACT_PHONE}?text=${encodeURIComponent(`Xin chào, tôi quan tâm căn Mã ${displayId} (${property?.listingType} ${property?.loaiCan} tòa ${property?.toaNha}) trên web.`)}`} target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 w-full bg-white border-2 border-blue-100 text-blue-800 py-3 rounded-xl font-bold hover:bg-blue-50 transition">💬 Nhận tư vấn căn này</a>
-                <button onClick={handleShare} className="flex items-center justify-center gap-2 w-full bg-gray-50 border border-gray-200 text-gray-700 py-3 rounded-xl font-bold hover:bg-gray-100 transition mt-2">🔗 Chia sẻ thông tin căn</button>
+                <button onClick={handleShare} className="flex items-center justify-center gap-2 w-full bg-gray-50 border border-gray-200 text-gray-700 py-3 rounded-xl font-bold hover:bg-gray-100 transition mt-2">🔗 Chia sẻ</button>
               </div>
               <div className="mt-6 bg-gray-50 p-4 rounded-xl border border-gray-100 text-center">
                 <div className="w-32 h-32 mx-auto bg-white border border-gray-200 p-2 rounded-lg shadow-sm mb-3 flex items-center justify-center"><img src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://zalo.me/${CONTACT_PHONE}`} alt="QR Code Zalo" className="w-full h-full object-cover rounded" /></div>
@@ -752,6 +772,7 @@ export default function PropertyDetail() {
            <div className="md:pl-10 md:border-l border-gray-100">
              <h3 className="font-extrabold text-blue-900 mb-5 text-lg uppercase tracking-wider">Liên hệ tư vấn</h3>
              <div className="space-y-4 font-medium text-[15px]">
+               {/* ĐÃ XÓA TÊN THEO YÊU CẦU */}
                <p className="flex items-center gap-3">📞 <a href={`tel:${CONTACT_PHONE}`} className="font-bold text-blue-600 hover:text-blue-800 transition text-lg">{CONTACT_PHONE.replace(/(\d{4})(\d{3})(\d{3})/, '$1 $2 $3')}</a> <span className="text-gray-400 text-xs ml-1">(SĐT / Zalo)</span></p>
                <p className="flex items-center gap-3">📍 Vinhomes Smart City, Tây Mỗ, Nam Từ Liêm, Hà Nội</p>
              </div>

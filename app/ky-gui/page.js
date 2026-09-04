@@ -88,11 +88,22 @@ export default function KyGuiPage() {
         <Link href="/" className="flex items-center hover:opacity-80 transition">
           <img src="/logo.png" alt="Quỹ Căn Smart City" className="h-10 md:h-12 w-auto object-contain" />
         </Link>
-        <Link href="/" className="text-blue-900 font-bold hover:text-blue-600 transition text-sm">Quay về trang chủ</Link>
+        <div className="flex items-center gap-3 md:gap-4">
+           {/* ĐÃ FIX: Hiện icon nút Ký gửi trên mobile */}
+           <Link href="/ky-gui" className="flex items-center gap-1.5 bg-blue-50 text-blue-800 px-4 py-2 rounded-full sm:rounded-md font-bold hover:bg-blue-100 transition text-sm border border-blue-100 shadow-sm sm:shadow-none">
+             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 001 1m-6 0h6"></path></svg>
+             <span className="hidden sm:inline">Ký gửi căn hộ</span>
+             <span className="sm:hidden">Ký gửi</span>
+           </Link>
+           <a href={`https://zalo.me/${CONTACT_PHONE}`} target="_blank" rel="noreferrer" className="hidden sm:flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-800 text-white px-5 py-2 rounded-full font-bold hover:opacity-90 transition shadow-md text-sm">
+             <span className="hidden sm:inline">Liên hệ tư vấn</span>
+           </a>
+        </div>
       </header>
 
       <main className="max-w-[1200px] mx-auto px-4 md:px-8 py-12 flex flex-col lg:flex-row gap-12 w-full flex-grow">
-        <div className="w-full lg:w-5/12 self-start sticky top-28">
+        {/* ĐÃ FIX: Hạn chế sticky bằng lg:sticky để không đè lên form khi dùng điện thoại */}
+        <div className="w-full lg:w-5/12 lg:self-start lg:sticky lg:top-28">
           <span className="inline-block bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-bold mb-4 border border-green-200">
             ● Đang có khách hỏi mua/thuê mỗi ngày
           </span>
@@ -197,11 +208,12 @@ export default function KyGuiPage() {
            <div className="md:pr-10">
              <div className="flex items-center mb-6"><img src="/logo.png" alt="Quỹ Căn Smart City Logo" className="h-10 md:h-12 w-auto object-contain" /></div>
              <p className="leading-relaxed font-light mb-4">Quỹ Căn Smart City – Chuyên trang tổng hợp nguồn hàng mua bán, chuyển nhượng, cho thuê căn hộ tại Vinhomes Smart City Tây Mỗ. Cập nhật quỹ căn mới mỗi ngày tại mọi phân khu.</p>
-             <p className="text-xs text-gray-400 font-medium">© 2026 Quỹ Căn Smart City.</p>
+             <p className="text-xs text-gray-400">© 2026 Quỹ Căn Smart City.</p>
            </div>
            <div className="md:pl-10 md:border-l border-gray-100">
              <h3 className="font-extrabold text-blue-900 mb-5 text-lg uppercase tracking-wider">Liên hệ tư vấn</h3>
              <div className="space-y-4 font-light text-[15px]">
+               {/* ĐÃ XÓA TÊN BÊN TRONG FOOTER */}
                <p className="flex items-center gap-3">📞 <a href={`tel:${CONTACT_PHONE}`} className="font-bold text-blue-600 hover:text-blue-800 transition text-lg">{CONTACT_PHONE.replace(/(\d{4})(\d{3})(\d{3})/, '$1 $2 $3')}</a> <span className="text-gray-400 text-xs ml-1">(SĐT / Zalo)</span></p>
                <p className="flex items-center gap-3">📍 Vinhomes Smart City, Tây Mỗ, Nam Từ Liêm, Hà Nội</p>
              </div>
