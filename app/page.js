@@ -138,7 +138,12 @@ const PropertyCard = ({ item, contactPhone }) => {
           </div>
           
           <object>
-            <a href={`https://zalo.me/${contactPhone}?text=${encodeURIComponent(`Xin chào, tôi muốn nhờ tư vấn căn hộ Mã ${item.maCan} (${item.listingType} ${item.loaiCan} tòa ${item.toaNha}) trên web.`)}`} target="_blank" rel="noreferrer" onClick={(e)=>e.stopPropagation()} className="w-full bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-700 hover:to-blue-900 text-white text-center py-3 rounded-xl font-bold transition shadow-md shadow-blue-600/20 flex justify-center items-center gap-2">
+            <a 
+              href={`https://zalo.me/${contactPhone}?text=${encodeURIComponent(`Xin chào, tôi muốn nhờ tư vấn căn hộ Mã ${item.maCan} (${item.listingType} ${item.loaiCan} tòa ${item.toaNha}) trên web.`)}`} 
+              target="_blank" rel="noreferrer" 
+              onClick={(e)=>{e.stopPropagation(); if(typeof window !== 'undefined' && window.gtag) window.gtag('event', 'click_zalo', {'event_category': 'lead', 'event_label': item.maCan});}} 
+              className="w-full bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-700 hover:to-blue-900 text-white text-center py-3 rounded-xl font-bold transition shadow-md shadow-blue-600/20 flex justify-center items-center gap-2"
+            >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
               Nhận tư vấn căn này
             </a>
@@ -153,7 +158,6 @@ export default function Home() {
   const [properties, setProperties] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isRestored, setIsRestored] = useState(false);
-  const [showTopBtn, setShowTopBtn] = useState(false);
   
   const [activeTab, setActiveTab] = useState('Cho thuê');
   const [sortBy, setSortBy] = useState('newest');
@@ -184,27 +188,24 @@ export default function Home() {
     sessionStorage.removeItem('savedCurrentPage');
     sessionStorage.removeItem('savedSortBy');
     setActiveTab('Cho thuê');
+    window.history.pushState(null, '', `?tab=cho-thue`);
     setFilters({ phanKhu: 'Tất cả phân khu', loaiCan: [], khoangTang: 'Tất cả tầng', huongBanCong: 'Tất cả hướng', noiThat: 'Tất cả nội thất', mucGia: 'Tất cả mức giá' });
     setCurrentPage(1);
     setSortBy('newest');
   };
 
   useEffect(() => {
-    const handleScroll = () => {
-      if (window.scrollY > 400) setShowTopBtn(true);
-      else setShowTopBtn(false);
-    };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
-  const scrollToTop = () => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  useEffect(() => {
-    const savedTab = sessionStorage.getItem('savedActiveTab');
-    if(savedTab) setActiveTab(savedTab);
+    // NHẬN DIỆN URL PARAM ĐỂ CHUYỂN TAB (Khách Mua / Khách Thuê)
+    const params = new URLSearchParams(window.location.search);
+    const tabParam = params.get('tab');
+    if (tabParam === 'cho-thue') {
+      setActiveTab('Cho thuê');
+    } else if (tabParam === 'ban' || tabParam === 'chuyen-nhuong') {
+      setActiveTab('Chuyển nhượng');
+    } else {
+      const savedTab = sessionStorage.getItem('savedActiveTab');
+      if(savedTab) setActiveTab(savedTab);
+    }
     
     const savedFilters = sessionStorage.getItem('savedFilters');
     if(savedFilters) setFilters(JSON.parse(savedFilters));
@@ -272,10 +273,14 @@ export default function Home() {
     setFilters(prev => ({ ...prev, loaiCan: prev.loaiCan.includes(type) ? prev.loaiCan.filter(t => t !== type) : [...prev.loaiCan, type] }));
     setCurrentPage(1);
   };
+  
   const handleTabChange = (tab) => {
     setActiveTab(tab);
     setFilters({...filters, loaiCan: [], mucGia: 'Tất cả mức giá'});
     setCurrentPage(1);
+    // Cập nhật URL khi người dùng bấm tab
+    const param = tab === 'Cho thuê' ? 'cho-thue' : 'ban';
+    window.history.pushState(null, '', `?tab=${param}`);
   };
 
   const checkPrice = (priceStr, rangeStr, type) => {
@@ -338,12 +343,13 @@ export default function Home() {
     if (!checkSpam('find')) return;
 
     setIsSendingFind(true);
+    if(typeof window !== 'undefined' && window.gtag) window.gtag('event', 'form_submit', {'event_category': 'lead', 'event_label': 'Nhờ Tìm Căn'});
     try { await addDoc(collection(db, 'nho_tim_can'), { ...findData, source: 'Nút Nhờ Tìm (Trang chủ)', createdAt: serverTimestamp(), status: 'Chưa xử lý' }); } catch(err) {}
 
     const BOT_TOKEN = process.env.NEXT_PUBLIC_TELEGRAM_BOT_TOKEN || "7295171731:AAEUgA3z1y3D6o_cK8t6W42aXfN-6I"; 
     const CHAT_ID = process.env.NEXT_PUBLIC_TELEGRAM_CHAT_ID || "6190858172";
     if (BOT_TOKEN && CHAT_ID) {
-      const message = `🚨 <b>KHÁCH TÌM CĂN MỚI! (Nút Nhờ Tìm)</b>\n\n👤 <b>Khách hàng:</b> ${sanitize(findData.ten) || 'Chưa nhập'}\n📌 <b>Nhu cầu:</b> ${sanitize(findData.nhuCau)}\n🛏 <b>Loại căn:</b> ${sanitize(findData.loaiCan)}\n💰 <b>Tài chính:</b> ${sanitize(findData.taiChinh)}\n🛋 <b>Nội thất:</b> ${sanitize(findData.noiThat)}\n📅 <b>Vào ở:</b> ${findData.nhuCau === 'Cho thuê' ? sanitize(findData.ngayVaoO) || 'Chưa rõ' : 'N/A'}\n📞 <b>SĐT Khách:</b> <code>${sanitize(findData.soDienThoai)}</code>\n📝 <b>Ghi chú:</b> ${sanitize(findData.ghiChu) || 'Không có'}`;
+      const message = `🚨 <b>KHÁCH TÌM CĂN MỚI! (Trang chủ)</b>\n\n👤 <b>Khách hàng:</b> ${sanitize(findData.ten) || 'Chưa nhập'}\n📌 <b>Nhu cầu:</b> ${sanitize(findData.nhuCau)}\n🛏 <b>Loại căn:</b> ${sanitize(findData.loaiCan)}\n💰 <b>Tài chính:</b> ${sanitize(findData.taiChinh)}\n🛋 <b>Nội thất:</b> ${sanitize(findData.noiThat)}\n📅 <b>Vào ở:</b> ${findData.nhuCau === 'Cho thuê' ? sanitize(findData.ngayVaoO) || 'Chưa rõ' : 'N/A'}\n📞 <b>SĐT Khách:</b> <code>${sanitize(findData.soDienThoai)}</code>\n📝 <b>Ghi chú:</b> ${sanitize(findData.ghiChu) || 'Không có'}`;
       try { 
         const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: CHAT_ID, text: message, parse_mode: 'HTML' }) }); 
         if (!res.ok) {
@@ -363,6 +369,7 @@ export default function Home() {
     if (!checkSpam('lead')) return;
 
     setIsSendingLead(true);
+    if(typeof window !== 'undefined' && window.gtag) window.gtag('event', 'form_submit', {'event_category': 'lead', 'event_label': 'Popup Tự Động'});
     try { await addDoc(collection(db, 'nho_tim_can'), { ...leadData, source: 'Popup Tự Động', createdAt: serverTimestamp(), status: 'Chưa xử lý' }); } catch(err) {}
 
     const BOT_TOKEN = process.env.NEXT_PUBLIC_TELEGRAM_BOT_TOKEN || "7295171731:AAEUgA3z1y3D6o_cK8t6W42aXfN-6I"; 
@@ -381,24 +388,17 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-800 flex flex-col relative pb-20 md:pb-0">
+    <div className="min-h-screen bg-gray-50 text-gray-800 flex flex-col relative pb-0">
       
-      {showTopBtn && (
-        <button onClick={scrollToTop} className="fixed bottom-24 right-4 md:bottom-8 md:right-8 bg-blue-600 text-white w-10 h-10 md:w-12 md:h-12 rounded-full shadow-lg flex items-center justify-center hover:bg-blue-700 transition z-50 animate-fade-in-up">
-          <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 15l7-7 7 7"></path></svg>
-        </button>
-      )}
-
       <header className="bg-white sticky top-0 z-50 px-4 md:px-8 py-3 flex justify-between items-center shadow-sm">
         <Link href="/" onClick={clearFilterCacheAndReset} className="flex items-center hover:opacity-80 transition">
           <img src="/logo.png" alt="Quỹ Căn Smart City" className="h-10 md:h-12 w-auto object-contain" />
         </Link>
         <div className="flex items-center gap-3 md:gap-4">
-           {/* ĐÃ FIX: Icon Ký gửi hiện trên mobile */}
+           {/* Nút Ký gửi hiện cả Mobile và Laptop với đầy đủ Icon và Text */}
            <Link href="/ky-gui" className="flex items-center gap-1.5 bg-blue-50 text-blue-800 px-4 py-2 rounded-full sm:rounded-md font-bold hover:bg-blue-100 transition text-sm border border-blue-100 shadow-sm sm:shadow-none">
              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 001 1m-6 0h6"></path></svg>
-             <span className="hidden sm:inline">Ký gửi căn hộ</span>
-             <span className="sm:hidden">Ký gửi</span>
+             <span className="inline">Ký gửi căn hộ</span>
            </Link>
            <a href={`https://zalo.me/${CONTACT_PHONE}`} target="_blank" rel="noreferrer" className="hidden sm:flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-800 text-white px-5 py-2 rounded-full font-bold hover:opacity-90 transition shadow-md text-sm">
              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M20 15.5c-1.2 0-2.4-.2-3.6-.6-.3-.1-.7 0-1 .2l-2.2 2.2c-2.8-1.4-5.1-3.8-6.6-6.6l2.2-2.2c.3-.3.4-.7.2-1-.4-1.2-.6-2.4-.6-3.6 0-.6-.4-1-1-1H4c-.6 0-1 .4-1 1 0 9.4 7.6 17 17 17 .6 0 1-.4 1-1v-3.5c0-.6-.4-1-1-1zM19 12h2a9 9 0 00-9-9v2c3.9 0 7.1 3.2 7.1 7.1zM15 12h2c0-2.8-2.2-5-5-5v2c1.7 0 3 1.3 3 3z"/></svg> <span>Liên hệ tư vấn</span>
@@ -524,12 +524,12 @@ export default function Home() {
              <div className="bg-white rounded-xl p-10 text-center border border-gray-100 shadow-sm flex-grow"><p className="text-gray-500 font-medium">Chưa có quỹ căn phù hợp với bộ lọc của bạn.</p></div>
           ) : (
             <>
-              {/* ĐÃ CHIA: Khối 6 căn đầu tiên */}
+              {/* KHỐI 6 CĂN ĐẦU TIÊN */}
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6 mb-8">
                 {currentProperties.slice(0, 6).map(item => <PropertyCard key={item.id} item={item} contactPhone={CONTACT_PHONE} />)}
               </div>
               
-              {/* CẮT NGANG: Khối Form nhờ tìm căn số 1 */}
+              {/* FORM NHỜ TÌM CĂN 1 */}
               {currentProperties.length > 0 && (
                 <div className="bg-white border border-gray-200 rounded-xl p-6 md:p-8 flex flex-col md:flex-row justify-between items-center gap-6 shadow-sm mb-10 w-full mt-4">
                   <div>
@@ -542,18 +542,18 @@ export default function Home() {
                 </div>
               )}
 
-              {/* ĐÃ CHIA: Khối 6 căn tiếp theo (nếu có) */}
+              {/* KHỐI 6 CĂN TIẾP THEO */}
               {currentProperties.length > 6 && (
                 <>
                   <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6 mb-8">
                     {currentProperties.slice(6, 12).map(item => <PropertyCard key={item.id} item={item} contactPhone={CONTACT_PHONE} />)}
                   </div>
                   
-                  {/* CẮT NGANG: Khối Form nhờ tìm căn số 2 */}
+                  {/* FORM NHỜ TÌM CĂN 2 */}
                   <div className="bg-white border border-gray-200 rounded-xl p-6 md:p-8 flex flex-col md:flex-row justify-between items-center gap-6 shadow-sm mb-10 w-full mt-4">
                     <div>
                         <h4 className="text-xl font-bold text-blue-900 mb-2">Chưa tìm thấy căn ưng ý?</h4>
-                        <p className="text-sm text-gray-600 font-medium">Hãy để lại nhu cầu, chuyên viên sẽ lọc thủ công 3-5 căn VIP gửi riêng cho bạn.</p>
+                        <p className="text-sm text-gray-600 font-medium">Gửi nhu cầu của bạn, chúng tôi sẽ chọn 3-5 căn phù hợp nhất để gửi lại bạn nhanh nhất.</p>
                     </div>
                     <button onClick={() => { setFindData({...findData, nhuCau: activeTab}); setIsFindModalOpen(true); }} className="bg-blue-800 hover:bg-blue-900 text-white px-8 py-3.5 rounded-xl font-bold whitespace-nowrap transition shadow-lg shadow-blue-900/20 flex items-center gap-2 w-full md:w-auto justify-center">
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg> Nhờ tìm căn phù hợp
@@ -561,7 +561,7 @@ export default function Home() {
                   </div>
                 </>
               )}
-
+              
               {totalPages > 1 && (
                 <div className="flex justify-center items-center gap-2 mt-4 mb-8">
                   <button onClick={() => { setCurrentPage(p => Math.max(1, p - 1)); window.scrollTo({top: 0, behavior: 'smooth'}); }} disabled={currentPage === 1} className="w-10 h-10 flex items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 hover:bg-gray-50 disabled:opacity-50 transition shadow-sm">‹</button>
@@ -593,10 +593,11 @@ export default function Home() {
         </div>
       </footer>
 
+      {/* POPUP THÔNG MINH - HIỆN SAU 1 PHÚT */}
       {isLeadPopupOpen && (
         <div className="fixed inset-0 bg-blue-900/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-y-auto max-h-[90vh] animate-fade-in-up">
-            <div className="bg-gradient-to-r from-blue-700 to-blue-900 px-6 py-4 flex justify-between items-center text-white sticky top-0 z-10">
+            <div className="bg-blue-900 px-6 py-4 flex justify-between items-center text-white sticky top-0 z-10">
                <h3 className="text-lg font-bold flex items-center gap-2">👋 Chào anh/chị!</h3>
                <button onClick={() => setIsLeadPopupOpen(false)} className="text-blue-200 hover:text-white transition"><svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
             </div>
@@ -652,7 +653,7 @@ export default function Home() {
                <button onClick={() => setIsFindModalOpen(false)} className="text-blue-200 hover:text-white transition"><svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
             </div>
             <div className="p-6">
-              <p className="text-sm text-gray-600 mb-6 italic font-medium">Anh/chị chỉ cần để lại nhu cầu, chúng em sẽ lọc ra 3-5 căn đẹp nhất, giá tốt nhất và gửi qua Zalo ngay sau 5 phút!</p>
+              <p className="text-sm text-gray-600 mb-6 italic font-medium">Gửi nhu cầu của bạn, chúng tôi sẽ chọn 3-5 căn phù hợp nhất để gửi lại bạn nhanh nhất.</p>
               <form onSubmit={handleFindSubmit} className="space-y-4 text-sm">
                  <div>
                    <label className="block font-bold text-gray-700 mb-1">Tên của anh/chị</label>
@@ -711,16 +712,13 @@ export default function Home() {
         </div>
       )}
 
-      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-3 flex gap-3 z-50 shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
-        <a href={`tel:${CONTACT_PHONE}`} className="flex-1 bg-blue-600 text-white flex justify-center items-center gap-2 py-3.5 rounded-xl font-bold text-sm shadow-md">
-           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg>
-           Gọi ngay
-        </a>
-        <a href={`https://zalo.me/${CONTACT_PHONE}?text=${encodeURIComponent(`Xin chào, tôi quan tâm các căn trên web.`)}`} target="_blank" rel="noreferrer" className="flex-1 bg-blue-50 border border-blue-200 text-blue-800 flex justify-center items-center gap-2 py-3.5 rounded-xl font-bold text-sm">
-           <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M20 15.5c-1.2 0-2.4-.2-3.6-.6-.3-.1-.7 0-1 .2l-2.2 2.2c-2.8-1.4-5.1-3.8-6.6-6.6l2.2-2.2c.3-.3.4-.7.2-1-.4-1.2-.6-2.4-.6-3.6 0-.6-.4-1-1-1H4c-.6 0-1 .4-1 1 0 9.4 7.6 17 17 17 .6 0 1-.4 1-1v-3.5c0-.6-.4-1-1-1zM19 12h2a9 9 0 00-9-9v2c3.9 0 7.1 3.2 7.1 7.1zM15 12h2c0-2.8-2.2-5-5-5v2c1.7 0 3 1.3 3 3z"/></svg>
-           Nhắn Zalo
-        </a>
-      </div>
+      {/* NÚT ZALO RUNG CỐ ĐỊNH Ở GÓC DƯỚI DÀNH CHO MOBILE */}
+      <a href={`https://zalo.me/${CONTACT_PHONE}?text=${encodeURIComponent(`Xin chào, tôi quan tâm các căn trên web.`)}`} target="_blank" rel="noreferrer" onClick={(e)=>{if(typeof window !== 'undefined' && window.gtag) window.gtag('event', 'click_zalo', {'event_category': 'lead', 'event_label': 'Floating_Mobile'});}} className="fixed bottom-6 right-6 z-[100] md:hidden flex items-center justify-center w-14 h-14 rounded-full">
+         <div className="absolute inset-0 bg-blue-500 rounded-full animate-ping opacity-75"></div>
+         <div className="relative bg-blue-600 rounded-full w-full h-full flex items-center justify-center border-2 border-white shadow-xl">
+            <span className="text-white font-black text-[12px] tracking-wide">ZALO</span>
+         </div>
+      </a>
 
       <style jsx global>{`
         .animate-fade-in-up { animation: fadeInUp 0.3s ease-out forwards; }

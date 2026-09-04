@@ -72,7 +72,7 @@ export default function PropertyDetail() {
   const [touchEnd, setTouchEnd] = useState(null);
   const minSwipeDistance = 50;
 
-  // State cho Lightbox vuốt (Trái/Phải để chuyển, Lên/Xuống để đóng)
+  // State cho Lightbox vuốt dọc/ngang
   const [lbTouchStartX, setLbTouchStartX] = useState(null);
   const [lbTouchStartY, setLbTouchStartY] = useState(null);
   const [lbTouchEndX, setLbTouchEndX] = useState(null);
@@ -122,6 +122,7 @@ export default function PropertyDetail() {
             setProperty(cachedProp);
             document.title = `[${cachedProp.listingType}] Căn ${cachedProp.loaiCan} - ${cachedProp.phanKhu} | Quỹ Căn Smart City`;
             
+            // Tối ưu SEO: Đẩy Thẻ Meta Open Graph động
             let ogTitle = document.querySelector('meta[property="og:title"]');
             if (!ogTitle) { ogTitle = document.createElement('meta'); ogTitle.setAttribute('property', 'og:title'); document.head.appendChild(ogTitle); }
             ogTitle.setAttribute('content', `[${cachedProp.listingType}] Căn ${cachedProp.loaiCan} - ${cachedProp.phanKhu}`);
@@ -307,6 +308,7 @@ export default function PropertyDetail() {
     if (!checkSpam('find')) return;
 
     setIsSendingFind(true);
+    if(typeof window !== 'undefined' && window.gtag) window.gtag('event', 'form_submit', {'event_category': 'lead', 'event_label': 'Nhờ Tìm Căn'});
     try { await addDoc(collection(db, 'nho_tim_can'), { ...findData, source: 'Trang Chi Tiết Căn', createdAt: serverTimestamp(), status: 'Chưa xử lý' }); } catch(err) {}
 
     const BOT_TOKEN = process.env.NEXT_PUBLIC_TELEGRAM_BOT_TOKEN || "7295171731:AAEUgA3z1y3D6o_cK8t6W42aXfN-6I"; 
@@ -345,7 +347,7 @@ export default function PropertyDetail() {
     }
   };
 
-  // Cải tiến: Vuốt ngang để đổi ảnh, Vuốt dọc để thoát Lightbox
+  // ĐÃ SỬA: Bổ sung vuốt trái/phải đổi ảnh trong Lightbox
   const onLbTouchStart = (e) => {
     setLbTouchStartX(e.targetTouches[0].clientX);
     setLbTouchStartY(e.targetTouches[0].clientY);
@@ -362,14 +364,12 @@ export default function PropertyDetail() {
     const distanceY = lbTouchStartY - lbTouchEndY;
     
     if (Math.abs(distanceX) > Math.abs(distanceY)) {
-       // Vuốt ngang
        if (distanceX > 50) {
           setLightboxImg(p => p < (property.images?.length || 1) - 1 ? p + 1 : 0);
        } else if (distanceX < -50) {
           setLightboxImg(p => p > 0 ? p - 1 : (property.images?.length || 1) - 1);
        }
     } else {
-       // Vuốt dọc
        if (distanceY > 80 || distanceY < -80) {
           setIsLightboxOpen(false);
        }
@@ -424,7 +424,7 @@ export default function PropertyDetail() {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-800 flex flex-col relative z-0 pb-20 md:pb-0 overflow-x-hidden">
+    <div className="min-h-screen bg-gray-50 text-gray-800 flex flex-col relative z-0 pb-0">
       
       {showTopBtn && (
         <button onClick={scrollToTop} className="fixed bottom-24 right-4 md:bottom-8 md:right-8 bg-blue-600 text-white w-10 h-10 md:w-12 md:h-12 rounded-full shadow-lg flex items-center justify-center hover:bg-blue-700 transition z-50 animate-fade-in-up">
@@ -562,11 +562,10 @@ export default function PropertyDetail() {
       <header className="bg-white sticky top-0 z-50 px-4 md:px-8 py-3 flex justify-between items-center shadow-sm">
         <Link href="/" onClick={clearFilterCacheAndReset} className="flex items-center hover:opacity-80 transition"><img src="/logo.png" alt="Quỹ Căn Smart City" className="h-10 md:h-12 w-auto object-contain" /></Link>
         <div className="flex items-center gap-3 md:gap-4">
-           {/* ĐÃ FIX: Icon Ký gửi hiện trên mobile */}
+           {/* Nút Ký gửi hiện cả Mobile và Laptop với đầy đủ Icon và Text */}
            <Link href="/ky-gui" className="flex items-center gap-1.5 bg-blue-50 text-blue-800 px-4 py-2 rounded-full sm:rounded-md font-bold hover:bg-blue-100 transition text-sm border border-blue-100 shadow-sm sm:shadow-none">
              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 001 1m-6 0h6"></path></svg>
-             <span className="hidden sm:inline">Ký gửi căn hộ</span>
-             <span className="sm:hidden">Ký gửi</span>
+             <span className="inline">Ký gửi căn hộ</span>
            </Link>
            <a href={`tel:${CONTACT_PHONE}`} className="hidden sm:flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-800 text-white px-5 py-2 rounded-full font-bold hover:opacity-90 transition shadow-md text-sm">
              <span>Liên hệ tư vấn</span>
@@ -582,7 +581,9 @@ export default function PropertyDetail() {
           onTouchEnd={onLbTouchEnd}
         >
            <button onClick={() => setIsLightboxOpen(false)} className="absolute top-6 right-6 text-white hover:text-gray-300 p-2 z-10"><svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
-           <button onClick={() => setLightboxImg(p => p > 0 ? p - 1 : (property.images?.length || 1) - 1)} className="absolute left-4 top-1/2 -translate-y-1/2 text-white p-4 hover:bg-white/10 rounded-full z-10"><svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg></button>
+           
+           {/* ĐÃ FIX: Icon mũi tên quay sang trái chuẩn xác */}
+           <button onClick={() => setLightboxImg(p => p > 0 ? p - 1 : (property.images?.length || 1) - 1)} className="absolute left-4 top-1/2 -translate-y-1/2 text-white p-4 hover:bg-white/10 rounded-full z-10"><svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path></svg></button>
            
            <img src={optimizeImg(property.images[lightboxImg])} alt="Full" className="max-w-full max-h-[90vh] object-contain transition-transform" />
            
@@ -788,7 +789,7 @@ export default function PropertyDetail() {
                <button onClick={() => setIsFindModalOpen(false)} className="text-blue-200 hover:text-white transition"><svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
             </div>
             <div className="p-6">
-              <p className="text-sm text-gray-600 mb-6 italic font-medium">Anh/chị chỉ cần để lại nhu cầu, chúng em sẽ lọc ra 3-5 căn đẹp nhất, giá tốt nhất và gửi qua Zalo ngay sau 5 phút!</p>
+              <p className="text-sm text-gray-600 mb-6 italic font-medium">Gửi nhu cầu của bạn, chúng tôi sẽ chọn 3-5 căn phù hợp nhất để gửi lại bạn nhanh nhất.</p>
               <form onSubmit={handleFindSubmit} className="space-y-4 text-sm">
                  <div>
                    <label className="block font-bold text-gray-700 mb-1">Tên của anh/chị</label>
@@ -847,16 +848,13 @@ export default function PropertyDetail() {
         </div>
       )}
 
-      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-3 flex gap-3 z-50 shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
-        <a href={`tel:${CONTACT_PHONE}`} className="flex-1 bg-blue-600 text-white flex justify-center items-center gap-2 py-3.5 rounded-xl font-bold text-sm shadow-md">
-           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg>
-           Gọi ngay
-        </a>
-        <a href={`https://zalo.me/${CONTACT_PHONE}?text=${encodeURIComponent(`Xin chào, tôi quan tâm căn Mã ${displayId} trên web.`)}`} target="_blank" rel="noreferrer" className="flex-1 bg-blue-50 border border-blue-200 text-blue-800 flex justify-center items-center gap-2 py-3.5 rounded-xl font-bold text-sm">
-           <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M20 15.5c-1.2 0-2.4-.2-3.6-.6-.3-.1-.7 0-1 .2l-2.2 2.2c-2.8-1.4-5.1-3.8-6.6-6.6l2.2-2.2c.3-.3.4-.7.2-1-.4-1.2-.6-2.4-.6-3.6 0-.6-.4-1-1-1H4c-.6 0-1 .4-1 1 0 9.4 7.6 17 17 17 .6 0 1-.4 1-1v-3.5c0-.6-.4-1-1-1zM19 12h2a9 9 0 00-9-9v2c3.9 0 7.1 3.2 7.1 7.1zM15 12h2c0-2.8-2.2-5-5-5v2c1.7 0 3 1.3 3 3z"/></svg>
-           Nhắn Zalo
-        </a>
-      </div>
+      {/* NÚT ZALO RUNG CỐ ĐỊNH Ở GÓC DƯỚI DÀNH CHO MOBILE */}
+      <a href={`https://zalo.me/${CONTACT_PHONE}?text=${encodeURIComponent(`Xin chào, tôi quan tâm căn Mã ${displayId} trên web.`)}`} target="_blank" rel="noreferrer" onClick={(e)=>{if(typeof window !== 'undefined' && window.gtag) window.gtag('event', 'click_zalo', {'event_category': 'lead', 'event_label': 'Floating_Mobile'});}} className="fixed bottom-6 right-6 z-[100] md:hidden flex items-center justify-center w-14 h-14 rounded-full">
+         <div className="absolute inset-0 bg-blue-500 rounded-full animate-ping opacity-75"></div>
+         <div className="relative bg-blue-600 rounded-full w-full h-full flex items-center justify-center border-2 border-white shadow-xl">
+            <span className="text-white font-black text-[12px] tracking-wide">ZALO</span>
+         </div>
+      </a>
 
       <style jsx global>{`
         .animate-fade-in-up { animation: fadeInUp 0.3s ease-out forwards; }

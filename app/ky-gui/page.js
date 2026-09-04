@@ -66,6 +66,7 @@ export default function KyGuiPage() {
     if (!checkSpam()) return;
 
     setIsSending(true);
+    if(typeof window !== 'undefined' && window.gtag) window.gtag('event', 'form_submit', {'event_category': 'lead', 'event_label': 'Ký Gửi'});
     try {
       await addDoc(collection(db, 'ky_gui'), { ...formData, createdAt: serverTimestamp(), status: 'Chưa xử lý' });
       await sendTelegramMessage(formData);
@@ -88,21 +89,10 @@ export default function KyGuiPage() {
         <Link href="/" className="flex items-center hover:opacity-80 transition">
           <img src="/logo.png" alt="Quỹ Căn Smart City" className="h-10 md:h-12 w-auto object-contain" />
         </Link>
-        <div className="flex items-center gap-3 md:gap-4">
-           {/* ĐÃ FIX: Hiện icon nút Ký gửi trên mobile */}
-           <Link href="/ky-gui" className="flex items-center gap-1.5 bg-blue-50 text-blue-800 px-4 py-2 rounded-full sm:rounded-md font-bold hover:bg-blue-100 transition text-sm border border-blue-100 shadow-sm sm:shadow-none">
-             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 001 1m-6 0h6"></path></svg>
-             <span className="hidden sm:inline">Ký gửi căn hộ</span>
-             <span className="sm:hidden">Ký gửi</span>
-           </Link>
-           <a href={`https://zalo.me/${CONTACT_PHONE}`} target="_blank" rel="noreferrer" className="hidden sm:flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-800 text-white px-5 py-2 rounded-full font-bold hover:opacity-90 transition shadow-md text-sm">
-             <span className="hidden sm:inline">Liên hệ tư vấn</span>
-           </a>
-        </div>
+        <Link href="/" className="text-blue-900 font-bold hover:text-blue-600 transition text-sm">Quay về trang chủ</Link>
       </header>
 
       <main className="max-w-[1200px] mx-auto px-4 md:px-8 py-12 flex flex-col lg:flex-row gap-12 w-full flex-grow">
-        {/* ĐÃ FIX: Hạn chế sticky bằng lg:sticky để không đè lên form khi dùng điện thoại */}
         <div className="w-full lg:w-5/12 lg:self-start lg:sticky lg:top-28">
           <span className="inline-block bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-bold mb-4 border border-green-200">
             ● Đang có khách hỏi mua/thuê mỗi ngày
@@ -213,13 +203,20 @@ export default function KyGuiPage() {
            <div className="md:pl-10 md:border-l border-gray-100">
              <h3 className="font-extrabold text-blue-900 mb-5 text-lg uppercase tracking-wider">Liên hệ tư vấn</h3>
              <div className="space-y-4 font-light text-[15px]">
-               {/* ĐÃ XÓA TÊN BÊN TRONG FOOTER */}
                <p className="flex items-center gap-3">📞 <a href={`tel:${CONTACT_PHONE}`} className="font-bold text-blue-600 hover:text-blue-800 transition text-lg">{CONTACT_PHONE.replace(/(\d{4})(\d{3})(\d{3})/, '$1 $2 $3')}</a> <span className="text-gray-400 text-xs ml-1">(SĐT / Zalo)</span></p>
                <p className="flex items-center gap-3">📍 Vinhomes Smart City, Tây Mỗ, Nam Từ Liêm, Hà Nội</p>
              </div>
            </div>
         </div>
       </footer>
+      
+      {/* NÚT ZALO RUNG CỐ ĐỊNH Ở GÓC DƯỚI DÀNH CHO MOBILE */}
+      <a href={`https://zalo.me/${CONTACT_PHONE}?text=${encodeURIComponent(`Xin chào, tôi muốn ký gửi căn hộ.`)}`} target="_blank" rel="noreferrer" onClick={(e)=>{if(typeof window !== 'undefined' && window.gtag) window.gtag('event', 'click_zalo', {'event_category': 'lead', 'event_label': 'Floating_Mobile_KyGui'});}} className="fixed bottom-6 right-6 z-[100] md:hidden flex items-center justify-center w-14 h-14 rounded-full">
+         <div className="absolute inset-0 bg-blue-500 rounded-full animate-ping opacity-75"></div>
+         <div className="relative bg-blue-600 rounded-full w-full h-full flex items-center justify-center border-2 border-white shadow-xl">
+            <span className="text-white font-black text-[12px] tracking-wide">ZALO</span>
+         </div>
+      </a>
     </div>
   );
 }
