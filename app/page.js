@@ -158,6 +158,7 @@ export default function Home() {
   const [properties, setProperties] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isRestored, setIsRestored] = useState(false);
+  const [showTopBtn, setShowTopBtn] = useState(false);
   
   const [activeTab, setActiveTab] = useState('Cho thuê');
   const [sortBy, setSortBy] = useState('newest');
@@ -195,7 +196,19 @@ export default function Home() {
   };
 
   useEffect(() => {
-    // NHẬN DIỆN URL PARAM ĐỂ CHUYỂN TAB (Khách Mua / Khách Thuê)
+    const handleScroll = () => {
+      if (window.scrollY > 400) setShowTopBtn(true);
+      else setShowTopBtn(false);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const tabParam = params.get('tab');
     if (tabParam === 'cho-thue') {
@@ -278,7 +291,6 @@ export default function Home() {
     setActiveTab(tab);
     setFilters({...filters, loaiCan: [], mucGia: 'Tất cả mức giá'});
     setCurrentPage(1);
-    // Cập nhật URL khi người dùng bấm tab
     const param = tab === 'Cho thuê' ? 'cho-thue' : 'ban';
     window.history.pushState(null, '', `?tab=${param}`);
   };
@@ -336,6 +348,7 @@ export default function Home() {
     return true;
   };
 
+  // ĐÃ SỬA API TELEGRAM XUYÊN SUỐT
   const handleFindSubmit = async (e) => {
     e.preventDefault();
     const phoneRegex = /^0\d{9}$/;
@@ -346,17 +359,12 @@ export default function Home() {
     if(typeof window !== 'undefined' && window.gtag) window.gtag('event', 'form_submit', {'event_category': 'lead', 'event_label': 'Nhờ Tìm Căn'});
     try { await addDoc(collection(db, 'nho_tim_can'), { ...findData, source: 'Nút Nhờ Tìm (Trang chủ)', createdAt: serverTimestamp(), status: 'Chưa xử lý' }); } catch(err) {}
 
-    const BOT_TOKEN = process.env.NEXT_PUBLIC_TELEGRAM_BOT_TOKEN || "7295171731:AAEUgA3z1y3D6o_cK8t6W42aXfN-6I"; 
-    const CHAT_ID = process.env.NEXT_PUBLIC_TELEGRAM_CHAT_ID || "6190858172";
-    if (BOT_TOKEN && CHAT_ID) {
-      const message = `🚨 <b>KHÁCH TÌM CĂN MỚI! (Trang chủ)</b>\n\n👤 <b>Khách hàng:</b> ${sanitize(findData.ten) || 'Chưa nhập'}\n📌 <b>Nhu cầu:</b> ${sanitize(findData.nhuCau)}\n🛏 <b>Loại căn:</b> ${sanitize(findData.loaiCan)}\n💰 <b>Tài chính:</b> ${sanitize(findData.taiChinh)}\n🛋 <b>Nội thất:</b> ${sanitize(findData.noiThat)}\n📅 <b>Vào ở:</b> ${findData.nhuCau === 'Cho thuê' ? sanitize(findData.ngayVaoO) || 'Chưa rõ' : 'N/A'}\n📞 <b>SĐT Khách:</b> <code>${sanitize(findData.soDienThoai)}</code>\n📝 <b>Ghi chú:</b> ${sanitize(findData.ghiChu) || 'Không có'}`;
-      try { 
-        const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: CHAT_ID, text: message, parse_mode: 'HTML' }) }); 
-        if (!res.ok) {
-          await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: CHAT_ID, text: message.replace(/<[^>]*>?/gm, '') }) });
-        }
-      } catch (error) { console.error("Lỗi gửi Telegram", error); }
-    }
+    const message = `🚨 <b>KHÁCH TÌM CĂN MỚI! (Trang chủ)</b>\n\n👤 <b>Khách hàng:</b> ${sanitize(findData.ten) || 'Chưa nhập'}\n📌 <b>Nhu cầu:</b> ${sanitize(findData.nhuCau)}\n🛏 <b>Loại căn:</b> ${sanitize(findData.loaiCan)}\n💰 <b>Tài chính:</b> ${sanitize(findData.taiChinh)}\n🛋 <b>Nội thất:</b> ${sanitize(findData.noiThat)}\n📅 <b>Vào ở:</b> ${findData.nhuCau === 'Cho thuê' ? sanitize(findData.ngayVaoO) || 'Chưa rõ' : 'N/A'}\n📞 <b>SĐT Khách:</b> <code>${sanitize(findData.soDienThoai)}</code>\n📝 <b>Ghi chú:</b> ${sanitize(findData.ghiChu) || 'Không có'}`;
+    
+    try { 
+      await fetch('/api/telegram', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: message, parse_mode: 'HTML' }) }); 
+    } catch (error) { console.error("Lỗi gửi Telegram", error); }
+    
     setIsSendingFind(false); setIsFindModalOpen(false);
     setFindData({ nhuCau: 'Cho thuê', loaiCan: 'Studio', taiChinh: '', noiThat: 'Đầy đủ nội thất', ngayVaoO: '', soDienThoai: '', ghiChu: '', ten: '' });
     alert("Đã gửi yêu cầu thành công, chúng tôi sẽ sớm liên hệ lại với bạn!");
@@ -372,17 +380,12 @@ export default function Home() {
     if(typeof window !== 'undefined' && window.gtag) window.gtag('event', 'form_submit', {'event_category': 'lead', 'event_label': 'Popup Tự Động'});
     try { await addDoc(collection(db, 'nho_tim_can'), { ...leadData, source: 'Popup Tự Động', createdAt: serverTimestamp(), status: 'Chưa xử lý' }); } catch(err) {}
 
-    const BOT_TOKEN = process.env.NEXT_PUBLIC_TELEGRAM_BOT_TOKEN || "7295171731:AAEUgA3z1y3D6o_cK8t6W42aXfN-6I"; 
-    const CHAT_ID = process.env.NEXT_PUBLIC_TELEGRAM_CHAT_ID || "6190858172";
-    if (BOT_TOKEN && CHAT_ID) {
-      const message = `🚨 <b>KHÁCH TỪ POPUP TỰ ĐỘNG</b>\n\n👤 <b>Tên khách:</b> ${sanitize(leadData.ten)}\n📞 <b>Số điện thoại:</b> <code>${sanitize(leadData.soDienThoai)}</code>\n📌 <b>Nhu cầu:</b> Tìm ${sanitize(leadData.nhuCau)}\n🛏 <b>Loại căn:</b> ${sanitize(leadData.loaiCan)}\n💰 <b>Tài chính:</b> ${sanitize(leadData.taiChinh) || 'Không ghi'}\n📝 <b>Mong muốn:</b> ${sanitize(leadData.mongMuon) || 'Không có'}`;
-      try { 
-        const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: CHAT_ID, text: message, parse_mode: 'HTML' }) }); 
-        if (!res.ok) {
-          await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: CHAT_ID, text: message.replace(/<[^>]*>?/gm, '') }) });
-        }
-      } catch (error) { console.error("Lỗi gửi Telegram", error); }
-    }
+    const message = `🚨 <b>KHÁCH TỪ POPUP TỰ ĐỘNG</b>\n\n👤 <b>Tên khách:</b> ${sanitize(leadData.ten)}\n📞 <b>Số điện thoại:</b> <code>${sanitize(leadData.soDienThoai)}</code>\n📌 <b>Nhu cầu:</b> Tìm ${sanitize(leadData.nhuCau)}\n🛏 <b>Loại căn:</b> ${sanitize(leadData.loaiCan)}\n💰 <b>Tài chính:</b> ${sanitize(leadData.taiChinh) || 'Không ghi'}\n📝 <b>Mong muốn:</b> ${sanitize(leadData.mongMuon) || 'Không có'}`;
+    
+    try { 
+      await fetch('/api/telegram', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: message, parse_mode: 'HTML' }) }); 
+    } catch (error) { console.error("Lỗi gửi Telegram", error); }
+    
     setIsSendingLead(false); setIsLeadPopupOpen(false);
     alert("Đã gửi yêu cầu thành công, chúng tôi sẽ sớm liên hệ lại với bạn!");
   };
@@ -390,12 +393,17 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gray-50 text-gray-800 flex flex-col relative pb-0">
       
+      {showTopBtn && (
+        <button onClick={scrollToTop} className="fixed bottom-24 right-4 md:bottom-8 md:right-8 bg-blue-600 text-white w-10 h-10 md:w-12 md:h-12 rounded-full shadow-lg flex items-center justify-center hover:bg-blue-700 transition z-50 animate-fade-in-up">
+          <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 15l7-7 7 7"></path></svg>
+        </button>
+      )}
+
       <header className="bg-white sticky top-0 z-50 px-4 md:px-8 py-3 flex justify-between items-center shadow-sm">
         <Link href="/" onClick={clearFilterCacheAndReset} className="flex items-center hover:opacity-80 transition">
           <img src="/logo.png" alt="Quỹ Căn Smart City" className="h-10 md:h-12 w-auto object-contain" />
         </Link>
         <div className="flex items-center gap-3 md:gap-4">
-           {/* Nút Ký gửi hiện cả Mobile và Laptop với đầy đủ Icon và Text */}
            <Link href="/ky-gui" className="flex items-center gap-1.5 bg-blue-50 text-blue-800 px-4 py-2 rounded-full sm:rounded-md font-bold hover:bg-blue-100 transition text-sm border border-blue-100 shadow-sm sm:shadow-none">
              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 001 1m-6 0h6"></path></svg>
              <span className="inline">Ký gửi căn hộ</span>
@@ -524,12 +532,10 @@ export default function Home() {
              <div className="bg-white rounded-xl p-10 text-center border border-gray-100 shadow-sm flex-grow"><p className="text-gray-500 font-medium">Chưa có quỹ căn phù hợp với bộ lọc của bạn.</p></div>
           ) : (
             <>
-              {/* KHỐI 6 CĂN ĐẦU TIÊN */}
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6 mb-8">
                 {currentProperties.slice(0, 6).map(item => <PropertyCard key={item.id} item={item} contactPhone={CONTACT_PHONE} />)}
               </div>
               
-              {/* FORM NHỜ TÌM CĂN 1 */}
               {currentProperties.length > 0 && (
                 <div className="bg-white border border-gray-200 rounded-xl p-6 md:p-8 flex flex-col md:flex-row justify-between items-center gap-6 shadow-sm mb-10 w-full mt-4">
                   <div>
@@ -542,14 +548,12 @@ export default function Home() {
                 </div>
               )}
 
-              {/* KHỐI 6 CĂN TIẾP THEO */}
               {currentProperties.length > 6 && (
                 <>
                   <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6 mb-8">
                     {currentProperties.slice(6, 12).map(item => <PropertyCard key={item.id} item={item} contactPhone={CONTACT_PHONE} />)}
                   </div>
                   
-                  {/* FORM NHỜ TÌM CĂN 2 */}
                   <div className="bg-white border border-gray-200 rounded-xl p-6 md:p-8 flex flex-col md:flex-row justify-between items-center gap-6 shadow-sm mb-10 w-full mt-4">
                     <div>
                         <h4 className="text-xl font-bold text-blue-900 mb-2">Chưa tìm thấy căn ưng ý?</h4>
@@ -593,7 +597,6 @@ export default function Home() {
         </div>
       </footer>
 
-      {/* POPUP THÔNG MINH - HIỆN SAU 1 PHÚT */}
       {isLeadPopupOpen && (
         <div className="fixed inset-0 bg-blue-900/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-y-auto max-h-[90vh] animate-fade-in-up">
@@ -701,7 +704,7 @@ export default function Home() {
                  </div>
                  <div>
                    <label className="block font-bold text-gray-700 mb-1">Yêu cầu thêm</label>
-                   <textarea rows="2" placeholder="VD: Cần tầng trung, ưu tiên view công viên..." value={findData.ghiChu} onChange={(e)=>setFindData({...findData, ghiChu: e.target.value})} className="w-full p-3 border border-gray-300 rounded-lg outline-none focus:border-blue-600 bg-gray-50 font-medium"></textarea>
+                   <textarea rows="2" placeholder={`VD: Cần tìm căn bên khu ${exactName} giá tốt nhất...`} value={findData.ghiChu} onChange={(e)=>setFindData({...findData, ghiChu: e.target.value})} className="w-full p-3 border border-gray-300 rounded-lg outline-none focus:border-blue-600 bg-gray-50 font-medium"></textarea>
                  </div>
                  <button type="submit" disabled={isSendingFind} className="w-full bg-blue-700 hover:bg-blue-800 text-white p-3.5 rounded-lg font-bold text-base transition shadow-md disabled:bg-gray-400 flex items-center justify-center gap-2 mt-2">
                    {isSendingFind ? 'Đang gửi...' : <><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg> Gửi yêu cầu & Nhận báo giá</>}
@@ -712,7 +715,6 @@ export default function Home() {
         </div>
       )}
 
-      {/* NÚT ZALO RUNG CỐ ĐỊNH Ở GÓC DƯỚI DÀNH CHO MOBILE */}
       <a href={`https://zalo.me/${CONTACT_PHONE}?text=${encodeURIComponent(`Xin chào, tôi quan tâm các căn trên web.`)}`} target="_blank" rel="noreferrer" onClick={(e)=>{if(typeof window !== 'undefined' && window.gtag) window.gtag('event', 'click_zalo', {'event_category': 'lead', 'event_label': 'Floating_Mobile'});}} className="fixed bottom-6 right-6 z-[100] md:hidden flex items-center justify-center w-14 h-14 rounded-full">
          <div className="absolute inset-0 bg-blue-500 rounded-full animate-ping opacity-75"></div>
          <div className="relative bg-blue-600 rounded-full w-full h-full flex items-center justify-center border-2 border-white shadow-xl">

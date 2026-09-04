@@ -42,20 +42,6 @@ export default function KyGuiPage() {
     return true;
   };
 
-  const sendTelegramMessage = async (data) => {
-    const BOT_TOKEN = process.env.NEXT_PUBLIC_TELEGRAM_BOT_TOKEN || "7295171731:AAEUgA3z1y3D6o_cK8t6W42aXfN-6I"; 
-    const CHAT_ID = process.env.NEXT_PUBLIC_TELEGRAM_CHAT_ID || "6190858172";
-    if (!BOT_TOKEN || !CHAT_ID) return;
-
-    const message = `🚨 <b>TỪ TRANG KÝ GỬI</b>\n\n👤 <b>Nhu cầu:</b> ${data.nhuCau}\n🏢 <b>Tòa/Căn:</b> ${data.toaNha} - Căn ${data.soCan}\n🛏 <b>Loại căn:</b> ${data.loaiCan} (${data.dienTich}m2)\n🛋 <b>Nội thất:</b> ${data.noiThat}\n💰 <b>Giá:</b> ${data.gia}\n📞 <b>SĐT Khách:</b> <code>${data.soDienThoai}</code>\n${data.ghiChu ? `📝 <b>Ghi chú:</b> ${data.ghiChu}` : ''}`;
-    try { 
-      const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: CHAT_ID, text: message, parse_mode: 'HTML' }) }); 
-      if (!res.ok) {
-        await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: CHAT_ID, text: message.replace(/<[^>]*>?/gm, '') }) });
-      }
-    } catch (err) { console.error("Lỗi gửi Telegram:", err); }
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     const phoneRegex = /^0\d{9}$/;
@@ -67,9 +53,16 @@ export default function KyGuiPage() {
 
     setIsSending(true);
     if(typeof window !== 'undefined' && window.gtag) window.gtag('event', 'form_submit', {'event_category': 'lead', 'event_label': 'Ký Gửi'});
+    
     try {
       await addDoc(collection(db, 'ky_gui'), { ...formData, createdAt: serverTimestamp(), status: 'Chưa xử lý' });
-      await sendTelegramMessage(formData);
+      
+      const message = `🚨 <b>TỪ TRANG KÝ GỬI</b>\n\n👤 <b>Nhu cầu:</b> ${formData.nhuCau}\n🏢 <b>Tòa/Căn:</b> ${formData.toaNha} - Căn ${formData.soCan}\n🛏 <b>Loại căn:</b> ${formData.loaiCan} (${formData.dienTich}m2)\n🛋 <b>Nội thất:</b> ${formData.noiThat}\n💰 <b>Giá:</b> ${formData.gia}\n📞 <b>SĐT Khách:</b> <code>${formData.soDienThoai}</code>\n${formData.ghiChu ? `📝 <b>Ghi chú:</b> ${formData.ghiChu}` : ''}`;
+      
+      try { 
+        await fetch('/api/telegram', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: message, parse_mode: 'HTML' }) }); 
+      } catch (err) { console.error("Lỗi gửi Telegram:", err); }
+      
       setIsSubmitted(true);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (error) { alert("Có lỗi xảy ra, vui lòng thử lại sau!"); }
@@ -93,6 +86,7 @@ export default function KyGuiPage() {
       </header>
 
       <main className="max-w-[1200px] mx-auto px-4 md:px-8 py-12 flex flex-col lg:flex-row gap-12 w-full flex-grow">
+        {/* ĐÃ FIX: Khối text này chỉ dính (sticky) trên bản PC bằng lg:sticky */}
         <div className="w-full lg:w-5/12 lg:self-start lg:sticky lg:top-28">
           <span className="inline-block bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-bold mb-4 border border-green-200">
             ● Đang có khách hỏi mua/thuê mỗi ngày
@@ -210,7 +204,7 @@ export default function KyGuiPage() {
         </div>
       </footer>
       
-      {/* NÚT ZALO RUNG CỐ ĐỊNH Ở GÓC DƯỚI DÀNH CHO MOBILE */}
+      {/* ĐÃ FIX: Nút Zalo rung trên điện thoại thay cho bottom bar */}
       <a href={`https://zalo.me/${CONTACT_PHONE}?text=${encodeURIComponent(`Xin chào, tôi muốn ký gửi căn hộ.`)}`} target="_blank" rel="noreferrer" onClick={(e)=>{if(typeof window !== 'undefined' && window.gtag) window.gtag('event', 'click_zalo', {'event_category': 'lead', 'event_label': 'Floating_Mobile_KyGui'});}} className="fixed bottom-6 right-6 z-[100] md:hidden flex items-center justify-center w-14 h-14 rounded-full">
          <div className="absolute inset-0 bg-blue-500 rounded-full animate-ping opacity-75"></div>
          <div className="relative bg-blue-600 rounded-full w-full h-full flex items-center justify-center border-2 border-white shadow-xl">
