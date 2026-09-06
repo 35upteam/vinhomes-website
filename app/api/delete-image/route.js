@@ -4,38 +4,34 @@ import crypto from 'crypto';
 export async function POST(req) {
   try {
     const { publicIds } = await req.json();
-    if (!publicIds || !publicIds.length) {
-      return NextResponse.json({ message: 'No public IDs provided' }, { status: 400 });
+    if (!publicIds || publicIds.length === 0) {
+      return NextResponse.json({ success: true });
     }
 
-    const cloudName = "ibzfmsqp"; // Tên Cloudinary của bạn
-    const apiKey = process.env.CLOUDINARY_API_KEY;
-    const apiSecret = process.env.CLOUDINARY_API_SECRET;
+    const CLOUD_NAME = 'ibzfmsqp'; 
+    const API_KEY = '924234223248534'; 
+    const API_SECRET = 'egdkm0AY0J6vGXe8h0KIsGv8e8g';
 
-    if (!apiKey || !apiSecret) {
-      return NextResponse.json({ message: 'Cloudinary credentials missing' }, { status: 500 });
-    }
+    const timestamp = Math.floor(Date.now() / 1000);
 
-    const timestamp = Math.round(new Date().getTime() / 1000);
+    for (const publicId of publicIds) {
+      const signatureString = `public_id=${publicId}&timestamp=${timestamp}${API_SECRET}`;
+      const signature = crypto.createHash('sha1').update(signatureString).digest('hex');
 
-    // Xóa đồng loạt tất cả các ảnh của căn hộ
-    const deletePromises = publicIds.map(async (publicId) => {
-      const signature = crypto.createHash('sha1').update(`public_id=${publicId}&timestamp=${timestamp}${apiSecret}`).digest('hex');
-      
-      const formData = new FormData();
+      const formData = new URLSearchParams();
       formData.append('public_id', publicId);
-      formData.append('api_key', apiKey);
       formData.append('timestamp', timestamp);
+      formData.append('api_key', API_KEY);
       formData.append('signature', signature);
 
-      const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/destroy`, {
+      await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/destroy`, {
         method: 'POST',
-        body: formData
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: formData.toString()
       });
-      return res.json();
-    });
-
-    await Promise.all(deletePromises);
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {

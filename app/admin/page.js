@@ -5,6 +5,35 @@ import { signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth';
 import { collection, addDoc, getDocs, doc, getDoc, setDoc, deleteDoc, updateDoc, serverTimestamp, query, orderBy, where } from 'firebase/firestore';
 import Link from 'next/link';
 
+// Hàm nén ảnh ngay trên trình duyệt trước khi up (Giảm 90% dung lượng, giữ nguyên độ nét)
+const compressImage = async (file) => {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target.result;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX_WIDTH = 1200; // Giới hạn chiều rộng
+        const scaleSize = MAX_WIDTH / img.width;
+        canvas.width = MAX_WIDTH;
+        canvas.height = img.height * scaleSize;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        
+        canvas.toBlob((blob) => {
+          const compressedFile = new File([blob], file.name, {
+            type: 'image/jpeg',
+            lastModified: Date.now(),
+          });
+          resolve(compressedFile);
+        }, 'image/jpeg', 0.7); // 0.7 là chất lượng nén cân bằng nhất
+      };
+    };
+  });
+};
+
 export default function AdminPage() {
   const [user, setUser] = useState(null);
   const [isAuthorized, setIsAuthorized] = useState(false);
@@ -29,11 +58,14 @@ export default function AdminPage() {
 
   const [isPhanKhuModalOpen, setIsPhanKhuModalOpen] = useState(false);
   const phanKhuList = ['Sapphire', 'Miami', 'Sakura', 'Victoria', 'Imperia', 'Sola Park', 'Tonkin', 'Canopy', 'Masteri West Height', 'Lumiere Evergreen'];
+  const loaiCanList = ['Studio', '1N', '1N+', '2N1WC', '2N2WC', '2N+', '3N', '4N'];
+  
   const [phanKhuData, setPhanKhuData] = useState({});
   const [selectedPK, setSelectedPK] = useState('Sapphire');
   const [tempPKData, setTempPKData] = useState({ phi: '', tongQuan: '', uuDiem: '', tienIch: '', images: [], localImages: [] });
   const [isSavingPK, setIsSavingPK] = useState(false);
 
+  // ĐÃ SỬA: Đưa các giá trị Select về rỗng ('') để ép admin phải tự chọn
   const initialForm = { listingType: 'Cho thuê', phanKhu: '', loaiCan: '', toaNha: '', khoangTang: '', huongBanCong: '', noiThat: '', area: '', price: '', ngayNhanNha: '', vaoLuon: false, phapLy: 'Sổ đỏ', moTa: '', nhanDan: 'Không có' };
   const [formData, setFormData] = useState(initialForm);
   const [images, setImages] = useState([]);
@@ -42,7 +74,10 @@ export default function AdminPage() {
   const [duplicateWarning, setDuplicateWarning] = useState(null);
   const [skipDupCheck, setSkipDupCheck] = useState(false);
 
+  // Thêm tab thống kê
   const [adminTab, setAdminTab] = useState('quy-can');
+  const [matrixTab, setMatrixTab] = useState('Cho thuê');
+  
   const [properties, setProperties] = useState([]);
   const [kyGuiList, setKyGuiList] = useState([]);
   const [nhoTimList, setNhoTimList] = useState([]);
@@ -150,11 +185,18 @@ export default function AdminPage() {
       let finalImages = [...(tempPKData.images || [])];
       if (tempPKData.localImages && tempPKData.localImages.length > 0) {
         const CLOUD_NAME = "ibzfmsqp"; const UPLOAD_PRESET = "upload preset";
-        for (const item of tempPKData.localImages) {
-          const data = new FormData(); data.append('file', item.file); data.append('upload_preset', UPLOAD_PRESET);
+        
+        // Nén ảnh và tải lên song song cho nhanh
+        const pkUploadPromises = tempPKData.localImages.map(async (item) => {
+          const compressed = await compressImage(item.file);
+          const data = new FormData(); data.append('file', compressed); data.append('upload_preset', UPLOAD_PRESET);
           const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, { method: 'POST', body: data });
-          const uploaded = await res.json(); finalImages.push(uploaded.secure_url);
-        }
+          const uploaded = await res.json();
+          return uploaded.secure_url;
+        });
+        
+        const urls = await Promise.all(pkUploadPromises);
+        finalImages = [...finalImages, ...urls];
       }
       
       const updatedItem = { ...tempPKData, images: finalImages };
@@ -199,18 +241,24 @@ export default function AdminPage() {
     if (window.confirm(`Cảnh báo: Bạn có chắc chắn muốn xóa căn hộ Mã ${item.maCan} khỏi hệ thống? (Hình ảnh cũng sẽ bị xóa vĩnh viễn)`)) {
       try {
         if (item.images && item.images.length > 0) {
+          // Lấy public_id của ảnh trên Cloudinary
           const publicIds = item.images.map(url => {
              const match = url.match(/\/upload\/(?:v\d+\/)?([^.]+)/);
              return match ? match[1] : null;
           }).filter(Boolean);
 
+          // GỌI ĐÚNG API ĐỂ XÓA ẢNH
           if (publicIds.length > 0) {
-            await fetch('/api/delete-image', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ publicIds }) });
+            await fetch('/api/delete-image', { 
+              method: 'POST', 
+              headers: { 'Content-Type': 'application/json' }, 
+              body: JSON.stringify({ publicIds }) 
+            });
           }
         }
         await deleteDoc(doc(db, 'properties', item.id)); 
         sessionStorage.removeItem('cachedProperties'); 
-        alert('Đã xóa thành công dữ liệu và dọn sạch hình ảnh!'); 
+        alert('Đã xóa thành công dữ liệu và dọn sạch hình ảnh trên Cloudinary!'); 
         fetchProperties();
       } catch (error) { alert('Có lỗi xảy ra khi xóa!'); console.error(error); }
     }
@@ -221,6 +269,18 @@ export default function AdminPage() {
     if(item.images) setImages(item.images.map(url => ({ file: null, url })));
     else setImages([]);
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // TÍNH NĂNG MỚI: Nút Đẩy Tin
+  const handleBump = async (id) => {
+    try {
+      await updateDoc(doc(db, 'properties', id), { createdAt: serverTimestamp() });
+      sessionStorage.removeItem('cachedProperties');
+      alert('Đã làm mới ngày đăng! Căn hộ này đã lên đầu danh sách.');
+      fetchProperties();
+    } catch (e) {
+      alert('Đã xảy ra lỗi khi đẩy tin!');
+    }
   };
 
   const toggleKyGuiStatus = async (id, currentStatus) => {
@@ -242,18 +302,23 @@ export default function AdminPage() {
   const executeSave = async () => {
     setIsUploading(true);
     try {
-      let imageUrls = []; 
       const CLOUD_NAME = "ibzfmsqp"; const UPLOAD_PRESET = "upload preset";
       
-      for (const img of images) {
-        if (img.file) { 
-          const data = new FormData(); data.append('file', img.file); data.append('upload_preset', UPLOAD_PRESET);
+      // TỐI ƯU TỐC ĐỘ: Nén ảnh và Tải lên song song tất cả các ảnh cùng lúc
+      const uploadPromises = images.map(async (img) => {
+        if (img.file) {
+          const compressed = await compressImage(img.file); // Nén siêu nhỏ
+          const data = new FormData(); 
+          data.append('file', compressed); 
+          data.append('upload_preset', UPLOAD_PRESET);
           const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, { method: 'POST', body: data });
-          const uploadedImage = await res.json(); imageUrls.push(uploadedImage.secure_url);
-        } else {
-          imageUrls.push(img.url);
+          const uploadedImage = await res.json(); 
+          return uploadedImage.secure_url;
         }
-      }
+        return img.url;
+      });
+
+      const imageUrls = await Promise.all(uploadPromises); // Đợi tải xong tất cả 1 lúc
 
       const finalArea = formData.area ? Number(formData.area) : 0; 
       const finalMaCan = editingId ? formData.maCan : generateMaCan(formData.listingType);
@@ -267,23 +332,24 @@ export default function AdminPage() {
 
       sessionStorage.removeItem('cachedProperties'); 
       setFormData(initialForm); setEditingId(null); setImages([]); setSkipDupCheck(false); setDuplicateWarning(null); fetchProperties();
-    } catch (error) { alert('Có lỗi xảy ra, vui lòng thử lại!'); }
+    } catch (error) { alert('Có lỗi xảy ra, vui lòng thử lại!'); console.error(error); }
     setIsUploading(false);
   };
 
   const handleSubmit = async (e) => {
     if(e) e.preventDefault();
     
-    // Kiểm tra trường bắt buộc
+    // Kiểm tra trường bắt buộc chặt chẽ
     if (!formData.phanKhu || !formData.toaNha || !formData.loaiCan || !formData.noiThat || !formData.price) {
-      return alert('Vui lòng điền đầy đủ các thông tin bắt buộc: Phân khu, Tòa nhà, Loại căn, Nội thất và Giá!');
+      return alert('Vui lòng chọn đầy đủ các thông tin: Phân khu, Tòa nhà, Loại căn, Nội thất và Giá!');
     }
     
-    if (images.length === 0 && !editingId) return alert('Vui lòng chọn ít nhất 1 ảnh!');
+    if (images.length === 0 && !editingId) return alert('Vui lòng tải lên ít nhất 1 ảnh căn hộ!');
     
-    // Thuật toán kiểm tra trùng mới: So sánh Phân khu, Tòa, Loại căn, Nội thất. Sau đó lọc độ chênh Giá.
+    // THUẬT TOÁN LỌC TRÙNG THÔNG MINH
     if (!editingId && !skipDupCheck) {
       setIsUploading(true);
+      
       const dupQuery = query(collection(db, 'properties'),
         where('listingType', '==', formData.listingType),
         where('phanKhu', '==', formData.phanKhu),
@@ -295,7 +361,7 @@ export default function AdminPage() {
 
       let foundDup = null;
       const newPrice = Number(formData.price);
-      // Chênh lệch: Thuê (Triệu) <= 1.5 | Bán (Tỷ) <= 0.25 (tức 250 triệu)
+      // Chênh lệch giá: Cho thuê <= 1.5 triệu | Bán <= 0.25 tỷ (250 triệu)
       const threshold = formData.listingType === 'Cho thuê' ? 1.5 : 0.25;
 
       dupSnap.forEach(doc => {
@@ -314,6 +380,30 @@ export default function AdminPage() {
     
     executeSave();
   };
+
+  // TÍNH TOÁN MA TRẬN GIÁ
+  const computePriceMatrix = () => {
+    const listToFilter = properties.filter(p => p.listingType === matrixTab);
+    const result = {};
+    phanKhuList.forEach(pk => {
+      result[pk] = {};
+      loaiCanList.forEach(lc => {
+        const matches = listToFilter.filter(p => p.phanKhu === pk && p.loaiCan === lc);
+        if (matches.length > 0) {
+          const prices = matches.map(m => Number(m.price)).filter(p => !isNaN(p));
+          if (prices.length > 0) {
+            const min = Math.min(...prices);
+            const max = Math.max(...prices);
+            result[pk][lc] = min === max ? `${min}` : `${min} - ${max}`;
+          } else { result[pk][lc] = '-'; }
+        } else {
+          result[pk][lc] = '-';
+        }
+      });
+    });
+    return result;
+  };
+  const priceMatrix = computePriceMatrix();
 
   if (isCheckingAuth) return <div className="min-h-screen bg-gray-900 flex items-center justify-center"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-white"></div></div>;
 
@@ -463,7 +553,7 @@ export default function AdminPage() {
                   <div className="flex items-center gap-3 mt-1">
                     <div className="flex-1">
                        <input type="date" name="ngayNhanNha" value={formData.ngayNhanNha || ''} onChange={handleInputChange} disabled={formData.vaoLuon} className="w-full p-2 border border-blue-200 rounded-lg focus:border-blue-500 outline-none text-sm font-medium disabled:opacity-50" />
-                       <span className="text-[9px] text-blue-600 block mt-1 italic">*Định dạng phụ thuộc thiết bị</span>
+                       <span className="text-[9px] text-blue-600 block mt-1 italic">*Định dạng: Năm-Tháng-Ngày (Theo thiết bị)</span>
                     </div>
                     <label className="flex items-center gap-1.5 text-sm font-bold text-blue-900 cursor-pointer whitespace-nowrap pb-4">
                       <input type="checkbox" name="vaoLuon" checked={formData.vaoLuon || false} onChange={handleInputChange} className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500" />
@@ -531,6 +621,9 @@ export default function AdminPage() {
             <button onClick={() => setAdminTab('quy-can')} className={`font-bold pb-3 border-b-2 transition ${adminTab === 'quy-can' ? 'border-blue-900 text-blue-900' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
               Quỹ căn ({properties.length})
             </button>
+            <button onClick={() => setAdminTab('thong-ke')} className={`font-bold pb-3 border-b-2 transition ${adminTab === 'thong-ke' ? 'border-blue-900 text-blue-900' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
+              Thống Kê Giá
+            </button>
             <button onClick={() => setAdminTab('ky-gui')} className={`font-bold pb-3 border-b-2 transition flex items-center gap-2 ${adminTab === 'ky-gui' ? 'border-blue-900 text-blue-900' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
               Khách Ký Gửi
               {unreadKyGuiCount > 0 && <span className="bg-red-500 text-white text-[10px] px-2 py-0.5 rounded-full shadow-sm animate-pulse">{unreadKyGuiCount}</span>}
@@ -541,7 +634,39 @@ export default function AdminPage() {
             </button>
           </div>
 
-          {adminTab !== 'tai-khoan' && (
+          {adminTab === 'thong-ke' && (
+             <div className="animate-fade-in-up">
+               <div className="flex bg-gray-200/70 p-1.5 rounded-lg mb-6 w-max">
+                 <button onClick={() => setMatrixTab('Cho thuê')} className={`py-1.5 px-4 rounded-md text-sm font-bold transition-all ${matrixTab === 'Cho thuê' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-800'}`}>Cho thuê (Triệu)</button>
+                 <button onClick={() => setMatrixTab('Chuyển nhượng')} className={`py-1.5 px-4 rounded-md text-sm font-bold transition-all ${matrixTab === 'Chuyển nhượng' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-800'}`}>Bán (Tỷ)</button>
+               </div>
+               
+               <div className="overflow-x-auto border border-gray-200 rounded-xl">
+                 <table className="w-full text-xs text-left whitespace-nowrap">
+                   <thead className="bg-gray-100 text-blue-900 font-black tracking-wider uppercase">
+                     <tr>
+                       <th className="px-4 py-3 border-r border-gray-200 sticky left-0 bg-gray-100 z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">Phân Khu / Loại</th>
+                       {loaiCanList.map(lc => <th key={lc} className="px-4 py-3 text-center">{lc}</th>)}
+                     </tr>
+                   </thead>
+                   <tbody className="divide-y divide-gray-100 bg-white">
+                     {phanKhuList.map(pk => (
+                       <tr key={pk} className="hover:bg-blue-50 transition">
+                         <td className="px-4 py-3 font-bold border-r border-gray-100 sticky left-0 bg-white shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)] text-gray-800">{pk}</td>
+                         {loaiCanList.map(lc => (
+                           <td key={lc} className={`px-4 py-3 text-center font-medium ${priceMatrix[pk][lc] === '-' ? 'text-gray-300' : 'text-blue-700'}`}>
+                             {priceMatrix[pk][lc]}
+                           </td>
+                         ))}
+                       </tr>
+                     ))}
+                   </tbody>
+                 </table>
+               </div>
+             </div>
+          )}
+
+          {adminTab !== 'tai-khoan' && adminTab !== 'thong-ke' && (
              <div className="mb-6">
                <input 
                  type="text" 
@@ -602,6 +727,7 @@ export default function AdminPage() {
                         </td>
                         <td className="px-4 py-4 text-right">
                           <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button onClick={() => handleBump(item.id)} className="text-green-600 hover:bg-green-100 px-3 py-1.5 rounded-md font-bold transition whitespace-nowrap" title="Làm mới ngày đăng">Đẩy tin</button>
                             <button onClick={() => handleEdit(item)} className="text-blue-600 hover:bg-blue-100 px-3 py-1.5 rounded-md font-bold transition">Sửa</button>
                             <button onClick={() => handleDelete(item)} className="text-red-500 hover:bg-red-50 px-3 py-1.5 rounded-md font-bold transition">Xóa</button>
                           </div>
