@@ -86,7 +86,6 @@ export default function AdminPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
-  // Trạng thái cho tính năng Bulk Actions
   const [selectedProperties, setSelectedProperties] = useState([]);
 
   useEffect(() => {
@@ -280,7 +279,6 @@ export default function AdminPage() {
     }
   };
 
-  // Các hàm Thao tác hàng loạt (Bulk Actions)
   const handleSelectAll = (e) => {
     if (e.target.checked) {
       const ids = paginatedProperties.map(p => p.id);
@@ -507,12 +505,18 @@ export default function AdminPage() {
           </div>
           
           <div className="flex gap-2 md:gap-4 items-center">
+            {/* ĐÃ KHÔI PHỤC NÚT GA4 */}
+            <a href="https://analytics.google.com/" target="_blank" rel="noreferrer" className="hidden xl:flex items-center gap-2 bg-[#F9AB00] hover:bg-[#F29900] text-blue-900 px-4 py-2 rounded-lg text-sm font-bold transition whitespace-nowrap shadow-sm">
+               <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+               Đo lường (GA4)
+            </a>
+            
             <button onClick={() => setIsMatrixModalOpen(true)} className="bg-white/10 hover:bg-white/20 border border-white/30 px-3 md:px-4 py-2 rounded-lg text-sm font-medium transition whitespace-nowrap flex items-center gap-1.5">
                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
                <span className="hidden sm:inline">Thống kê giá</span>
             </button>
-            <button onClick={openPhanKhuModal} className="bg-white/10 hover:bg-white/20 border border-white/30 px-3 md:px-4 py-2 rounded-lg text-sm font-medium transition whitespace-nowrap">Quản lý phân khu</button>
-            <button onClick={() => setIsAccountModalOpen(true)} className="bg-white/10 hover:bg-white/20 border border-white/30 px-3 md:px-4 py-2 rounded-lg text-sm font-medium transition whitespace-nowrap">Quản lý tài khoản</button>
+            <button onClick={openPhanKhuModal} className="hidden md:block bg-white/10 hover:bg-white/20 border border-white/30 px-3 md:px-4 py-2 rounded-lg text-sm font-medium transition whitespace-nowrap">Phân khu</button>
+            <button onClick={() => setIsAccountModalOpen(true)} className="hidden md:block bg-white/10 hover:bg-white/20 border border-white/30 px-3 md:px-4 py-2 rounded-lg text-sm font-medium transition whitespace-nowrap">Tài khoản</button>
             <button onClick={handleLogout} className="bg-red-500 hover:bg-red-600 text-white px-3 md:px-4 py-2 rounded-lg text-sm font-bold transition whitespace-nowrap">Đăng xuất</button>
           </div>
         </div>
@@ -596,9 +600,10 @@ export default function AdminPage() {
                   <label className="block text-[11px] font-bold mb-1 text-blue-800 uppercase">Ngày chuyển vào</label>
                   <div className="flex items-center gap-3 mt-1">
                     <div className="flex-1">
+                       {/* ĐÃ BỎ DÒNG NOTE NGÀY THÁNG BÊN DƯỚI */}
                        <input type="date" name="ngayNhanNha" value={formData.ngayNhanNha || ''} onChange={handleInputChange} disabled={formData.vaoLuon} className="w-full p-2 border border-blue-200 rounded-lg focus:border-blue-500 outline-none text-sm font-medium disabled:opacity-50" />
                     </div>
-                    <label className="flex items-center gap-1.5 text-sm font-bold text-blue-900 cursor-pointer whitespace-nowrap pb-1">
+                    <label className="flex items-center gap-1.5 text-sm font-bold text-blue-900 cursor-pointer whitespace-nowrap">
                       <input type="checkbox" name="vaoLuon" checked={formData.vaoLuon || false} onChange={handleInputChange} className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500" />
                       Vào luôn
                     </label>
@@ -730,7 +735,7 @@ export default function AdminPage() {
 
                       return (
                       <tr key={item.id} className="hover:bg-blue-50/30 transition group">
-                        <td className="px-4 py-4">
+                        <td className="px-4 py-4 align-top">
                           <div className="flex items-start gap-2">
                             <input type="checkbox" checked={selectedProperties.includes(item.id)} onChange={() => handleSelectItem(item.id)} className="w-3.5 h-3.5 mt-1 rounded text-blue-600" />
                             <div>
@@ -742,35 +747,33 @@ export default function AdminPage() {
                             </div>
                           </div>
                         </td>
-                        <td className="px-4 py-4"><span className="font-bold text-gray-800 block">Tòa {item.toaNha || item.building}</span><span className="text-[11px] text-gray-500 font-medium">{item.phanKhu}</span></td>
-                        <td className="px-4 py-4">
+                        <td className="px-4 py-4 align-top"><span className="font-bold text-gray-800 block">Tòa {item.toaNha || item.building}</span><span className="text-[11px] text-gray-500 font-medium">{item.phanKhu}</span></td>
+                        <td className="px-4 py-4 align-top">
                            <span className="font-semibold text-gray-600 block text-xs">{item.loaiCan || item.type}</span>
                            <span className="font-black text-blue-700 text-sm">{item.price} {item.listingType === 'Chuyển nhượng' ? 'Tỷ' : 'Tr'}</span>
                         </td>
-                        <td className="px-4 py-4">
-                           <div className="relative group/note inline-block">
-                             <p className="text-[11px] text-gray-600 line-clamp-2 font-medium w-[120px] lg:w-[150px] cursor-help">{item.moTa || <span className="text-gray-300 italic">Trống</span>}</p>
-                             {item.moTa && (
-                               <div className="absolute bottom-full left-0 mb-2 hidden group-hover/note:block w-[250px] bg-gray-800 text-white text-xs p-3 rounded-lg shadow-xl z-50 whitespace-normal pointer-events-none">
-                                  {item.moTa}
-                                  <div className="absolute top-full left-4 -mt-1 w-2 h-2 bg-gray-800 rotate-45"></div>
-                               </div>
-                             )}
+                        <td className="px-4 py-4 align-top">
+                           {/* ĐÃ CẬP NHẬT: GHI CHÚ MỞ RỘNG TRỰC TIẾP TRONG Ô KHI DI CHUỘT */}
+                           <div className="group/note cursor-pointer w-[120px] lg:w-[150px]">
+                             <p className="text-[11px] text-gray-600 font-medium line-clamp-2 group-hover/note:line-clamp-none transition-all duration-300">
+                               {item.moTa || <span className="text-gray-300 italic">Trống</span>}
+                             </p>
                            </div>
                         </td>
-                        <td className="px-4 py-4 text-center">
+                        <td className="px-4 py-4 text-center align-top">
                           <div className="flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            {/* NÚT THAO TÁC THU GỌN THÀNH ICON + TOOLTIP */}
                             <div className="relative group/btn inline-block">
                               <button onClick={() => handleBump(item.id)} className="text-green-600 hover:bg-green-100 p-1.5 rounded-md transition"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 10l7-7m0 0l7 7m-7-7v18"></path></svg></button>
-                              <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden group-hover/btn:block bg-black text-white text-[10px] px-2 py-1 rounded whitespace-nowrap z-50 pointer-events-none">Đẩy tin</span>
+                              <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden group-hover/btn:block bg-gray-800 text-white text-[10px] px-2 py-1 rounded whitespace-nowrap z-50 pointer-events-none">Đẩy tin</span>
                             </div>
                             <div className="relative group/btn inline-block">
                               <button onClick={() => handleEdit(item)} className="text-blue-600 hover:bg-blue-100 p-1.5 rounded-md transition"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg></button>
-                              <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden group-hover/btn:block bg-black text-white text-[10px] px-2 py-1 rounded whitespace-nowrap z-50 pointer-events-none">Sửa</span>
+                              <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden group-hover/btn:block bg-gray-800 text-white text-[10px] px-2 py-1 rounded whitespace-nowrap z-50 pointer-events-none">Sửa căn</span>
                             </div>
                             <div className="relative group/btn inline-block">
                               <button onClick={() => handleDelete(item)} className="text-red-500 hover:bg-red-50 p-1.5 rounded-md transition"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button>
-                              <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden group-hover/btn:block bg-black text-white text-[10px] px-2 py-1 rounded whitespace-nowrap z-50 pointer-events-none">Xóa</span>
+                              <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden group-hover/btn:block bg-gray-800 text-white text-[10px] px-2 py-1 rounded whitespace-nowrap z-50 pointer-events-none">Xóa căn</span>
                             </div>
                           </div>
                         </td>
@@ -872,7 +875,6 @@ export default function AdminPage() {
         </div>
       </div>
       
-      {/* POPUP THỐNG KÊ GIÁ */}
       {isMatrixModalOpen && (
         <div className="fixed inset-0 bg-blue-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl p-6 md:p-8 w-full max-w-5xl transform transition-all overflow-y-auto max-h-[90vh] animate-fade-in-up">
