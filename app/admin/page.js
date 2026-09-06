@@ -505,7 +505,6 @@ export default function AdminPage() {
           </div>
           
           <div className="flex gap-2 md:gap-4 items-center">
-            {/* ĐÃ KHÔI PHỤC NÚT GA4 */}
             <a href="https://analytics.google.com/" target="_blank" rel="noreferrer" className="hidden xl:flex items-center gap-2 bg-[#F9AB00] hover:bg-[#F29900] text-blue-900 px-4 py-2 rounded-lg text-sm font-bold transition whitespace-nowrap shadow-sm">
                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
                Đo lường (GA4)
@@ -517,7 +516,15 @@ export default function AdminPage() {
             </button>
             <button onClick={openPhanKhuModal} className="hidden md:block bg-white/10 hover:bg-white/20 border border-white/30 px-3 md:px-4 py-2 rounded-lg text-sm font-medium transition whitespace-nowrap">Phân khu</button>
             <button onClick={() => setIsAccountModalOpen(true)} className="hidden md:block bg-white/10 hover:bg-white/20 border border-white/30 px-3 md:px-4 py-2 rounded-lg text-sm font-medium transition whitespace-nowrap">Tài khoản</button>
-            <button onClick={handleLogout} className="bg-red-500 hover:bg-red-600 text-white px-3 md:px-4 py-2 rounded-lg text-sm font-bold transition whitespace-nowrap">Đăng xuất</button>
+            
+            {user && <span className="hidden lg:block text-sm font-bold ml-2">Xin chào {user.email}!</span>}
+            
+            <div className="relative group/logout inline-block ml-1">
+               <button onClick={handleLogout} className="bg-red-500/20 text-red-100 hover:bg-red-500 hover:text-white p-2 rounded-lg transition flex items-center justify-center">
+                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+               </button>
+               <span className="absolute top-full right-0 mt-2 hidden group-hover/logout:block bg-gray-800 text-white text-[10px] px-2 py-1 rounded whitespace-nowrap z-50 pointer-events-none shadow-lg">Đăng xuất</span>
+            </div>
           </div>
         </div>
       </nav>
@@ -554,7 +561,7 @@ export default function AdminPage() {
               </div>
               <div>
                 <label className="block text-[11px] font-bold mb-1 text-gray-500 uppercase">Tòa nhà <span className="text-red-500">*</span></label>
-                <input name="toaNha" value={formData.toaNha} onChange={handleInputChange} placeholder="VD: S1.02" className="w-full p-3 border border-gray-200 rounded-lg focus:border-blue-500 outline-none text-sm font-medium" />
+                <input name="toaNha" value={formData.toaNha} onChange={handleInputChange} placeholder="VD: S102" className="w-full p-3 border border-gray-200 rounded-lg focus:border-blue-500 outline-none text-sm font-medium" />
               </div>
               <div>
                 <label className="block text-[11px] font-bold mb-1 text-gray-500 uppercase">Loại căn <span className="text-red-500">*</span></label>
@@ -600,7 +607,6 @@ export default function AdminPage() {
                   <label className="block text-[11px] font-bold mb-1 text-blue-800 uppercase">Ngày chuyển vào</label>
                   <div className="flex items-center gap-3 mt-1">
                     <div className="flex-1">
-                       {/* ĐÃ BỎ DÒNG NOTE NGÀY THÁNG BÊN DƯỚI */}
                        <input type="date" name="ngayNhanNha" value={formData.ngayNhanNha || ''} onChange={handleInputChange} disabled={formData.vaoLuon} className="w-full p-2 border border-blue-200 rounded-lg focus:border-blue-500 outline-none text-sm font-medium disabled:opacity-50" />
                     </div>
                     <label className="flex items-center gap-1.5 text-sm font-bold text-blue-900 cursor-pointer whitespace-nowrap">
@@ -679,17 +685,15 @@ export default function AdminPage() {
             </button>
           </div>
 
-          {adminTab !== 'tai-khoan' && (
-             <div className="mb-4 flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
-               <input 
-                 type="text" 
-                 placeholder={adminTab === 'quy-can' ? "Tìm mã căn, tòa nhà..." : "Tìm SĐT, nhu cầu khách..."}
-                 value={searchTerm}
-                 onChange={(e) => {setSearchTerm(e.target.value); setCurrentPage(1);}}
-                 className="w-full max-w-sm px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition font-medium"
-               />
-             </div>
-          )}
+          <div className="mb-4 flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
+            <input 
+              type="text" 
+              placeholder={adminTab === 'quy-can' ? "Tìm mã căn, tòa nhà..." : "Tìm SĐT, nhu cầu khách..."}
+              value={searchTerm}
+              onChange={(e) => {setSearchTerm(e.target.value); setCurrentPage(1);}}
+              className="w-full max-w-sm px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition font-medium"
+            />
+          </div>
 
           {adminTab === 'quy-can' && selectedProperties.length > 0 && (
              <div className="flex items-center gap-3 bg-blue-50 border border-blue-200 p-3 rounded-lg mb-4">
@@ -700,7 +704,7 @@ export default function AdminPage() {
              </div>
           )}
 
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto pb-10">
             {adminTab === 'quy-can' && (
               <>
                 <table className="w-full text-sm text-left">
@@ -753,7 +757,6 @@ export default function AdminPage() {
                            <span className="font-black text-blue-700 text-sm">{item.price} {item.listingType === 'Chuyển nhượng' ? 'Tỷ' : 'Tr'}</span>
                         </td>
                         <td className="px-4 py-4 align-top">
-                           {/* ĐÃ CẬP NHẬT: GHI CHÚ MỞ RỘNG TRỰC TIẾP TRONG Ô KHI DI CHUỘT */}
                            <div className="group/note cursor-pointer w-[120px] lg:w-[150px]">
                              <p className="text-[11px] text-gray-600 font-medium line-clamp-2 group-hover/note:line-clamp-none transition-all duration-300">
                                {item.moTa || <span className="text-gray-300 italic">Trống</span>}
@@ -762,7 +765,6 @@ export default function AdminPage() {
                         </td>
                         <td className="px-4 py-4 text-center align-top">
                           <div className="flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                            {/* NÚT THAO TÁC THU GỌN THÀNH ICON + TOOLTIP */}
                             <div className="relative group/btn inline-block">
                               <button onClick={() => handleBump(item.id)} className="text-green-600 hover:bg-green-100 p-1.5 rounded-md transition"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 10l7-7m0 0l7 7m-7-7v18"></path></svg></button>
                               <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden group-hover/btn:block bg-gray-800 text-white text-[10px] px-2 py-1 rounded whitespace-nowrap z-50 pointer-events-none">Đẩy tin</span>
@@ -884,24 +886,24 @@ export default function AdminPage() {
             </div>
             
             <div className="flex bg-gray-200/70 p-1.5 rounded-lg mb-6 w-max">
-              <button onClick={() => setMatrixTab('Cho thuê')} className={`py-1.5 px-4 rounded-md text-sm font-bold transition-all ${matrixTab === 'Cho thuê' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-800'}`}>Cho thuê (Triệu)</button>
-              <button onClick={() => setMatrixTab('Chuyển nhượng')} className={`py-1.5 px-4 rounded-md text-sm font-bold transition-all ${matrixTab === 'Chuyển nhượng' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-800'}`}>Bán (Tỷ)</button>
+              <button onClick={() => setMatrixTab('Cho thuê')} className={`py-2 px-5 rounded-md text-sm font-bold transition-all ${matrixTab === 'Cho thuê' ? 'bg-white text-blue-600 shadow-md' : 'text-gray-500 hover:text-gray-800'}`}>Cho thuê (Triệu)</button>
+              <button onClick={() => setMatrixTab('Chuyển nhượng')} className={`py-2 px-5 rounded-md text-sm font-bold transition-all ${matrixTab === 'Chuyển nhượng' ? 'bg-white text-blue-600 shadow-md' : 'text-gray-500 hover:text-gray-800'}`}>Chuyển nhượng (Tỷ)</button>
             </div>
             
-            <div className="overflow-x-auto border border-gray-200 rounded-xl">
-              <table className="w-full text-xs text-left whitespace-nowrap">
-                <thead className="bg-gray-100 text-blue-900 font-black tracking-wider uppercase">
+            <div className="overflow-x-auto rounded-xl shadow-lg border border-gray-200">
+              <table className="w-full text-sm text-left whitespace-nowrap">
+                <thead className="bg-gradient-to-r from-blue-900 to-blue-800 text-white font-black tracking-wider uppercase text-[11px] md:text-xs">
                   <tr>
-                    <th className="px-4 py-3 border-r border-gray-200 sticky left-0 bg-gray-100 z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">Phân Khu / Loại</th>
-                    {loaiCanList.map(lc => <th key={lc} className="px-4 py-3 text-center">{lc}</th>)}
+                    <th className="px-4 py-4 md:px-5 md:py-4 border-r border-blue-700/50 sticky left-0 bg-blue-900 z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.3)]">Phân Khu / Loại</th>
+                    {loaiCanList.map(lc => <th key={lc} className="px-4 py-4 md:px-5 md:py-4 text-center border-r border-blue-700/30 last:border-0">{lc}</th>)}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100 bg-white">
-                  {phanKhuList.map(pk => (
-                    <tr key={pk} className="hover:bg-blue-50 transition">
-                      <td className="px-4 py-3 font-bold border-r border-gray-100 sticky left-0 bg-white shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)] text-gray-800">{pk}</td>
+                <tbody className="divide-y divide-gray-200 bg-white">
+                  {phanKhuList.map((pk, idx) => (
+                    <tr key={pk} className={`transition hover:bg-blue-50 ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/40'}`}>
+                      <td className="px-4 py-4 md:px-5 md:py-4 font-black border-r border-gray-200 sticky left-0 bg-inherit shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)] text-blue-950">{pk}</td>
                       {loaiCanList.map(lc => (
-                        <td key={lc} className={`px-4 py-3 text-center font-medium ${priceMatrix[pk][lc] === '-' ? 'text-gray-300' : 'text-blue-700'}`}>
+                        <td key={lc} className={`px-4 py-4 md:px-5 md:py-4 text-center border-r border-gray-100 last:border-0 ${priceMatrix[pk][lc] === '-' ? 'text-gray-300 font-medium' : 'text-orange-600 font-black text-sm md:text-base'}`}>
                           {priceMatrix[pk][lc]}
                         </td>
                       ))}
