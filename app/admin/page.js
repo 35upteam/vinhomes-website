@@ -5,7 +5,6 @@ import { signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth';
 import { collection, addDoc, getDocs, doc, getDoc, setDoc, deleteDoc, updateDoc, serverTimestamp, query, orderBy, where } from 'firebase/firestore';
 import Link from 'next/link';
 
-// Hàm nén ảnh ngay trên trình duyệt trước khi up (Giảm 90% dung lượng, giữ nguyên độ nét)
 const compressImage = async (file) => {
   return new Promise((resolve) => {
     const reader = new FileReader();
@@ -15,7 +14,7 @@ const compressImage = async (file) => {
       img.src = event.target.result;
       img.onload = () => {
         const canvas = document.createElement('canvas');
-        const MAX_WIDTH = 1200; // Giới hạn chiều rộng
+        const MAX_WIDTH = 1200; 
         const scaleSize = MAX_WIDTH / img.width;
         canvas.width = MAX_WIDTH;
         canvas.height = img.height * scaleSize;
@@ -28,7 +27,7 @@ const compressImage = async (file) => {
             lastModified: Date.now(),
           });
           resolve(compressedFile);
-        }, 'image/jpeg', 0.7); // 0.7 là chất lượng nén cân bằng nhất
+        }, 'image/jpeg', 0.7); 
       };
     };
   });
@@ -42,6 +41,7 @@ export default function AdminPage() {
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   
   const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
+  const [isMatrixModalOpen, setIsMatrixModalOpen] = useState(false);
 
   const defaultPkConfig = {
     "Sapphire": { phi: "8.800 VNĐ/m2", tongQuan: "", uuDiem: "", tienIch: "", images: [] },
@@ -65,7 +65,6 @@ export default function AdminPage() {
   const [tempPKData, setTempPKData] = useState({ phi: '', tongQuan: '', uuDiem: '', tienIch: '', images: [], localImages: [] });
   const [isSavingPK, setIsSavingPK] = useState(false);
 
-  // ĐÃ SỬA: Đưa các giá trị Select về rỗng ('') để ép admin phải tự chọn
   const initialForm = { listingType: 'Cho thuê', phanKhu: '', loaiCan: '', toaNha: '', khoangTang: '', huongBanCong: '', noiThat: '', area: '', price: '', ngayNhanNha: '', vaoLuon: false, phapLy: 'Sổ đỏ', moTa: '', nhanDan: 'Không có' };
   const [formData, setFormData] = useState(initialForm);
   const [images, setImages] = useState([]);
@@ -74,7 +73,6 @@ export default function AdminPage() {
   const [duplicateWarning, setDuplicateWarning] = useState(null);
   const [skipDupCheck, setSkipDupCheck] = useState(false);
 
-  // Thêm tab thống kê
   const [adminTab, setAdminTab] = useState('quy-can');
   const [matrixTab, setMatrixTab] = useState('Cho thuê');
   
@@ -87,6 +85,9 @@ export default function AdminPage() {
   const [filterType, setFilterType] = useState('Tất cả');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+
+  // Trạng thái cho tính năng Bulk Actions
+  const [selectedProperties, setSelectedProperties] = useState([]);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
@@ -186,7 +187,6 @@ export default function AdminPage() {
       if (tempPKData.localImages && tempPKData.localImages.length > 0) {
         const CLOUD_NAME = "ibzfmsqp"; const UPLOAD_PRESET = "upload preset";
         
-        // Nén ảnh và tải lên song song cho nhanh
         const pkUploadPromises = tempPKData.localImages.map(async (item) => {
           const compressed = await compressImage(item.file);
           const data = new FormData(); data.append('file', compressed); data.append('upload_preset', UPLOAD_PRESET);
@@ -238,16 +238,14 @@ export default function AdminPage() {
   };
 
   const handleDelete = async (item) => {
-    if (window.confirm(`Cảnh báo: Bạn có chắc chắn muốn xóa căn hộ Mã ${item.maCan} khỏi hệ thống? (Hình ảnh cũng sẽ bị xóa vĩnh viễn)`)) {
+    if (window.confirm(`Cảnh báo: Bạn có chắc chắn muốn xóa căn hộ Mã ${item.maCan}?`)) {
       try {
         if (item.images && item.images.length > 0) {
-          // Lấy public_id của ảnh trên Cloudinary
           const publicIds = item.images.map(url => {
              const match = url.match(/\/upload\/(?:v\d+\/)?([^.]+)/);
              return match ? match[1] : null;
           }).filter(Boolean);
 
-          // GỌI ĐÚNG API ĐỂ XÓA ẢNH
           if (publicIds.length > 0) {
             await fetch('/api/delete-image', { 
               method: 'POST', 
@@ -258,7 +256,7 @@ export default function AdminPage() {
         }
         await deleteDoc(doc(db, 'properties', item.id)); 
         sessionStorage.removeItem('cachedProperties'); 
-        alert('Đã xóa thành công dữ liệu và dọn sạch hình ảnh trên Cloudinary!'); 
+        alert('Đã xóa thành công!'); 
         fetchProperties();
       } catch (error) { alert('Có lỗi xảy ra khi xóa!'); console.error(error); }
     }
@@ -271,15 +269,69 @@ export default function AdminPage() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // TÍNH NĂNG MỚI: Nút Đẩy Tin
   const handleBump = async (id) => {
     try {
       await updateDoc(doc(db, 'properties', id), { createdAt: serverTimestamp() });
       sessionStorage.removeItem('cachedProperties');
-      alert('Đã làm mới ngày đăng! Căn hộ này đã lên đầu danh sách.');
+      alert('Đã đẩy tin thành công!');
       fetchProperties();
     } catch (e) {
       alert('Đã xảy ra lỗi khi đẩy tin!');
+    }
+  };
+
+  // Các hàm Thao tác hàng loạt (Bulk Actions)
+  const handleSelectAll = (e) => {
+    if (e.target.checked) {
+      const ids = paginatedProperties.map(p => p.id);
+      setSelectedProperties(ids);
+    } else {
+      setSelectedProperties([]);
+    }
+  };
+
+  const handleSelectItem = (id) => {
+    setSelectedProperties(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
+  };
+
+  const handleBulkBump = async () => {
+    if (selectedProperties.length === 0) return;
+    try {
+      for (const id of selectedProperties) {
+         await updateDoc(doc(db, 'properties', id), { createdAt: serverTimestamp() });
+      }
+      setSelectedProperties([]);
+      sessionStorage.removeItem('cachedProperties');
+      fetchProperties();
+      alert(`Đã đẩy ${selectedProperties.length} tin lên đầu danh sách!`);
+    } catch(e) { alert('Lỗi khi đẩy tin hàng loạt'); }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedProperties.length === 0) return;
+    if (window.confirm(`Xóa vĩnh viễn ${selectedProperties.length} căn hộ đã chọn?`)) {
+      try {
+        for (const id of selectedProperties) {
+          const item = properties.find(p => p.id === id);
+          if (item) {
+             if (item.images && item.images.length > 0) {
+               const publicIds = item.images.map(url => {
+                  const match = url.match(/\/upload\/(?:v\d+\/)?([^.]+)/);
+                  return match ? match[1] : null;
+               }).filter(Boolean);
+     
+               if (publicIds.length > 0) {
+                 await fetch('/api/delete-image', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ publicIds }) });
+               }
+             }
+             await deleteDoc(doc(db, 'properties', id));
+          }
+        }
+        setSelectedProperties([]);
+        sessionStorage.removeItem('cachedProperties');
+        fetchProperties();
+        alert('Đã xóa hàng loạt thành công!');
+      } catch(e) { alert('Lỗi khi xóa hàng loạt'); }
     }
   };
 
@@ -304,10 +356,9 @@ export default function AdminPage() {
     try {
       const CLOUD_NAME = "ibzfmsqp"; const UPLOAD_PRESET = "upload preset";
       
-      // TỐI ƯU TỐC ĐỘ: Nén ảnh và Tải lên song song tất cả các ảnh cùng lúc
       const uploadPromises = images.map(async (img) => {
         if (img.file) {
-          const compressed = await compressImage(img.file); // Nén siêu nhỏ
+          const compressed = await compressImage(img.file); 
           const data = new FormData(); 
           data.append('file', compressed); 
           data.append('upload_preset', UPLOAD_PRESET);
@@ -318,7 +369,7 @@ export default function AdminPage() {
         return img.url;
       });
 
-      const imageUrls = await Promise.all(uploadPromises); // Đợi tải xong tất cả 1 lúc
+      const imageUrls = await Promise.all(uploadPromises); 
 
       const finalArea = formData.area ? Number(formData.area) : 0; 
       const finalMaCan = editingId ? formData.maCan : generateMaCan(formData.listingType);
@@ -339,14 +390,12 @@ export default function AdminPage() {
   const handleSubmit = async (e) => {
     if(e) e.preventDefault();
     
-    // Kiểm tra trường bắt buộc chặt chẽ
     if (!formData.phanKhu || !formData.toaNha || !formData.loaiCan || !formData.noiThat || !formData.price) {
       return alert('Vui lòng chọn đầy đủ các thông tin: Phân khu, Tòa nhà, Loại căn, Nội thất và Giá!');
     }
     
     if (images.length === 0 && !editingId) return alert('Vui lòng tải lên ít nhất 1 ảnh căn hộ!');
     
-    // THUẬT TOÁN LỌC TRÙNG THÔNG MINH
     if (!editingId && !skipDupCheck) {
       setIsUploading(true);
       
@@ -361,7 +410,6 @@ export default function AdminPage() {
 
       let foundDup = null;
       const newPrice = Number(formData.price);
-      // Chênh lệch giá: Cho thuê <= 1.5 triệu | Bán <= 0.25 tỷ (250 triệu)
       const threshold = formData.listingType === 'Cho thuê' ? 1.5 : 0.25;
 
       dupSnap.forEach(doc => {
@@ -381,7 +429,6 @@ export default function AdminPage() {
     executeSave();
   };
 
-  // TÍNH TOÁN MA TRẬN GIÁ
   const computePriceMatrix = () => {
     const listToFilter = properties.filter(p => p.listingType === matrixTab);
     const result = {};
@@ -412,12 +459,10 @@ export default function AdminPage() {
       <div className="min-h-screen flex items-center justify-center font-sans relative" style={{ backgroundColor: '#111827' }}>
         <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?q=80&w=2000&auto=format&fit=crop')] bg-cover bg-center opacity-40"></div>
         <div className="absolute inset-0 backdrop-blur-md bg-blue-900/40"></div>
-        
         <div className="relative z-10 bg-white/95 backdrop-blur-xl p-10 rounded-[24px] shadow-2xl text-center max-w-[400px] w-full mx-4 border border-white/40">
           <img src="/logo.png" alt="Logo Quỹ Căn Smart City" className="h-14 mx-auto mb-5 object-contain" />
           <h2 className="text-[22px] font-bold mb-1 text-blue-900 uppercase tracking-widest">Hệ Thống Quản Trị</h2>
           <p className="text-sm text-gray-500 mb-8 font-medium">Đăng nhập bằng Gmail nội bộ</p>
-          
           <button onClick={handleLogin} className="w-full bg-white hover:bg-gray-50 border border-gray-300 text-gray-700 p-4 rounded-xl font-bold text-base transition shadow-md flex items-center justify-center gap-3">
              <svg className="w-6 h-6" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
              Tiếp tục với Google
@@ -461,15 +506,14 @@ export default function AdminPage() {
              <h1 className="font-bold text-base tracking-wider hidden sm:block">ADMIN DASHBOARD</h1>
           </div>
           
-          <div className="flex gap-3 md:gap-4 items-center">
-            <a href="https://analytics.google.com/" target="_blank" rel="noreferrer" className="hidden lg:flex items-center gap-2 bg-[#F9AB00] hover:bg-[#F29900] text-blue-900 px-4 py-2 rounded-lg text-sm font-bold transition whitespace-nowrap shadow-sm">
-               <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
-               Đo lường (GA4)
-            </a>
-            
-            <button onClick={openPhanKhuModal} className="bg-white/10 hover:bg-white/20 border border-white/30 px-4 py-2 rounded-lg text-sm font-medium transition whitespace-nowrap">Quản lý phân khu</button>
-            <button onClick={() => setIsAccountModalOpen(true)} className="bg-white/10 hover:bg-white/20 border border-white/30 px-4 py-2 rounded-lg text-sm font-medium transition whitespace-nowrap">Quản lý tài khoản</button>
-            <button onClick={handleLogout} className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-bold transition whitespace-nowrap">Đăng xuất</button>
+          <div className="flex gap-2 md:gap-4 items-center">
+            <button onClick={() => setIsMatrixModalOpen(true)} className="bg-white/10 hover:bg-white/20 border border-white/30 px-3 md:px-4 py-2 rounded-lg text-sm font-medium transition whitespace-nowrap flex items-center gap-1.5">
+               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+               <span className="hidden sm:inline">Thống kê giá</span>
+            </button>
+            <button onClick={openPhanKhuModal} className="bg-white/10 hover:bg-white/20 border border-white/30 px-3 md:px-4 py-2 rounded-lg text-sm font-medium transition whitespace-nowrap">Quản lý phân khu</button>
+            <button onClick={() => setIsAccountModalOpen(true)} className="bg-white/10 hover:bg-white/20 border border-white/30 px-3 md:px-4 py-2 rounded-lg text-sm font-medium transition whitespace-nowrap">Quản lý tài khoản</button>
+            <button onClick={handleLogout} className="bg-red-500 hover:bg-red-600 text-white px-3 md:px-4 py-2 rounded-lg text-sm font-bold transition whitespace-nowrap">Đăng xuất</button>
           </div>
         </div>
       </nav>
@@ -553,9 +597,8 @@ export default function AdminPage() {
                   <div className="flex items-center gap-3 mt-1">
                     <div className="flex-1">
                        <input type="date" name="ngayNhanNha" value={formData.ngayNhanNha || ''} onChange={handleInputChange} disabled={formData.vaoLuon} className="w-full p-2 border border-blue-200 rounded-lg focus:border-blue-500 outline-none text-sm font-medium disabled:opacity-50" />
-                       <span className="text-[9px] text-blue-600 block mt-1 italic">*Định dạng: Năm-Tháng-Ngày (Theo thiết bị)</span>
                     </div>
-                    <label className="flex items-center gap-1.5 text-sm font-bold text-blue-900 cursor-pointer whitespace-nowrap pb-4">
+                    <label className="flex items-center gap-1.5 text-sm font-bold text-blue-900 cursor-pointer whitespace-nowrap pb-1">
                       <input type="checkbox" name="vaoLuon" checked={formData.vaoLuon || false} onChange={handleInputChange} className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500" />
                       Vào luôn
                     </label>
@@ -621,9 +664,6 @@ export default function AdminPage() {
             <button onClick={() => setAdminTab('quy-can')} className={`font-bold pb-3 border-b-2 transition ${adminTab === 'quy-can' ? 'border-blue-900 text-blue-900' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
               Quỹ căn ({properties.length})
             </button>
-            <button onClick={() => setAdminTab('thong-ke')} className={`font-bold pb-3 border-b-2 transition ${adminTab === 'thong-ke' ? 'border-blue-900 text-blue-900' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
-              Thống Kê Giá
-            </button>
             <button onClick={() => setAdminTab('ky-gui')} className={`font-bold pb-3 border-b-2 transition flex items-center gap-2 ${adminTab === 'ky-gui' ? 'border-blue-900 text-blue-900' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
               Khách Ký Gửi
               {unreadKyGuiCount > 0 && <span className="bg-red-500 text-white text-[10px] px-2 py-0.5 rounded-full shadow-sm animate-pulse">{unreadKyGuiCount}</span>}
@@ -634,40 +674,8 @@ export default function AdminPage() {
             </button>
           </div>
 
-          {adminTab === 'thong-ke' && (
-             <div className="animate-fade-in-up">
-               <div className="flex bg-gray-200/70 p-1.5 rounded-lg mb-6 w-max">
-                 <button onClick={() => setMatrixTab('Cho thuê')} className={`py-1.5 px-4 rounded-md text-sm font-bold transition-all ${matrixTab === 'Cho thuê' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-800'}`}>Cho thuê (Triệu)</button>
-                 <button onClick={() => setMatrixTab('Chuyển nhượng')} className={`py-1.5 px-4 rounded-md text-sm font-bold transition-all ${matrixTab === 'Chuyển nhượng' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-800'}`}>Bán (Tỷ)</button>
-               </div>
-               
-               <div className="overflow-x-auto border border-gray-200 rounded-xl">
-                 <table className="w-full text-xs text-left whitespace-nowrap">
-                   <thead className="bg-gray-100 text-blue-900 font-black tracking-wider uppercase">
-                     <tr>
-                       <th className="px-4 py-3 border-r border-gray-200 sticky left-0 bg-gray-100 z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">Phân Khu / Loại</th>
-                       {loaiCanList.map(lc => <th key={lc} className="px-4 py-3 text-center">{lc}</th>)}
-                     </tr>
-                   </thead>
-                   <tbody className="divide-y divide-gray-100 bg-white">
-                     {phanKhuList.map(pk => (
-                       <tr key={pk} className="hover:bg-blue-50 transition">
-                         <td className="px-4 py-3 font-bold border-r border-gray-100 sticky left-0 bg-white shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)] text-gray-800">{pk}</td>
-                         {loaiCanList.map(lc => (
-                           <td key={lc} className={`px-4 py-3 text-center font-medium ${priceMatrix[pk][lc] === '-' ? 'text-gray-300' : 'text-blue-700'}`}>
-                             {priceMatrix[pk][lc]}
-                           </td>
-                         ))}
-                       </tr>
-                     ))}
-                   </tbody>
-                 </table>
-               </div>
-             </div>
-          )}
-
-          {adminTab !== 'tai-khoan' && adminTab !== 'thong-ke' && (
-             <div className="mb-6">
+          {adminTab !== 'tai-khoan' && (
+             <div className="mb-4 flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
                <input 
                  type="text" 
                  placeholder={adminTab === 'quy-can' ? "Tìm mã căn, tòa nhà..." : "Tìm SĐT, nhu cầu khách..."}
@@ -678,16 +686,28 @@ export default function AdminPage() {
              </div>
           )}
 
+          {adminTab === 'quy-can' && selectedProperties.length > 0 && (
+             <div className="flex items-center gap-3 bg-blue-50 border border-blue-200 p-3 rounded-lg mb-4">
+               <span className="text-sm font-bold text-blue-900">Đã chọn {selectedProperties.length} căn</span>
+               <button onClick={handleBulkBump} className="bg-green-600 hover:bg-green-700 text-white px-4 py-1.5 rounded-md text-xs font-bold transition">Đẩy tin hàng loạt</button>
+               <button onClick={handleBulkDelete} className="bg-red-500 hover:bg-red-600 text-white px-4 py-1.5 rounded-md text-xs font-bold transition">Xóa hàng loạt</button>
+               <button onClick={() => setSelectedProperties([])} className="text-gray-500 hover:text-gray-700 text-xs font-bold underline ml-auto">Bỏ chọn</button>
+             </div>
+          )}
+
           <div className="overflow-x-auto">
             {adminTab === 'quy-can' && (
               <>
                 <table className="w-full text-sm text-left">
                   <thead className="bg-gray-100 text-gray-500 uppercase text-[10px] font-bold tracking-wider">
                     <tr>
-                      <th className="px-4 py-3 rounded-l-lg min-w-[120px]">
+                      <th className="px-4 py-3 rounded-l-lg min-w-[140px]">
                         <div className="flex flex-col gap-1 items-start">
-                          <span>Mã căn</span>
-                          <select value={filterType} onChange={(e) => {setFilterType(e.target.value); setCurrentPage(1);}} className="text-[10px] p-1 rounded-md border border-gray-300 font-bold outline-none focus:border-blue-500 bg-white cursor-pointer w-full text-gray-700">
+                          <div className="flex items-center gap-2">
+                             <input type="checkbox" onChange={handleSelectAll} checked={selectedProperties.length === paginatedProperties.length && paginatedProperties.length > 0} className="w-3.5 h-3.5 rounded text-blue-600" />
+                             <span>Mã căn</span>
+                          </div>
+                          <select value={filterType} onChange={(e) => {setFilterType(e.target.value); setCurrentPage(1);}} className="text-[10px] p-1 mt-1 rounded-md border border-gray-300 font-bold outline-none focus:border-blue-500 bg-white cursor-pointer w-full text-gray-700">
                             <option value="Tất cả">Tất cả ({countAll})</option>
                             <option value="Cho thuê">Cho thuê ({countThu})</option>
                             <option value="Chuyển nhượng">Chuyển nhượng ({countBan})</option>
@@ -697,7 +717,7 @@ export default function AdminPage() {
                       <th className="px-4 py-3">Tòa / Phân khu</th>
                       <th className="px-4 py-3">Loại / Giá</th>
                       <th className="px-4 py-3">Ghi chú mật</th>
-                      <th className="px-4 py-3 text-right rounded-r-lg">Thao tác</th>
+                      <th className="px-4 py-3 text-center rounded-r-lg w-[120px]">Thao tác</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
@@ -705,31 +725,53 @@ export default function AdminPage() {
                       let dateStr = 'Đang cập nhật';
                       if (item.createdAt?.seconds) {
                         const d = new Date(item.createdAt.seconds * 1000);
-                        dateStr = `Ngày đăng: ${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+                        dateStr = `Đăng: ${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
                       }
 
                       return (
                       <tr key={item.id} className="hover:bg-blue-50/30 transition group">
                         <td className="px-4 py-4">
-                          <Link href={`/property/${item.id}`} target="_blank" className="font-extrabold text-blue-900 hover:text-blue-600 hover:underline tracking-wide text-sm block" title="Mở sang tab mới để xem">
-                            {item.maCan} <svg className="w-3 h-3 inline-block opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
-                          </Link>
-                          <span className="text-[10px] text-gray-500 font-semibold">{dateStr}</span>
-                          {item.nhanDan && item.nhanDan !== 'Không có' && <span className="block text-[9px] text-red-600 font-bold uppercase mt-1">{item.nhanDan}</span>}
+                          <div className="flex items-start gap-2">
+                            <input type="checkbox" checked={selectedProperties.includes(item.id)} onChange={() => handleSelectItem(item.id)} className="w-3.5 h-3.5 mt-1 rounded text-blue-600" />
+                            <div>
+                              <Link href={`/property/${item.id}`} target="_blank" className="font-extrabold text-blue-900 hover:text-blue-600 hover:underline tracking-wide text-sm block" title="Mở sang tab mới để xem">
+                                {item.maCan} <svg className="w-3 h-3 inline-block opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+                              </Link>
+                              <span className="text-[10px] text-gray-500 font-semibold">{dateStr}</span>
+                              {item.nhanDan && item.nhanDan !== 'Không có' && <span className="block text-[9px] text-red-600 font-bold uppercase mt-1">{item.nhanDan}</span>}
+                            </div>
+                          </div>
                         </td>
                         <td className="px-4 py-4"><span className="font-bold text-gray-800 block">Tòa {item.toaNha || item.building}</span><span className="text-[11px] text-gray-500 font-medium">{item.phanKhu}</span></td>
                         <td className="px-4 py-4">
                            <span className="font-semibold text-gray-600 block text-xs">{item.loaiCan || item.type}</span>
                            <span className="font-black text-blue-700 text-sm">{item.price} {item.listingType === 'Chuyển nhượng' ? 'Tỷ' : 'Tr'}</span>
                         </td>
-                        <td className="px-4 py-4 max-w-[150px]">
-                           <p className="text-[11px] text-gray-600 line-clamp-2 font-medium" title={item.moTa}>{item.moTa || <span className="text-gray-300 italic">Trống</span>}</p>
+                        <td className="px-4 py-4">
+                           <div className="relative group/note inline-block">
+                             <p className="text-[11px] text-gray-600 line-clamp-2 font-medium w-[120px] lg:w-[150px] cursor-help">{item.moTa || <span className="text-gray-300 italic">Trống</span>}</p>
+                             {item.moTa && (
+                               <div className="absolute bottom-full left-0 mb-2 hidden group-hover/note:block w-[250px] bg-gray-800 text-white text-xs p-3 rounded-lg shadow-xl z-50 whitespace-normal pointer-events-none">
+                                  {item.moTa}
+                                  <div className="absolute top-full left-4 -mt-1 w-2 h-2 bg-gray-800 rotate-45"></div>
+                               </div>
+                             )}
+                           </div>
                         </td>
-                        <td className="px-4 py-4 text-right">
-                          <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button onClick={() => handleBump(item.id)} className="text-green-600 hover:bg-green-100 px-3 py-1.5 rounded-md font-bold transition whitespace-nowrap" title="Làm mới ngày đăng">Đẩy tin</button>
-                            <button onClick={() => handleEdit(item)} className="text-blue-600 hover:bg-blue-100 px-3 py-1.5 rounded-md font-bold transition">Sửa</button>
-                            <button onClick={() => handleDelete(item)} className="text-red-500 hover:bg-red-50 px-3 py-1.5 rounded-md font-bold transition">Xóa</button>
+                        <td className="px-4 py-4 text-center">
+                          <div className="flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div className="relative group/btn inline-block">
+                              <button onClick={() => handleBump(item.id)} className="text-green-600 hover:bg-green-100 p-1.5 rounded-md transition"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 10l7-7m0 0l7 7m-7-7v18"></path></svg></button>
+                              <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden group-hover/btn:block bg-black text-white text-[10px] px-2 py-1 rounded whitespace-nowrap z-50 pointer-events-none">Đẩy tin</span>
+                            </div>
+                            <div className="relative group/btn inline-block">
+                              <button onClick={() => handleEdit(item)} className="text-blue-600 hover:bg-blue-100 p-1.5 rounded-md transition"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg></button>
+                              <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden group-hover/btn:block bg-black text-white text-[10px] px-2 py-1 rounded whitespace-nowrap z-50 pointer-events-none">Sửa</span>
+                            </div>
+                            <div className="relative group/btn inline-block">
+                              <button onClick={() => handleDelete(item)} className="text-red-500 hover:bg-red-50 p-1.5 rounded-md transition"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button>
+                              <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden group-hover/btn:block bg-black text-white text-[10px] px-2 py-1 rounded whitespace-nowrap z-50 pointer-events-none">Xóa</span>
+                            </div>
                           </div>
                         </td>
                       </tr>
@@ -830,8 +872,48 @@ export default function AdminPage() {
         </div>
       </div>
       
+      {/* POPUP THỐNG KÊ GIÁ */}
+      {isMatrixModalOpen && (
+        <div className="fixed inset-0 bg-blue-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl p-6 md:p-8 w-full max-w-5xl transform transition-all overflow-y-auto max-h-[90vh] animate-fade-in-up">
+            <div className="flex justify-between items-center mb-6">
+              <div><h2 className="text-xl font-bold text-blue-900">Thống Kê Mặt Bằng Giá</h2></div>
+              <button onClick={() => setIsMatrixModalOpen(false)} className="text-gray-400 hover:text-red-500 text-xl font-bold">×</button>
+            </div>
+            
+            <div className="flex bg-gray-200/70 p-1.5 rounded-lg mb-6 w-max">
+              <button onClick={() => setMatrixTab('Cho thuê')} className={`py-1.5 px-4 rounded-md text-sm font-bold transition-all ${matrixTab === 'Cho thuê' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-800'}`}>Cho thuê (Triệu)</button>
+              <button onClick={() => setMatrixTab('Chuyển nhượng')} className={`py-1.5 px-4 rounded-md text-sm font-bold transition-all ${matrixTab === 'Chuyển nhượng' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-800'}`}>Bán (Tỷ)</button>
+            </div>
+            
+            <div className="overflow-x-auto border border-gray-200 rounded-xl">
+              <table className="w-full text-xs text-left whitespace-nowrap">
+                <thead className="bg-gray-100 text-blue-900 font-black tracking-wider uppercase">
+                  <tr>
+                    <th className="px-4 py-3 border-r border-gray-200 sticky left-0 bg-gray-100 z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">Phân Khu / Loại</th>
+                    {loaiCanList.map(lc => <th key={lc} className="px-4 py-3 text-center">{lc}</th>)}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100 bg-white">
+                  {phanKhuList.map(pk => (
+                    <tr key={pk} className="hover:bg-blue-50 transition">
+                      <td className="px-4 py-3 font-bold border-r border-gray-100 sticky left-0 bg-white shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)] text-gray-800">{pk}</td>
+                      {loaiCanList.map(lc => (
+                        <td key={lc} className={`px-4 py-3 text-center font-medium ${priceMatrix[pk][lc] === '-' ? 'text-gray-300' : 'text-blue-700'}`}>
+                          {priceMatrix[pk][lc]}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
       {isPhanKhuModalOpen && (
-        <div className="fixed inset-0 bg-blue-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-blue-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl p-6 md:p-8 w-full max-w-3xl transform transition-all overflow-y-auto max-h-[90vh]">
             <div className="flex justify-between items-center mb-6">
               <div><h2 className="text-xl font-bold text-blue-900">Cấu Hình Phân Khu - Landing Page</h2></div>
@@ -925,7 +1007,7 @@ export default function AdminPage() {
       )}
 
       {isAccountModalOpen && (
-        <div className="fixed inset-0 bg-blue-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-blue-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl p-6 md:p-8 w-full max-w-2xl transform transition-all overflow-y-auto max-h-[90vh]">
             <div className="flex justify-between items-center mb-6">
               <div><h2 className="text-xl font-bold text-blue-900">Quản Lý Tài Khoản</h2></div>
