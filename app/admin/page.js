@@ -34,7 +34,7 @@ export default function AdminPage() {
   const [tempPKData, setTempPKData] = useState({ phi: '', tongQuan: '', uuDiem: '', tienIch: '', images: [], localImages: [] });
   const [isSavingPK, setIsSavingPK] = useState(false);
 
-  const initialForm = { listingType: 'Cho thuê', phanKhu: 'Sapphire', loaiCan: 'Studio', toaNha: '', khoangTang: 'Tầng trung', huongBanCong: 'Đông Nam', noiThat: 'Đầy đủ nội thất', area: '', price: '', ngayNhanNha: '', vaoLuon: false, phapLy: 'Sổ đỏ', moTa: '', nhanDan: 'Không có' };
+  const initialForm = { listingType: 'Cho thuê', phanKhu: '', loaiCan: '', toaNha: '', khoangTang: '', huongBanCong: '', noiThat: '', area: '', price: '', ngayNhanNha: '', vaoLuon: false, phapLy: 'Sổ đỏ', moTa: '', nhanDan: 'Không có' };
   const [formData, setFormData] = useState(initialForm);
   const [images, setImages] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
@@ -176,7 +176,6 @@ export default function AdminPage() {
     else setFormData({ ...formData, [name]: value });
   };
   
-  // ĐÃ SỬA: BỎ WATERMARK, CHỈ LẤY ẢNH GỐC UP LÊN
   const handleImageChange = (e) => {
     if (e.target.files) {
       const files = Array.from(e.target.files);
@@ -274,8 +273,15 @@ export default function AdminPage() {
 
   const handleSubmit = async (e) => {
     if(e) e.preventDefault();
+    
+    // Kiểm tra trường bắt buộc
+    if (!formData.phanKhu || !formData.toaNha || !formData.loaiCan || !formData.noiThat || !formData.price) {
+      return alert('Vui lòng điền đầy đủ các thông tin bắt buộc: Phân khu, Tòa nhà, Loại căn, Nội thất và Giá!');
+    }
+    
     if (images.length === 0 && !editingId) return alert('Vui lòng chọn ít nhất 1 ảnh!');
     
+    // Thuật toán kiểm tra trùng mới: So sánh Phân khu, Tòa, Loại căn, Nội thất. Sau đó lọc độ chênh Giá.
     if (!editingId && !skipDupCheck) {
       setIsUploading(true);
       const dupQuery = query(collection(db, 'properties'),
@@ -283,14 +289,25 @@ export default function AdminPage() {
         where('phanKhu', '==', formData.phanKhu),
         where('toaNha', '==', formData.toaNha),
         where('loaiCan', '==', formData.loaiCan),
-        where('huongBanCong', '==', formData.huongBanCong)
+        where('noiThat', '==', formData.noiThat)
       );
       const dupSnap = await getDocs(dupQuery);
+
+      let foundDup = null;
+      const newPrice = Number(formData.price);
+      // Chênh lệch: Thuê (Triệu) <= 1.5 | Bán (Tỷ) <= 0.25 (tức 250 triệu)
+      const threshold = formData.listingType === 'Cho thuê' ? 1.5 : 0.25;
+
+      dupSnap.forEach(doc => {
+        const existingPrice = Number(doc.data().price);
+        if (!isNaN(existingPrice) && !isNaN(newPrice) && Math.abs(existingPrice - newPrice) <= threshold) {
+          foundDup = { id: doc.id, maCan: doc.data().maCan };
+        }
+      });
       setIsUploading(false);
       
-      if (!dupSnap.empty) {
-        const dupDoc = dupSnap.docs[0];
-        setDuplicateWarning({ id: dupDoc.id, maCan: dupDoc.data().maCan });
+      if (foundDup) {
+        setDuplicateWarning(foundDup);
         return; 
       }
     }
@@ -391,36 +408,51 @@ export default function AdminPage() {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-[11px] font-bold mb-1 text-gray-500 uppercase">Phân khu</label>
-                <select name="phanKhu" value={formData.phanKhu} onChange={handleInputChange} className="w-full p-3 border border-gray-200 rounded-lg focus:border-blue-500 outline-none text-sm font-medium">{phanKhuList.map(opt => <option key={opt}>{opt}</option>)}</select>
+                <label className="block text-[11px] font-bold mb-1 text-gray-500 uppercase">Phân khu <span className="text-red-500">*</span></label>
+                <select name="phanKhu" value={formData.phanKhu} onChange={handleInputChange} className="w-full p-3 border border-gray-200 rounded-lg focus:border-blue-500 outline-none text-sm font-medium">
+                  <option value="" disabled>-- Chọn --</option>
+                  {phanKhuList.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                </select>
               </div>
               <div>
-                <label className="block text-[11px] font-bold mb-1 text-gray-500 uppercase">Tòa nhà (VD: S1.02)</label>
-                <input name="toaNha" value={formData.toaNha} onChange={handleInputChange} placeholder="Nhập tên tòa..." className="w-full p-3 border border-gray-200 rounded-lg focus:border-blue-500 outline-none text-sm font-medium" required />
+                <label className="block text-[11px] font-bold mb-1 text-gray-500 uppercase">Tòa nhà <span className="text-red-500">*</span></label>
+                <input name="toaNha" value={formData.toaNha} onChange={handleInputChange} placeholder="VD: S1.02" className="w-full p-3 border border-gray-200 rounded-lg focus:border-blue-500 outline-none text-sm font-medium" />
               </div>
               <div>
-                <label className="block text-[11px] font-bold mb-1 text-gray-500 uppercase">Loại căn</label>
-                <select name="loaiCan" value={formData.loaiCan} onChange={handleInputChange} className="w-full p-3 border border-gray-200 rounded-lg focus:border-blue-500 outline-none text-sm font-medium">{['Studio', '1N', '1N+', '2N1WC', '2N2WC', '2N+', '3N', '4N'].map(opt => <option key={opt}>{opt}</option>)}</select>
+                <label className="block text-[11px] font-bold mb-1 text-gray-500 uppercase">Loại căn <span className="text-red-500">*</span></label>
+                <select name="loaiCan" value={formData.loaiCan} onChange={handleInputChange} className="w-full p-3 border border-gray-200 rounded-lg focus:border-blue-500 outline-none text-sm font-medium">
+                  <option value="" disabled>-- Chọn --</option>
+                  {['Studio', '1N', '1N+', '2N1WC', '2N2WC', '2N+', '3N', '4N'].map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                </select>
               </div>
               <div>
                 <label className="block text-[11px] font-bold mb-1 text-gray-500 uppercase">Khoảng tầng</label>
-                <select name="khoangTang" value={formData.khoangTang} onChange={handleInputChange} className="w-full p-3 border border-gray-200 rounded-lg focus:border-blue-500 outline-none text-sm font-medium">{['Tầng thấp', 'Tầng trung', 'Tầng cao'].map(opt => <option key={opt}>{opt}</option>)}</select>
+                <select name="khoangTang" value={formData.khoangTang} onChange={handleInputChange} className="w-full p-3 border border-gray-200 rounded-lg focus:border-blue-500 outline-none text-sm font-medium">
+                  <option value="">-- Chọn --</option>
+                  {['Tầng thấp', 'Tầng trung', 'Tầng cao'].map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                </select>
               </div>
               <div>
                 <label className="block text-[11px] font-bold mb-1 text-gray-500 uppercase">Hướng</label>
-                <select name="huongBanCong" value={formData.huongBanCong} onChange={handleInputChange} className="w-full p-3 border border-gray-200 rounded-lg focus:border-blue-500 outline-none text-sm font-medium">{['Đông', 'Tây', 'Nam', 'Bắc', 'Đông Nam', 'Đông Bắc', 'Tây Nam', 'Tây Bắc'].map(opt => <option key={opt}>{opt}</option>)}</select>
+                <select name="huongBanCong" value={formData.huongBanCong} onChange={handleInputChange} className="w-full p-3 border border-gray-200 rounded-lg focus:border-blue-500 outline-none text-sm font-medium">
+                  <option value="">-- Chọn --</option>
+                  {['Đông', 'Tây', 'Nam', 'Bắc', 'Đông Nam', 'Đông Bắc', 'Tây Nam', 'Tây Bắc'].map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                </select>
               </div>
               <div>
-                <label className="block text-[11px] font-bold mb-1 text-gray-500 uppercase">Nội thất</label>
-                <select name="noiThat" value={formData.noiThat} onChange={handleInputChange} className="w-full p-3 border border-gray-200 rounded-lg focus:border-blue-500 outline-none text-sm font-medium">{['Nguyên bản CĐT', 'Đồ cơ bản', 'Đầy đủ nội thất'].map(opt => <option key={opt}>{opt}</option>)}</select>
+                <label className="block text-[11px] font-bold mb-1 text-gray-500 uppercase">Nội thất <span className="text-red-500">*</span></label>
+                <select name="noiThat" value={formData.noiThat} onChange={handleInputChange} className="w-full p-3 border border-gray-200 rounded-lg focus:border-blue-500 outline-none text-sm font-medium">
+                  <option value="" disabled>-- Chọn --</option>
+                  {['Nguyên bản CĐT', 'Đồ cơ bản', 'Đầy đủ nội thất'].map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                </select>
               </div>
                <div>
                   <label className="block text-[11px] font-bold mb-1 text-gray-500 uppercase">Diện tích (m²)</label>
                   <input name="area" value={formData.area} onChange={handleInputChange} type="number" step="0.1" placeholder="Bỏ trống nếu chưa rõ" onWheel={(e) => e.target.blur()} className="w-full p-3 border border-gray-200 rounded-lg focus:border-blue-500 outline-none text-sm font-medium" />
                </div>
                <div>
-                  <label className="block text-[11px] font-bold mb-1 text-gray-500 uppercase">{formData.listingType === 'Cho thuê' ? 'Giá thuê (Triệu)' : 'Giá bán (Tỷ)'}</label>
-                  <input name="price" value={formData.price} onChange={handleInputChange} type="number" step="0.01" placeholder="VD: 15.5" onWheel={(e) => e.target.blur()} className="w-full p-3 border border-gray-200 rounded-lg focus:border-blue-500 outline-none text-sm font-medium" required />
+                  <label className="block text-[11px] font-bold mb-1 text-gray-500 uppercase">{formData.listingType === 'Cho thuê' ? 'Giá thuê (Triệu)' : 'Giá bán (Tỷ)'} <span className="text-red-500">*</span></label>
+                  <input name="price" value={formData.price} onChange={handleInputChange} type="number" step="0.01" placeholder="VD: 15.5" onWheel={(e) => e.target.blur()} className="w-full p-3 border border-gray-200 rounded-lg focus:border-blue-500 outline-none text-sm font-medium" />
                </div>
             </div>
 
@@ -429,8 +461,11 @@ export default function AdminPage() {
                 <div className="bg-blue-50/50 p-3 rounded-xl border border-blue-100 flex-1">
                   <label className="block text-[11px] font-bold mb-1 text-blue-800 uppercase">Ngày chuyển vào</label>
                   <div className="flex items-center gap-3 mt-1">
-                    <input type="date" name="ngayNhanNha" value={formData.ngayNhanNha || ''} onChange={handleInputChange} disabled={formData.vaoLuon} className="flex-1 p-2 border border-blue-200 rounded-lg focus:border-blue-500 outline-none text-sm font-medium disabled:opacity-50" />
-                    <label className="flex items-center gap-1.5 text-sm font-bold text-blue-900 cursor-pointer whitespace-nowrap">
+                    <div className="flex-1">
+                       <input type="date" name="ngayNhanNha" value={formData.ngayNhanNha || ''} onChange={handleInputChange} disabled={formData.vaoLuon} className="w-full p-2 border border-blue-200 rounded-lg focus:border-blue-500 outline-none text-sm font-medium disabled:opacity-50" />
+                       <span className="text-[9px] text-blue-600 block mt-1 italic">*Định dạng phụ thuộc thiết bị</span>
+                    </div>
+                    <label className="flex items-center gap-1.5 text-sm font-bold text-blue-900 cursor-pointer whitespace-nowrap pb-4">
                       <input type="checkbox" name="vaoLuon" checked={formData.vaoLuon || false} onChange={handleInputChange} className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500" />
                       Vào luôn
                     </label>
@@ -462,7 +497,7 @@ export default function AdminPage() {
             </div>
 
             <div className="border-2 border-dashed border-gray-300 p-5 text-center rounded-xl bg-gray-50 hover:bg-gray-100 transition">
-              <label className="block font-bold mb-2 cursor-pointer text-blue-900 text-sm">Tải lên Ảnh căn hộ</label>
+              <label className="block font-bold mb-2 cursor-pointer text-blue-900 text-sm">Tải lên Ảnh căn hộ <span className="text-red-500">*</span></label>
               <input type="file" multiple accept="image/*" onChange={handleImageChange} className="w-full text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200 cursor-pointer" />
               
               {images.length > 0 && (
