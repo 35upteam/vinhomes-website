@@ -396,7 +396,7 @@ export default function AdminPage() {
       else if (pages[pages.length - 1] !== '...') pages.push('...');
     }
     return (
-      <div className="flex justify-center items-center gap-1.5 mt-6 border-t border-gray-100 pt-4">
+      <div className="flex justify-center items-center gap-1.5 mt-6 border-t border-gray-100 pt-4 pb-4">
         <button disabled={currentPage === 1} onClick={() => setCurrentPage(currentPage - 1)} className="w-8 h-8 flex items-center justify-center rounded-md border border-gray-200 bg-white text-gray-500 hover:bg-gray-50 disabled:opacity-30">‹</button>
         {pages.map((p, idx) => (
            <button key={idx} disabled={p === '...'} onClick={() => p !== '...' && setCurrentPage(p)} className={`w-8 h-8 flex items-center justify-center rounded-md font-bold text-sm ${currentPage === p ? 'bg-blue-600 text-white border-blue-600' : p === '...' ? 'text-gray-400 cursor-default' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'}`}>
@@ -464,22 +464,22 @@ export default function AdminPage() {
           </div>
           
           <div className="flex gap-2 md:gap-4 items-center">
-            <a href="https://analytics.google.com/" target="_blank" rel="noreferrer" className="hidden xl:flex items-center gap-2 bg-white/10 hover:bg-white/20 border border-white/30 text-white px-4 py-2 rounded-lg text-sm font-medium transition whitespace-nowrap shadow-sm">
+            <a href="https://analytics.google.com/" target="_blank" rel="noreferrer" className="flex items-center gap-2 bg-white/10 hover:bg-white/20 border border-white/30 text-white px-3 md:px-4 py-2 rounded-lg text-sm font-medium transition whitespace-nowrap shadow-sm">
                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
-               Đo lường
+               <span className="hidden md:inline">Đo lường</span>
             </a>
             
             <button onClick={() => setIsMatrixModalOpen(true)} className="bg-white/10 hover:bg-white/20 border border-white/30 px-3 md:px-4 py-2 rounded-lg text-sm font-medium transition whitespace-nowrap flex items-center gap-1.5">
                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
-               <span className="hidden sm:inline">Thống kê giá</span>
+               <span className="hidden md:inline">Thống kê giá</span>
             </button>
-            <button onClick={openPhanKhuModal} className="hidden md:flex bg-white/10 hover:bg-white/20 border border-white/30 px-3 md:px-4 py-2 rounded-lg text-sm font-medium transition whitespace-nowrap items-center gap-1.5">
+            <button onClick={openPhanKhuModal} className="flex bg-white/10 hover:bg-white/20 border border-white/30 px-3 md:px-4 py-2 rounded-lg text-sm font-medium transition whitespace-nowrap items-center gap-1.5">
                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
-               Phân khu
+               <span className="hidden md:inline">Phân khu</span>
             </button>
-            <button onClick={() => setIsAccountModalOpen(true)} className="hidden md:flex bg-white/10 hover:bg-white/20 border border-white/30 px-3 md:px-4 py-2 rounded-lg text-sm font-medium transition whitespace-nowrap items-center gap-1.5">
+            <button onClick={() => setIsAccountModalOpen(true)} className="flex bg-white/10 hover:bg-white/20 border border-white/30 px-3 md:px-4 py-2 rounded-lg text-sm font-medium transition whitespace-nowrap items-center gap-1.5">
                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
-               Tài khoản
+               <span className="hidden md:inline">Tài khoản</span>
             </button>
             
             {user && <span className="hidden lg:block text-sm font-bold ml-2">Xin chào {user.email}!</span>}
@@ -519,60 +519,60 @@ export default function AdminPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-[11px] font-bold mb-1 text-gray-500 uppercase">Phân khu <span className="text-red-500">*</span></label>
-                <select name="phanKhu" value={formData.phanKhu} onChange={handleInputChange} className={`w-full p-3 rounded-lg outline-none text-sm font-medium transition ${missingFields.includes('phanKhu') ? 'border-2 border-red-500 bg-red-50' : 'border border-gray-200 focus:border-blue-500'}`}>
+                <select name="phanKhu" value={formData.phanKhu} onChange={handleInputChange} className={`w-full p-3 rounded-lg outline-none text-[16px] md:text-sm font-medium transition ${missingFields.includes('phanKhu') ? 'border-2 border-red-500 bg-red-50' : 'border border-gray-200 focus:border-blue-500'}`}>
                   <option value="" disabled>-- Chọn --</option>
                   {phanKhuList.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                 </select>
               </div>
               <div>
                 <label className="block text-[11px] font-bold mb-1 text-gray-500 uppercase">Tòa nhà <span className="text-red-500">*</span></label>
-                <input name="toaNha" value={formData.toaNha} onChange={handleInputChange} placeholder="VD: S102" className={`w-full p-3 rounded-lg outline-none text-sm font-medium transition ${missingFields.includes('toaNha') ? 'border-2 border-red-500 bg-red-50' : 'border border-gray-200 focus:border-blue-500'}`} />
+                <input name="toaNha" value={formData.toaNha} onChange={handleInputChange} placeholder="VD: S102" className={`w-full p-3 rounded-lg outline-none text-[16px] md:text-sm font-medium transition ${missingFields.includes('toaNha') ? 'border-2 border-red-500 bg-red-50' : 'border border-gray-200 focus:border-blue-500'}`} />
               </div>
               <div>
                 <label className="block text-[11px] font-bold mb-1 text-gray-500 uppercase">Loại căn <span className="text-red-500">*</span></label>
-                <select name="loaiCan" value={formData.loaiCan} onChange={handleInputChange} className={`w-full p-3 rounded-lg outline-none text-sm font-medium transition ${missingFields.includes('loaiCan') ? 'border-2 border-red-500 bg-red-50' : 'border border-gray-200 focus:border-blue-500'}`}>
+                <select name="loaiCan" value={formData.loaiCan} onChange={handleInputChange} className={`w-full p-3 rounded-lg outline-none text-[16px] md:text-sm font-medium transition ${missingFields.includes('loaiCan') ? 'border-2 border-red-500 bg-red-50' : 'border border-gray-200 focus:border-blue-500'}`}>
                   <option value="" disabled>-- Chọn --</option>
                   {['Studio', '1N', '1N+', '2N1WC', '2N2WC', '2N+', '3N', '4N'].map(opt => <option key={opt} value={opt}>{opt}</option>)}
                 </select>
               </div>
               <div>
                 <label className="block text-[11px] font-bold mb-1 text-gray-500 uppercase">Khoảng tầng</label>
-                <select name="khoangTang" value={formData.khoangTang} onChange={handleInputChange} className="w-full p-3 border border-gray-200 rounded-lg focus:border-blue-500 outline-none text-sm font-medium">
+                <select name="khoangTang" value={formData.khoangTang} onChange={handleInputChange} className="w-full p-3 border border-gray-200 rounded-lg focus:border-blue-500 outline-none text-[16px] md:text-sm font-medium">
                   <option value="">-- Chọn --</option>
                   {['Tầng thấp', 'Tầng trung', 'Tầng cao'].map(opt => <option key={opt} value={opt}>{opt}</option>)}
                 </select>
               </div>
               <div>
                 <label className="block text-[11px] font-bold mb-1 text-gray-500 uppercase">Hướng</label>
-                <select name="huongBanCong" value={formData.huongBanCong} onChange={handleInputChange} className="w-full p-3 border border-gray-200 rounded-lg focus:border-blue-500 outline-none text-sm font-medium">
+                <select name="huongBanCong" value={formData.huongBanCong} onChange={handleInputChange} className="w-full p-3 border border-gray-200 rounded-lg focus:border-blue-500 outline-none text-[16px] md:text-sm font-medium">
                   <option value="">-- Chọn --</option>
                   {['Đông', 'Tây', 'Nam', 'Bắc', 'Đông Nam', 'Đông Bắc', 'Tây Nam', 'Tây Bắc'].map(opt => <option key={opt} value={opt}>{opt}</option>)}
                 </select>
               </div>
               <div>
                 <label className="block text-[11px] font-bold mb-1 text-gray-500 uppercase">Nội thất <span className="text-red-500">*</span></label>
-                <select name="noiThat" value={formData.noiThat} onChange={handleInputChange} className={`w-full p-3 rounded-lg outline-none text-sm font-medium transition ${missingFields.includes('noiThat') ? 'border-2 border-red-500 bg-red-50' : 'border border-gray-200 focus:border-blue-500'}`}>
+                <select name="noiThat" value={formData.noiThat} onChange={handleInputChange} className={`w-full p-3 rounded-lg outline-none text-[16px] md:text-sm font-medium transition ${missingFields.includes('noiThat') ? 'border-2 border-red-500 bg-red-50' : 'border border-gray-200 focus:border-blue-500'}`}>
                   <option value="" disabled>-- Chọn --</option>
                   {['Nguyên bản CĐT', 'Đồ cơ bản', 'Đầy đủ nội thất'].map(opt => <option key={opt} value={opt}>{opt}</option>)}
                 </select>
               </div>
                <div>
                   <label className="block text-[11px] font-bold mb-1 text-gray-500 uppercase">Diện tích (m²)</label>
-                  <input name="area" value={formData.area} onChange={handleInputChange} type="number" step="0.1" placeholder="Bỏ trống nếu chưa rõ" onWheel={(e) => e.target.blur()} className="w-full p-3 border border-gray-200 rounded-lg focus:border-blue-500 outline-none text-sm font-medium" />
+                  <input name="area" value={formData.area} onChange={handleInputChange} type="number" step="0.1" placeholder="Bỏ trống nếu chưa rõ" onWheel={(e) => e.target.blur()} className="w-full p-3 border border-gray-200 rounded-lg focus:border-blue-500 outline-none text-[16px] md:text-sm font-medium" />
                </div>
                <div>
                   <label className="block text-[11px] font-bold mb-1 text-gray-500 uppercase">{formData.listingType === 'Cho thuê' ? 'Giá thuê (Triệu)' : 'Giá bán (Tỷ)'} <span className="text-red-500">*</span></label>
-                  <input name="price" value={formData.price} onChange={handleInputChange} type="number" step="0.01" placeholder="VD: 15.5" onWheel={(e) => e.target.blur()} className={`w-full p-3 rounded-lg outline-none text-sm font-medium transition ${missingFields.includes('price') ? 'border-2 border-red-500 bg-red-50' : 'border border-gray-200 focus:border-blue-500'}`} />
+                  <input name="price" value={formData.price} onChange={handleInputChange} type="number" step="0.01" placeholder="VD: 15.5" onWheel={(e) => e.target.blur()} className={`w-full p-3 rounded-lg outline-none text-[16px] md:text-sm font-medium transition ${missingFields.includes('price') ? 'border-2 border-red-500 bg-red-50' : 'border border-gray-200 focus:border-blue-500'}`} />
                </div>
             </div>
 
-            <div className="flex gap-4">
+            <div className="flex flex-col md:flex-row gap-4">
               {formData.listingType === 'Cho thuê' && (
                 <div className="bg-blue-50/50 p-3 rounded-xl border border-blue-100 flex-1">
                   <label className="block text-[11px] font-bold mb-1 text-blue-800 uppercase">Ngày chuyển vào</label>
                   <div className="flex items-center gap-3 mt-1">
                     <div className="flex-1">
-                       <input type="date" name="ngayNhanNha" value={formData.ngayNhanNha || ''} onChange={handleInputChange} disabled={formData.vaoLuon} className="w-full p-2 border border-blue-200 rounded-lg focus:border-blue-500 outline-none text-sm font-medium disabled:opacity-50" />
+                       <input type="date" name="ngayNhanNha" value={formData.ngayNhanNha || ''} onChange={handleInputChange} disabled={formData.vaoLuon} className="w-full p-2 border border-blue-200 rounded-lg focus:border-blue-500 outline-none text-[16px] md:text-sm font-medium disabled:opacity-50" />
                     </div>
                     <label className="flex items-center gap-1.5 text-sm font-bold text-blue-900 cursor-pointer whitespace-nowrap">
                       <input type="checkbox" name="vaoLuon" checked={formData.vaoLuon || false} onChange={handleInputChange} className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500" />
@@ -585,7 +585,7 @@ export default function AdminPage() {
               {formData.listingType === 'Chuyển nhượng' && (
                 <div className="bg-blue-50/50 p-3 rounded-xl border border-blue-100 flex-1">
                   <label className="block text-[11px] font-bold mb-1 text-blue-800 uppercase">Tình trạng pháp lý</label>
-                  <select name="phapLy" value={formData.phapLy || 'Sổ đỏ'} onChange={handleInputChange} className="w-full mt-1 p-2 border border-blue-200 rounded-lg focus:border-blue-500 outline-none text-sm font-medium bg-white">
+                  <select name="phapLy" value={formData.phapLy || 'Sổ đỏ'} onChange={handleInputChange} className="w-full mt-1 p-2 border border-blue-200 rounded-lg focus:border-blue-500 outline-none text-[16px] md:text-sm font-medium bg-white">
                     <option value="Sổ đỏ">Sổ đỏ</option>
                     <option value="Hợp đồng mua bán">Hợp đồng mua bán</option>
                   </select>
@@ -594,7 +594,7 @@ export default function AdminPage() {
               
               <div className="bg-red-50/50 p-3 rounded-xl border border-red-100 flex-1">
                 <label className="block text-[11px] font-bold mb-1 text-red-800 uppercase">Gắn nhãn HOT</label>
-                <select name="nhanDan" value={formData.nhanDan || 'Không có'} onChange={handleInputChange} className="w-full mt-1 p-2 border border-red-200 rounded-lg focus:border-red-500 outline-none text-sm font-medium text-red-700 bg-white">
+                <select name="nhanDan" value={formData.nhanDan || 'Không có'} onChange={handleInputChange} className="w-full mt-1 p-2 border border-red-200 rounded-lg focus:border-red-500 outline-none text-[16px] md:text-sm font-medium text-red-700 bg-white">
                   {nhanDanOptions.map(opt => <option key={opt}>{opt}</option>)}
                 </select>
               </div>
@@ -602,7 +602,7 @@ export default function AdminPage() {
 
             <div>
               <label className="block text-[11px] font-bold mb-1.5 text-gray-500 uppercase">Ghi chú mật (Chỉ lưu nội bộ)</label>
-              <textarea name="moTa" value={formData.moTa || ''} onChange={handleInputChange} rows="2" placeholder="VD: Pass cửa, thông tin chủ nhà, % hoa hồng..." className="w-full p-3 border border-gray-200 rounded-lg focus:border-blue-500 outline-none text-sm font-medium"></textarea>
+              <textarea name="moTa" value={formData.moTa || ''} onChange={handleInputChange} rows="2" placeholder="VD: Pass cửa, thông tin chủ nhà, % hoa hồng..." className="w-full p-3 border border-gray-200 rounded-lg focus:border-blue-500 outline-none text-[16px] md:text-sm font-medium"></textarea>
             </div>
 
             <div className={`border-2 border-dashed p-5 text-center rounded-xl bg-gray-50 hover:bg-gray-100 transition ${missingFields.includes('images') ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}>
@@ -656,7 +656,7 @@ export default function AdminPage() {
               placeholder={adminTab === 'quy-can' ? "Tìm mã căn, tòa nhà..." : "Tìm SĐT, nhu cầu khách..."}
               value={searchTerm}
               onChange={(e) => {setSearchTerm(e.target.value); setCurrentPage(1);}}
-              className="w-full max-w-sm px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition font-medium"
+              className="w-full max-w-sm px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-[16px] md:text-sm focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition font-medium"
             />
           </div>
 
@@ -671,10 +671,10 @@ export default function AdminPage() {
 
           <div className="overflow-x-auto flex-grow rounded-lg border border-gray-100 shadow-sm relative">
             {adminTab === 'quy-can' && (
-              <table className="w-full text-sm text-left min-w-[900px]">
+              <table className="w-full text-sm text-left">
                 <thead className="bg-gray-200 text-gray-800 uppercase text-[11px] font-black tracking-wider sticky top-0 z-20 shadow-sm shadow-gray-300/30">
                   <tr>
-                    <th className="px-4 py-3 min-w-[140px] bg-gray-200">
+                    <th className="px-4 py-3 bg-gray-200">
                       <div className="flex flex-col gap-1 items-start">
                         <div className="flex items-center gap-2">
                            <input type="checkbox" onChange={handleSelectAll} checked={selectedProperties.length === paginatedProperties.length && paginatedProperties.length > 0} className="w-3.5 h-3.5 rounded text-blue-600" />
@@ -731,7 +731,7 @@ export default function AdminPage() {
                          </div>
                       </td>
                       <td className="px-4 py-4 text-center align-top">
-                        <div className="flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="flex items-center justify-center gap-2 opacity-100 lg:opacity-0 group-hover:opacity-100 transition-opacity">
                           <div className="relative group/btn inline-block">
                             <button onClick={() => handleBump(item.id)} className="text-green-600 hover:bg-green-100 p-1.5 rounded-md transition"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 10l7-7m0 0l7 7m-7-7v18"></path></svg></button>
                             <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden group-hover/btn:block bg-gray-800 text-white text-[10px] px-2 py-1 rounded whitespace-nowrap z-50 pointer-events-none">Đẩy tin</span>
@@ -754,14 +754,14 @@ export default function AdminPage() {
             )}
 
             {adminTab === 'ky-gui' && (
-              <table className="w-full text-sm text-left min-w-[800px]">
+              <table className="w-full text-sm text-left">
                 <thead className="bg-gray-200 text-gray-800 uppercase text-[11px] font-black tracking-wider sticky top-0 z-20 shadow-sm shadow-gray-300/30">
                   <tr>
-                    <th className="px-4 py-3 rounded-tl-lg bg-gray-200">Tòa / Số căn</th>
+                    <th className="px-4 py-3 bg-gray-200">Tòa / Số căn</th>
                     <th className="px-4 py-3 bg-gray-200">Nhu cầu</th>
                     <th className="px-4 py-3 bg-gray-200">SĐT Khách</th>
                     <th className="px-4 py-3 bg-gray-200">Trạng thái</th>
-                    <th className="px-4 py-3 text-right rounded-tr-lg bg-gray-200">Thao tác</th>
+                    <th className="px-4 py-3 text-right bg-gray-200">Thao tác</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 bg-white">
@@ -776,7 +776,7 @@ export default function AdminPage() {
                         <td className="px-4 py-4 font-bold text-blue-600">{item.soDienThoai}</td>
                         <td className="px-4 py-4"><button onClick={() => toggleKyGuiStatus(item.id, item.status)} className={`px-3 py-1 rounded-full text-[10px] font-bold border transition ${item.status === 'Chưa xử lý' ? 'bg-red-100 text-red-700 border-red-200 hover:bg-red-200' : 'bg-green-100 text-green-700 border-green-200 hover:bg-green-200'}`}>{item.status} (Click đổi)</button></td>
                         <td className="px-4 py-4 text-right">
-                          <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="flex items-center justify-end gap-2 opacity-100 lg:opacity-0 group-hover:opacity-100 transition-opacity">
                             <button onClick={() => { setAdminTab('quy-can'); setFormData({ ...initialForm, listingType: item.nhuCau, toaNha: item.toaNha, loaiCan: item.loaiCan, area: item.dienTich, price: item.gia.replace(/[^0-9.]/g, ''), noiThat: item.noiThat, ngayNhanNha: item.ngayVaoO || '', moTa: `Khách ký gửi: SĐT ${item.soDienThoai}. Ghi chú khách: ${item.ghiChu}` }); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="text-blue-600 hover:bg-blue-100 px-3 py-1.5 rounded-md font-bold transition">Lên bài</button>
                             <button onClick={() => handleDeleteKyGui(item.id)} className="text-red-500 hover:bg-red-50 px-3 py-1.5 rounded-md font-bold transition">Xóa</button>
                           </div>
@@ -790,14 +790,14 @@ export default function AdminPage() {
             )}
 
             {adminTab === 'nho-tim' && (
-              <table className="w-full text-sm text-left min-w-[800px]">
+              <table className="w-full text-sm text-left">
                 <thead className="bg-gray-200 text-gray-800 uppercase text-[11px] font-black tracking-wider sticky top-0 z-20 shadow-sm shadow-gray-300/30">
                   <tr>
-                    <th className="px-4 py-3 rounded-tl-lg bg-gray-200">Khách Hàng / Nguồn</th>
+                    <th className="px-4 py-3 bg-gray-200">Khách Hàng / Nguồn</th>
                     <th className="px-4 py-3 bg-gray-200">Nhu cầu Tìm</th>
                     <th className="px-4 py-3 bg-gray-200">Yêu cầu khác</th>
                     <th className="px-4 py-3 bg-gray-200">Trạng thái</th>
-                    <th className="px-4 py-3 text-right rounded-tr-lg bg-gray-200">Thao tác</th>
+                    <th className="px-4 py-3 text-right bg-gray-200">Thao tác</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 bg-white">
@@ -822,7 +822,7 @@ export default function AdminPage() {
                         </td>
                         <td className="px-4 py-4"><button onClick={() => toggleNhoTimStatus(item.id, item.status)} className={`px-3 py-1 rounded-full text-[10px] font-bold border transition ${item.status === 'Chưa xử lý' ? 'bg-red-100 text-red-700 border-red-200 hover:bg-red-200' : 'bg-green-100 text-green-700 border-green-200 hover:bg-green-200'}`}>{item.status} (Click đổi)</button></td>
                         <td className="px-4 py-4 text-right">
-                          <button onClick={() => handleDeleteNhoTim(item.id)} className="text-red-500 hover:bg-red-50 px-3 py-1.5 rounded-md font-bold transition opacity-0 group-hover:opacity-100">Xóa</button>
+                          <button onClick={() => handleDeleteNhoTim(item.id)} className="text-red-500 hover:bg-red-50 px-3 py-1.5 rounded-md font-bold transition opacity-100 lg:opacity-0 group-hover:opacity-100">Xóa</button>
                         </td>
                       </tr>
                     );
@@ -833,7 +833,6 @@ export default function AdminPage() {
             )}
           </div>
           
-          {/* Vùng Phân trang nằm gọn ở đáy bảng */}
           <div className="flex-shrink-0 mt-4">
              {adminTab === 'quy-can' && renderPagination(currentPage, totalPages, setCurrentPage)}
              {adminTab === 'ky-gui' && renderPagination(currentPage, Math.ceil(kyGuiList.length / itemsPerPage), setCurrentPage)}
@@ -841,6 +840,8 @@ export default function AdminPage() {
           </div>
         </div>
       </div>
+      
+      {/* ... (Phần hiển thị Popup Matrix Giá và Config Phân Khu giữ nguyên không thay đổi) ... */}
       
       {isMatrixModalOpen && (
         <div className="fixed inset-0 bg-blue-950/70 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
@@ -964,7 +965,7 @@ export default function AdminPage() {
             <p className="text-sm text-gray-500 mb-6">Chỉ những tài khoản Gmail dưới đây mới có quyền Đăng nhập và Quản trị nội dung Website này.</p>
             
             <div className="flex gap-3 mb-6">
-              <input type="email" placeholder="Nhập Gmail của cộng tác viên..." value={newEmail} onChange={(e) => setNewEmail(e.target.value)} className="flex-1 p-3 border border-gray-300 rounded-lg outline-none focus:border-blue-600 text-sm" />
+              <input type="email" placeholder="Nhập Gmail của cộng tác viên..." value={newEmail} onChange={(e) => setNewEmail(e.target.value)} className="flex-1 p-3 border border-gray-300 rounded-lg outline-none focus:border-blue-600 text-[16px] md:text-sm" />
               <button onClick={handleAddEmail} className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-bold text-sm shadow-md transition whitespace-nowrap">Thêm quyền</button>
             </div>
 
