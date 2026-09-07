@@ -4,8 +4,13 @@ import { db } from '../firebase';
 import { collection, query, orderBy, getDocs, addDoc, serverTimestamp } from 'firebase/firestore';
 import Link from 'next/link';
 
-const optimizeImg = (url) => url?.includes('cloudinary.com') ? url.replace('/upload/', '/upload/w_800,c_limit,q_auto,f_auto/') : url;
-const sanitize = (str) => str ? str.toString().replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/&/g, '&amp;') : '';
+const optimizeImg = (url) => {
+  return url?.includes('cloudinary.com') ? url.replace('/upload/', '/upload/w_800,c_limit,q_auto,f_auto/') : url;
+};
+
+const sanitize = (str) => {
+  return str ? str.toString().replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/&/g, '&amp;') : '';
+};
 
 const SkeletonCard = () => (
   <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden animate-pulse">
@@ -36,23 +41,50 @@ const PropertyCard = ({ item, contactPhone }) => {
   useEffect(() => {
     let timer;
     if (isHovering && images.length > 1) {
-      timer = setInterval(() => setCurrentImg(prev => (prev + 1) % images.length), 1500);
+      timer = setInterval(() => {
+        setCurrentImg(prev => (prev + 1) % images.length);
+      }, 1500);
     }
     return () => clearInterval(timer);
   }, [isHovering, images.length]);
 
-  const nextImg = (e) => { e.preventDefault(); e.stopPropagation(); if (currentImg < images.length - 1) setCurrentImg(currentImg + 1); else setCurrentImg(0); };
-  const prevImg = (e) => { e.preventDefault(); e.stopPropagation(); if (currentImg > 0) setCurrentImg(currentImg - 1); else setCurrentImg(images.length - 1); };
+  const nextImg = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (currentImg < images.length - 1) {
+      setCurrentImg(currentImg + 1);
+    } else {
+      setCurrentImg(0);
+    }
+  };
+
+  const prevImg = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (currentImg > 0) {
+      setCurrentImg(currentImg - 1);
+    } else {
+      setCurrentImg(images.length - 1);
+    }
+  };
 
   const handleCopy = (e) => {
-    e.preventDefault(); e.stopPropagation();
+    e.preventDefault();
+    e.stopPropagation();
     navigator.clipboard.writeText(item.maCan);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const onTouchStart = (e) => { setTouchEnd(null); setTouchStart(e.targetTouches[0].clientX); };
-  const onTouchMove = (e) => setTouchEnd(e.targetTouches[0].clientX);
+  const onTouchStart = (e) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const onTouchMove = (e) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
   const onTouchEnd = (e) => {
     if (!touchStart || !touchEnd) return;
     const distance = touchStart - touchEnd;
@@ -60,11 +92,13 @@ const PropertyCard = ({ item, contactPhone }) => {
     const isRightSwipe = distance < -minSwipeDistance;
     
     if (isLeftSwipe && images.length > 1) {
-      e.preventDefault(); e.stopPropagation();
+      e.preventDefault();
+      e.stopPropagation();
       setCurrentImg(prev => prev < images.length - 1 ? prev + 1 : 0);
     }
     if (isRightSwipe && images.length > 1) {
-      e.preventDefault(); e.stopPropagation();
+      e.preventDefault();
+      e.stopPropagation();
       setCurrentImg(prev => prev > 0 ? prev - 1 : images.length - 1);
     }
   };
@@ -73,7 +107,7 @@ const PropertyCard = ({ item, contactPhone }) => {
     <Link 
       href={`/property/${item.id}`} 
       onMouseEnter={() => setIsHovering(true)} 
-      onMouseLeave={() => {setIsHovering(false); setCurrentImg(0);}}
+      onMouseLeave={() => { setIsHovering(false); setCurrentImg(0); }}
       className="block bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer group flex flex-col relative"
     >
       <div className="relative h-56 bg-gray-200 overflow-hidden" onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}>
@@ -83,7 +117,9 @@ const PropertyCard = ({ item, contactPhone }) => {
               <img key={idx} src={optimizeImg(img)} loading={idx === 0 ? "eager" : "lazy"} alt={`Căn hộ ${item.loaiCan}`} className="w-full h-full object-cover flex-shrink-0 group-hover:scale-105 transition-transform duration-700 select-none" />
             ))}
           </div>
-        ) : <div className="flex items-center justify-center h-full text-gray-400 text-sm">Chưa có ảnh</div>}
+        ) : (
+          <div className="flex items-center justify-center h-full text-gray-400 text-sm">Chưa có ảnh</div>
+        )}
         
         {images.length > 1 && (
           <>
@@ -141,7 +177,10 @@ const PropertyCard = ({ item, contactPhone }) => {
             <a 
               href={`https://zalo.me/${contactPhone}?text=${encodeURIComponent(`Xin chào, tôi muốn nhờ tư vấn căn hộ Mã ${item.maCan} (${item.listingType} ${item.loaiCan} tòa ${item.toaNha}) trên web.`)}`} 
               target="_blank" rel="noreferrer" 
-              onClick={(e)=>{e.stopPropagation(); if(typeof window !== 'undefined' && window.gtag) window.gtag('event', 'click_zalo', {'event_category': 'lead', 'event_label': item.maCan});}} 
+              onClick={(e) => {
+                e.stopPropagation(); 
+                if (typeof window !== 'undefined' && window.gtag) window.gtag('event', 'click_zalo', {'event_category': 'lead', 'event_label': item.maCan});
+              }} 
               className="w-full bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-700 hover:to-blue-900 text-white text-center py-3 rounded-xl font-bold transition shadow-md shadow-blue-600/20 flex justify-center items-center gap-2"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
@@ -217,17 +256,17 @@ export default function Home() {
       setActiveTab('Chuyển nhượng');
     } else {
       const savedTab = sessionStorage.getItem('savedActiveTab');
-      if(savedTab) setActiveTab(savedTab);
+      if (savedTab) setActiveTab(savedTab);
     }
     
     const savedFilters = sessionStorage.getItem('savedFilters');
-    if(savedFilters) setFilters(JSON.parse(savedFilters));
+    if (savedFilters) setFilters(JSON.parse(savedFilters));
 
     const savedPage = sessionStorage.getItem('savedCurrentPage');
-    if(savedPage) setCurrentPage(parseInt(savedPage));
+    if (savedPage) setCurrentPage(parseInt(savedPage));
     
     const savedSort = sessionStorage.getItem('savedSortBy');
-    if(savedSort) setSortBy(savedSort);
+    if (savedSort) setSortBy(savedSort);
     
     setIsRestored(true);
   }, []);
@@ -273,23 +312,31 @@ export default function Home() {
     fetchProperties();
 
     const timer = setTimeout(() => {
-      if(!sessionStorage.getItem('leadPopupShown')) {
+      if (!sessionStorage.getItem('leadPopupShown')) {
         setIsLeadPopupOpen(true);
         sessionStorage.setItem('leadPopupShown', 'true');
       }
     }, 60000);
+    
     return () => clearTimeout(timer);
   }, []);
 
-  const handleFilterChange = (e) => { setFilters({ ...filters, [e.target.name]: e.target.value }); setCurrentPage(1); };
+  const handleFilterChange = (e) => { 
+    setFilters({ ...filters, [e.target.name]: e.target.value }); 
+    setCurrentPage(1); 
+  };
+
   const handleLoaiCanToggle = (type) => { 
-    setFilters(prev => ({ ...prev, loaiCan: prev.loaiCan.includes(type) ? prev.loaiCan.filter(t => t !== type) : [...prev.loaiCan, type] }));
+    setFilters(prev => ({ 
+      ...prev, 
+      loaiCan: prev.loaiCan.includes(type) ? prev.loaiCan.filter(t => t !== type) : [...prev.loaiCan, type] 
+    }));
     setCurrentPage(1);
   };
   
   const handleTabChange = (tab) => {
     setActiveTab(tab);
-    setFilters({...filters, loaiCan: [], mucGia: 'Tất cả mức giá'});
+    setFilters({ ...filters, loaiCan: [], mucGia: 'Tất cả mức giá' });
     setCurrentPage(1);
     const param = tab === 'Cho thuê' ? 'cho-thue' : 'ban';
     window.history.pushState(null, '', `?tab=${param}`);
@@ -351,20 +398,30 @@ export default function Home() {
   const handleFindSubmit = async (e) => {
     e.preventDefault();
     const phoneRegex = /^0\d{9}$/;
-    if (!phoneRegex.test(findData.soDienThoai)) { setFindPhoneError("Số điện thoại không hợp lệ!"); return; }
+    if (!phoneRegex.test(findData.soDienThoai)) { 
+      setFindPhoneError("Số điện thoại không hợp lệ!"); 
+      return; 
+    }
     if (!checkSpam('find')) return;
 
     setIsSendingFind(true);
     if(typeof window !== 'undefined' && window.gtag) window.gtag('event', 'form_submit', {'event_category': 'lead', 'event_label': 'Nhờ Tìm Căn'});
-    try { await addDoc(collection(db, 'nho_tim_can'), { ...findData, source: 'Nút Nhờ Tìm (Trang chủ)', createdAt: serverTimestamp(), status: 'Chưa xử lý' }); } catch(err) {}
+    try { 
+      await addDoc(collection(db, 'nho_tim_can'), { ...findData, source: 'Nút Nhờ Tìm (Trang chủ)', createdAt: serverTimestamp(), status: 'Chưa xử lý' }); 
+    } catch(err) {
+      console.error(err);
+    }
 
     const message = `🚨 <b>KHÁCH TÌM CĂN MỚI! (Trang chủ)</b>\n\n👤 <b>Khách hàng:</b> ${sanitize(findData.ten) || 'Chưa nhập'}\n📌 <b>Nhu cầu:</b> ${sanitize(findData.nhuCau)}\n🛏 <b>Loại căn:</b> ${sanitize(findData.loaiCan)}\n💰 <b>Tài chính:</b> ${sanitize(findData.taiChinh)}\n🛋 <b>Nội thất:</b> ${sanitize(findData.noiThat)}\n📅 <b>Vào ở:</b> ${findData.nhuCau === 'Cho thuê' ? sanitize(findData.ngayVaoO) || 'Chưa rõ' : 'N/A'}\n📞 <b>SĐT Khách:</b> <code>${sanitize(findData.soDienThoai)}</code>\n📝 <b>Ghi chú:</b> ${sanitize(findData.ghiChu) || 'Không có'}`;
     
     try { 
       await fetch('/api/telegram', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: message, parse_mode: 'HTML' }) }); 
-    } catch (error) { console.error("Lỗi gửi Telegram", error); }
+    } catch (error) { 
+      console.error("Lỗi gửi Telegram", error); 
+    }
     
-    setIsSendingFind(false); setIsFindModalOpen(false);
+    setIsSendingFind(false); 
+    setIsFindModalOpen(false);
     setFindData({ nhuCau: 'Cho thuê', loaiCan: 'Studio', taiChinh: '', noiThat: 'Đầy đủ nội thất', ngayVaoO: '', soDienThoai: '', ghiChu: '', ten: '' });
     alert("Đã gửi yêu cầu thành công, chúng tôi sẽ sớm liên hệ lại với bạn!");
   };
@@ -372,20 +429,30 @@ export default function Home() {
   const handleLeadSubmit = async (e) => {
     e.preventDefault();
     const phoneRegex = /^0\d{9}$/;
-    if (!phoneRegex.test(leadData.soDienThoai)) { setLeadPhoneError("Số điện thoại không hợp lệ!"); return; }
+    if (!phoneRegex.test(leadData.soDienThoai)) { 
+      setLeadPhoneError("Số điện thoại không hợp lệ!"); 
+      return; 
+    }
     if (!checkSpam('lead')) return;
 
     setIsSendingLead(true);
     if(typeof window !== 'undefined' && window.gtag) window.gtag('event', 'form_submit', {'event_category': 'lead', 'event_label': 'Popup Tự Động'});
-    try { await addDoc(collection(db, 'nho_tim_can'), { ...leadData, source: 'Popup Tự Động', createdAt: serverTimestamp(), status: 'Chưa xử lý' }); } catch(err) {}
+    try { 
+      await addDoc(collection(db, 'nho_tim_can'), { ...leadData, source: 'Popup Tự Động', createdAt: serverTimestamp(), status: 'Chưa xử lý' }); 
+    } catch(err) {
+      console.error(err);
+    }
 
     const message = `🚨 <b>KHÁCH TỪ POPUP TỰ ĐỘNG</b>\n\n👤 <b>Tên khách:</b> ${sanitize(leadData.ten)}\n📞 <b>Số điện thoại:</b> <code>${sanitize(leadData.soDienThoai)}</code>\n📌 <b>Nhu cầu:</b> Tìm ${sanitize(leadData.nhuCau)}\n🛏 <b>Loại căn:</b> ${sanitize(leadData.loaiCan)}\n💰 <b>Tài chính:</b> ${sanitize(leadData.taiChinh) || 'Không ghi'}\n📝 <b>Mong muốn:</b> ${sanitize(leadData.mongMuon) || 'Không có'}`;
     
     try { 
       await fetch('/api/telegram', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: message, parse_mode: 'HTML' }) }); 
-    } catch (error) { console.error("Lỗi gửi Telegram", error); }
+    } catch (error) { 
+      console.error("Lỗi gửi Telegram", error); 
+    }
     
-    setIsSendingLead(false); setIsLeadPopupOpen(false);
+    setIsSendingLead(false); 
+    setIsLeadPopupOpen(false);
     alert("Đã gửi yêu cầu thành công, chúng tôi sẽ sớm liên hệ lại với bạn!");
   };
 
@@ -405,10 +472,11 @@ export default function Home() {
         <div className="flex items-center gap-3 md:gap-4">
            <Link href="/ky-gui" className="flex items-center gap-1.5 bg-blue-50 text-blue-800 px-4 py-2 rounded-full sm:rounded-md font-bold hover:bg-blue-100 transition text-sm border border-blue-100 shadow-sm sm:shadow-none">
              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 001 1m-6 0h6"></path></svg>
-             <span className="hidden sm:inline">Ký gửi căn hộ</span>
+             <span>Ký gửi căn hộ</span>
            </Link>
            <a href={`https://zalo.me/${CONTACT_PHONE}`} target="_blank" rel="noreferrer" className="hidden sm:flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-800 text-white px-5 py-2 rounded-full font-bold hover:opacity-90 transition shadow-md text-sm">
-             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M20 15.5c-1.2 0-2.4-.2-3.6-.6-.3-.1-.7 0-1 .2l-2.2 2.2c-2.8-1.4-5.1-3.8-6.6-6.6l2.2-2.2c.3-.3.4-.7.2-1-.4-1.2-.6-2.4-.6-3.6 0-.6-.4-1-1-1H4c-.6 0-1 .4-1 1 0 9.4 7.6 17 17 17 .6 0 1-.4 1-1v-3.5c0-.6-.4-1-1-1zM19 12h2a9 9 0 00-9-9v2c3.9 0 7.1 3.2 7.1 7.1zM15 12h2c0-2.8-2.2-5-5-5v2c1.7 0 3 1.3 3 3z"/></svg> <span>Liên hệ tư vấn</span>
+             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M20 15.5c-1.2 0-2.4-.2-3.6-.6-.3-.1-.7 0-1 .2l-2.2 2.2c-2.8-1.4-5.1-3.8-6.6-6.6l2.2-2.2c.3-.3.4-.7.2-1-.4-1.2-.6-2.4-.6-3.6 0-.6-.4-1-1-1H4c-.6 0-1 .4-1 1 0 9.4 7.6 17 17 17 .6 0 1-.4 1-1v-3.5c0-.6-.4-1-1-1zM19 12h2a9 9 0 00-9-9v2c3.9 0 7.1 3.2 7.1 7.1zM15 12h2c0-2.8-2.2-5-5-5v2c1.7 0 3 1.3 3 3z"/></svg> 
+             <span>Liên hệ tư vấn</span>
            </a>
         </div>
       </header>
@@ -714,11 +782,10 @@ export default function Home() {
         </div>
       )}
 
-      <a href={`https://zalo.me/${CONTACT_PHONE}?text=${encodeURIComponent(`Xin chào, tôi quan tâm các căn trên web.`)}`} target="_blank" rel="noreferrer" onClick={(e)=>{if(typeof window !== 'undefined' && window.gtag) window.gtag('event', 'click_zalo', {'event_category': 'lead', 'event_label': 'Floating_Mobile'});}} className="fixed bottom-6 right-6 z-[100] md:hidden flex items-center justify-center w-14 h-14 rounded-full">
+      {/* ĐÃ CẬP NHẬT ẢNH ZALO CHO NÚT RUNG MOBILE (MẤT VIỀN TRẮNG) */}
+      <a href={`https://zalo.me/${CONTACT_PHONE}?text=${encodeURIComponent(`Xin chào, tôi quan tâm các căn trên web.`)}`} target="_blank" rel="noreferrer" onClick={(e)=>{if(typeof window !== 'undefined' && window.gtag) window.gtag('event', 'click_zalo', {'event_category': 'lead', 'event_label': 'Floating_Mobile'});}} className="fixed bottom-6 right-6 z-[100] md:hidden flex items-center justify-center w-14 h-14 rounded-full shadow-xl">
          <div className="absolute inset-0 bg-blue-500 rounded-full animate-ping opacity-75"></div>
-         <div className="relative bg-white rounded-full w-full h-full flex items-center justify-center shadow-xl p-2 border border-blue-100 overflow-hidden">
-            <img src="/zalo.png" alt="Zalo" className="w-full h-full object-contain" />
-         </div>
+         <img src="/zalo.png" alt="Zalo" className="relative w-full h-full object-contain drop-shadow-md rounded-full" />
       </a>
 
       <style jsx global>{`

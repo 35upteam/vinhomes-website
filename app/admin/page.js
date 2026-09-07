@@ -570,11 +570,11 @@ export default function AdminPage() {
               {formData.listingType === 'Cho thuê' && (
                 <div className="bg-blue-50/50 p-3 rounded-xl border border-blue-100 flex-1">
                   <label className="block text-[11px] font-bold mb-1 text-blue-800 uppercase">Ngày chuyển vào</label>
-                  <div className="flex items-center gap-3 mt-1">
-                    <div className="flex-1">
+                  <div className="flex flex-wrap sm:flex-nowrap items-center gap-4 mt-2">
+                    <div className="flex-1 w-full min-w-[130px]">
                        <input type="date" name="ngayNhanNha" value={formData.ngayNhanNha || ''} onChange={handleInputChange} disabled={formData.vaoLuon} className="w-full p-2 border border-blue-200 rounded-lg focus:border-blue-500 outline-none text-[16px] md:text-sm font-medium disabled:opacity-50" />
                     </div>
-                    <label className="flex items-center gap-1.5 text-sm font-bold text-blue-900 cursor-pointer whitespace-nowrap">
+                    <label className="flex items-center gap-2 text-sm font-bold text-blue-900 cursor-pointer whitespace-nowrap pl-1">
                       <input type="checkbox" name="vaoLuon" checked={formData.vaoLuon || false} onChange={handleInputChange} className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500" />
                       Vào luôn
                     </label>
@@ -585,7 +585,7 @@ export default function AdminPage() {
               {formData.listingType === 'Chuyển nhượng' && (
                 <div className="bg-blue-50/50 p-3 rounded-xl border border-blue-100 flex-1">
                   <label className="block text-[11px] font-bold mb-1 text-blue-800 uppercase">Tình trạng pháp lý</label>
-                  <select name="phapLy" value={formData.phapLy || 'Sổ đỏ'} onChange={handleInputChange} className="w-full mt-1 p-2 border border-blue-200 rounded-lg focus:border-blue-500 outline-none text-[16px] md:text-sm font-medium bg-white">
+                  <select name="phapLy" value={formData.phapLy || 'Sổ đỏ'} onChange={handleInputChange} className="w-full mt-2 p-2 border border-blue-200 rounded-lg focus:border-blue-500 outline-none text-[16px] md:text-sm font-medium bg-white">
                     <option value="Sổ đỏ">Sổ đỏ</option>
                     <option value="Hợp đồng mua bán">Hợp đồng mua bán</option>
                   </select>
@@ -594,7 +594,7 @@ export default function AdminPage() {
               
               <div className="bg-red-50/50 p-3 rounded-xl border border-red-100 flex-1">
                 <label className="block text-[11px] font-bold mb-1 text-red-800 uppercase">Gắn nhãn HOT</label>
-                <select name="nhanDan" value={formData.nhanDan || 'Không có'} onChange={handleInputChange} className="w-full mt-1 p-2 border border-red-200 rounded-lg focus:border-red-500 outline-none text-[16px] md:text-sm font-medium text-red-700 bg-white">
+                <select name="nhanDan" value={formData.nhanDan || 'Không có'} onChange={handleInputChange} className="w-full mt-2 p-2 border border-red-200 rounded-lg focus:border-red-500 outline-none text-[16px] md:text-sm font-medium text-red-700 bg-white">
                   {nhanDanOptions.map(opt => <option key={opt}>{opt}</option>)}
                 </select>
               </div>
@@ -731,18 +731,18 @@ export default function AdminPage() {
                          </div>
                       </td>
                       <td className="px-4 py-4 text-center align-top">
-                        <div className="flex items-center justify-center gap-2 opacity-100 lg:opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="flex items-center justify-center gap-2">
                           <div className="relative group/btn inline-block">
                             <button onClick={() => handleBump(item.id)} className="text-green-600 hover:bg-green-100 p-1.5 rounded-md transition"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 10l7-7m0 0l7 7m-7-7v18"></path></svg></button>
-                            <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden group-hover/btn:block bg-gray-800 text-white text-[10px] px-2 py-1 rounded whitespace-nowrap z-50 pointer-events-none">Đẩy tin</span>
+                            <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden lg:group-hover/btn:block bg-gray-800 text-white text-[10px] px-2 py-1 rounded whitespace-nowrap z-50 pointer-events-none">Đẩy tin</span>
                           </div>
                           <div className="relative group/btn inline-block">
                             <button onClick={() => handleEdit(item)} className="text-blue-600 hover:bg-blue-100 p-1.5 rounded-md transition"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg></button>
-                            <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden group-hover/btn:block bg-gray-800 text-white text-[10px] px-2 py-1 rounded whitespace-nowrap z-50 pointer-events-none">Sửa căn</span>
+                            <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden lg:group-hover/btn:block bg-gray-800 text-white text-[10px] px-2 py-1 rounded whitespace-nowrap z-50 pointer-events-none">Sửa căn</span>
                           </div>
                           <div className="relative group/btn inline-block">
                             <button onClick={() => handleDelete(item)} className="text-red-500 hover:bg-red-50 p-1.5 rounded-md transition"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button>
-                            <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden group-hover/btn:block bg-gray-800 text-white text-[10px] px-2 py-1 rounded whitespace-nowrap z-50 pointer-events-none">Xóa căn</span>
+                            <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden lg:group-hover/btn:block bg-gray-800 text-white text-[10px] px-2 py-1 rounded whitespace-nowrap z-50 pointer-events-none">Xóa căn</span>
                           </div>
                         </div>
                       </td>
@@ -776,7 +776,7 @@ export default function AdminPage() {
                         <td className="px-4 py-4 font-bold text-blue-600">{item.soDienThoai}</td>
                         <td className="px-4 py-4"><button onClick={() => toggleKyGuiStatus(item.id, item.status)} className={`px-3 py-1 rounded-full text-[10px] font-bold border transition ${item.status === 'Chưa xử lý' ? 'bg-red-100 text-red-700 border-red-200 hover:bg-red-200' : 'bg-green-100 text-green-700 border-green-200 hover:bg-green-200'}`}>{item.status} (Click đổi)</button></td>
                         <td className="px-4 py-4 text-right">
-                          <div className="flex items-center justify-end gap-2 opacity-100 lg:opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="flex items-center justify-end gap-2">
                             <button onClick={() => { setAdminTab('quy-can'); setFormData({ ...initialForm, listingType: item.nhuCau, toaNha: item.toaNha, loaiCan: item.loaiCan, area: item.dienTich, price: item.gia.replace(/[^0-9.]/g, ''), noiThat: item.noiThat, ngayNhanNha: item.ngayVaoO || '', moTa: `Khách ký gửi: SĐT ${item.soDienThoai}. Ghi chú khách: ${item.ghiChu}` }); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="text-blue-600 hover:bg-blue-100 px-3 py-1.5 rounded-md font-bold transition">Lên bài</button>
                             <button onClick={() => handleDeleteKyGui(item.id)} className="text-red-500 hover:bg-red-50 px-3 py-1.5 rounded-md font-bold transition">Xóa</button>
                           </div>
@@ -822,7 +822,7 @@ export default function AdminPage() {
                         </td>
                         <td className="px-4 py-4"><button onClick={() => toggleNhoTimStatus(item.id, item.status)} className={`px-3 py-1 rounded-full text-[10px] font-bold border transition ${item.status === 'Chưa xử lý' ? 'bg-red-100 text-red-700 border-red-200 hover:bg-red-200' : 'bg-green-100 text-green-700 border-green-200 hover:bg-green-200'}`}>{item.status} (Click đổi)</button></td>
                         <td className="px-4 py-4 text-right">
-                          <button onClick={() => handleDeleteNhoTim(item.id)} className="text-red-500 hover:bg-red-50 px-3 py-1.5 rounded-md font-bold transition opacity-100 lg:opacity-0 group-hover:opacity-100">Xóa</button>
+                          <button onClick={() => handleDeleteNhoTim(item.id)} className="text-red-500 hover:bg-red-50 px-3 py-1.5 rounded-md font-bold transition">Xóa</button>
                         </td>
                       </tr>
                     );
@@ -840,8 +840,6 @@ export default function AdminPage() {
           </div>
         </div>
       </div>
-      
-      {/* ... (Phần hiển thị Popup Matrix Giá và Config Phân Khu giữ nguyên không thay đổi) ... */}
       
       {isMatrixModalOpen && (
         <div className="fixed inset-0 bg-blue-950/70 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
