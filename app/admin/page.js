@@ -20,12 +20,8 @@ const compressImage = async (file) => {
         canvas.height = img.height * scaleSize;
         const ctx = canvas.getContext('2d');
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        
         canvas.toBlob((blob) => {
-          const compressedFile = new File([blob], file.name, {
-            type: 'image/jpeg',
-            lastModified: Date.now(),
-          });
+          const compressedFile = new File([blob], file.name, { type: 'image/jpeg', lastModified: Date.now() });
           resolve(compressedFile);
         }, 'image/jpeg', 0.7); 
       };
@@ -70,6 +66,9 @@ export default function AdminPage() {
   const [images, setImages] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
   
+  // State quản lý mảng các trường đang bị nhập thiếu
+  const [missingFields, setMissingFields] = useState([]);
+
   const [duplicateWarning, setDuplicateWarning] = useState(null);
   const [skipDupCheck, setSkipDupCheck] = useState(false);
 
@@ -85,7 +84,6 @@ export default function AdminPage() {
   const [filterType, setFilterType] = useState('Tất cả');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
-
   const [selectedProperties, setSelectedProperties] = useState([]);
 
   useEffect(() => {
@@ -144,7 +142,6 @@ export default function AdminPage() {
     const querySnapshot = await getDocs(q);
     setNhoTimList(querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
   };
-
   const fetchPhanKhu = async () => {
     const pkDoc = await getDoc(doc(db, 'settings', 'phanKhuConfig'));
     let dbData = pkDoc.exists() ? pkDoc.data() : {};
@@ -160,7 +157,6 @@ export default function AdminPage() {
 
   const openPhanKhuModal = () => { setTempPKData({...defaultPkConfig[selectedPK], ...phanKhuData[selectedPK], localImages: []}); setIsPhanKhuModalOpen(true); };
   const handleSelectPKChange = (e) => { const val = e.target.value; setSelectedPK(val); setTempPKData({...defaultPkConfig[val], ...phanKhuData[val], localImages: []}); };
-  
   const handlePKImageChange = (e) => {
     if (e.target.files) {
       const files = Array.from(e.target.files);
@@ -168,7 +164,6 @@ export default function AdminPage() {
       setTempPKData(prev => ({...prev, localImages: [...(prev.localImages || []), ...newLocal]}));
     }
   };
-
   const removePKImage = (index, isLocal) => {
     if(isLocal) {
       const arr = [...tempPKData.localImages]; arr.splice(index, 1);
@@ -185,7 +180,6 @@ export default function AdminPage() {
       let finalImages = [...(tempPKData.images || [])];
       if (tempPKData.localImages && tempPKData.localImages.length > 0) {
         const CLOUD_NAME = "ibzfmsqp"; const UPLOAD_PRESET = "upload preset";
-        
         const pkUploadPromises = tempPKData.localImages.map(async (item) => {
           const compressed = await compressImage(item.file);
           const data = new FormData(); data.append('file', compressed); data.append('upload_preset', UPLOAD_PRESET);
@@ -193,18 +187,14 @@ export default function AdminPage() {
           const uploaded = await res.json();
           return uploaded.secure_url;
         });
-        
         const urls = await Promise.all(pkUploadPromises);
         finalImages = [...finalImages, ...urls];
       }
-      
       const updatedItem = { ...tempPKData, images: finalImages };
       delete updatedItem.localImages;
       const updatedData = { ...phanKhuData, [selectedPK]: updatedItem };
-      
       await setDoc(doc(db, 'settings', 'phanKhuConfig'), updatedData);
-      setPhanKhuData(updatedData);
-      setTempPKData({...updatedItem, localImages: []});
+      setPhanKhuData(updatedData); setTempPKData({...updatedItem, localImages: []});
       alert('Đã cập nhật thông tin phân khu thành công!');
     } catch (error) { alert('Lỗi khi lưu thông tin phân khu!'); }
     setIsSavingPK(false);
@@ -212,6 +202,11 @@ export default function AdminPage() {
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
+    // Bỏ trường đang nhập khỏi mảng lỗi báo đỏ
+    if (missingFields.includes(name)) {
+      setMissingFields(prev => prev.filter(f => f !== name));
+    }
+
     if (type === 'checkbox') setFormData({ ...formData, [name]: checked });
     else if (name === 'listingType' && value === 'Cho thuê' && formData.nhanDan === 'Cắt lỗ') setFormData({ ...formData, listingType: value, nhanDan: 'Không có' });
     else setFormData({ ...formData, [name]: value });
@@ -222,19 +217,12 @@ export default function AdminPage() {
       const files = Array.from(e.target.files);
       const newImgs = files.map(f => ({ file: f, url: URL.createObjectURL(f) }));
       setImages(prev => [...prev, ...newImgs]);
+      if (missingFields.includes('images')) setMissingFields(prev => prev.filter(f => f !== 'images'));
     }
   };
 
-  const setCoverImage = (index) => {
-    const arr = [...images];
-    const item = arr.splice(index, 1)[0];
-    arr.unshift(item);
-    setImages(arr);
-  };
-
-  const removeImage = (index) => {
-    const arr = [...images]; arr.splice(index, 1); setImages(arr);
-  };
+  const setCoverImage = (index) => { const arr = [...images]; const item = arr.splice(index, 1)[0]; arr.unshift(item); setImages(arr); };
+  const removeImage = (index) => { const arr = [...images]; arr.splice(index, 1); setImages(arr); };
 
   const handleDelete = async (item) => {
     if (window.confirm(`Cảnh báo: Bạn có chắc chắn muốn xóa căn hộ Mã ${item.maCan}?`)) {
@@ -244,27 +232,20 @@ export default function AdminPage() {
              const match = url.match(/\/upload\/(?:v\d+\/)?([^.]+)/);
              return match ? match[1] : null;
           }).filter(Boolean);
-
           if (publicIds.length > 0) {
-            await fetch('/api/delete-image', { 
-              method: 'POST', 
-              headers: { 'Content-Type': 'application/json' }, 
-              body: JSON.stringify({ publicIds }) 
-            });
+            await fetch('/api/delete-image', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ publicIds }) });
           }
         }
         await deleteDoc(doc(db, 'properties', item.id)); 
         sessionStorage.removeItem('cachedProperties'); 
-        alert('Đã xóa thành công!'); 
-        fetchProperties();
+        alert('Đã xóa thành công!'); fetchProperties();
       } catch (error) { alert('Có lỗi xảy ra khi xóa!'); console.error(error); }
     }
   };
 
   const handleEdit = (item) => {
-    setFormData({ ...initialForm, ...item }); setEditingId(item.id); 
-    if(item.images) setImages(item.images.map(url => ({ file: null, url })));
-    else setImages([]);
+    setFormData({ ...initialForm, ...item }); setEditingId(item.id); setMissingFields([]);
+    if(item.images) setImages(item.images.map(url => ({ file: null, url }))); else setImages([]);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -272,35 +253,22 @@ export default function AdminPage() {
     try {
       await updateDoc(doc(db, 'properties', id), { createdAt: serverTimestamp() });
       sessionStorage.removeItem('cachedProperties');
-      alert('Đã đẩy tin thành công!');
-      fetchProperties();
-    } catch (e) {
-      alert('Đã xảy ra lỗi khi đẩy tin!');
-    }
+      alert('Đã đẩy tin thành công!'); fetchProperties();
+    } catch (e) { alert('Đã xảy ra lỗi khi đẩy tin!'); }
   };
 
   const handleSelectAll = (e) => {
-    if (e.target.checked) {
-      const ids = paginatedProperties.map(p => p.id);
-      setSelectedProperties(ids);
-    } else {
-      setSelectedProperties([]);
-    }
+    if (e.target.checked) setSelectedProperties(paginatedProperties.map(p => p.id));
+    else setSelectedProperties([]);
   };
 
-  const handleSelectItem = (id) => {
-    setSelectedProperties(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
-  };
+  const handleSelectItem = (id) => { setSelectedProperties(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]); };
 
   const handleBulkBump = async () => {
     if (selectedProperties.length === 0) return;
     try {
-      for (const id of selectedProperties) {
-         await updateDoc(doc(db, 'properties', id), { createdAt: serverTimestamp() });
-      }
-      setSelectedProperties([]);
-      sessionStorage.removeItem('cachedProperties');
-      fetchProperties();
+      for (const id of selectedProperties) await updateDoc(doc(db, 'properties', id), { createdAt: serverTimestamp() });
+      setSelectedProperties([]); sessionStorage.removeItem('cachedProperties'); fetchProperties();
       alert(`Đã đẩy ${selectedProperties.length} tin lên đầu danh sách!`);
     } catch(e) { alert('Lỗi khi đẩy tin hàng loạt'); }
   };
@@ -313,62 +281,40 @@ export default function AdminPage() {
           const item = properties.find(p => p.id === id);
           if (item) {
              if (item.images && item.images.length > 0) {
-               const publicIds = item.images.map(url => {
-                  const match = url.match(/\/upload\/(?:v\d+\/)?([^.]+)/);
-                  return match ? match[1] : null;
-               }).filter(Boolean);
-     
-               if (publicIds.length > 0) {
-                 await fetch('/api/delete-image', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ publicIds }) });
-               }
+               const publicIds = item.images.map(url => { const match = url.match(/\/upload\/(?:v\d+\/)?([^.]+)/); return match ? match[1] : null; }).filter(Boolean);
+               if (publicIds.length > 0) await fetch('/api/delete-image', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ publicIds }) });
              }
              await deleteDoc(doc(db, 'properties', id));
           }
         }
-        setSelectedProperties([]);
-        sessionStorage.removeItem('cachedProperties');
-        fetchProperties();
+        setSelectedProperties([]); sessionStorage.removeItem('cachedProperties'); fetchProperties();
         alert('Đã xóa hàng loạt thành công!');
       } catch(e) { alert('Lỗi khi xóa hàng loạt'); }
     }
   };
 
-  const toggleKyGuiStatus = async (id, currentStatus) => {
-    const newStatus = currentStatus === 'Chưa xử lý' ? 'Đã liên hệ' : 'Chưa xử lý';
-    await updateDoc(doc(db, 'ky_gui', id), { status: newStatus }); fetchKyGui();
-  };
-  const toggleNhoTimStatus = async (id, currentStatus) => {
-    const newStatus = currentStatus === 'Chưa xử lý' ? 'Đã liên hệ' : 'Chưa xử lý';
-    await updateDoc(doc(db, 'nho_tim_can', id), { status: newStatus }); fetchNhoTim();
-  };
+  const toggleKyGuiStatus = async (id, currentStatus) => { const newStatus = currentStatus === 'Chưa xử lý' ? 'Đã liên hệ' : 'Chưa xử lý'; await updateDoc(doc(db, 'ky_gui', id), { status: newStatus }); fetchKyGui(); };
+  const toggleNhoTimStatus = async (id, currentStatus) => { const newStatus = currentStatus === 'Chưa xử lý' ? 'Đã liên hệ' : 'Chưa xử lý'; await updateDoc(doc(db, 'nho_tim_can', id), { status: newStatus }); fetchNhoTim(); };
   const handleDeleteKyGui = async (id) => { if (window.confirm('Xóa thông tin ký gửi này?')) { await deleteDoc(doc(db, 'ky_gui', id)); fetchKyGui(); } };
   const handleDeleteNhoTim = async (id) => { if (window.confirm('Xóa thông tin yêu cầu tìm căn này?')) { await deleteDoc(doc(db, 'nho_tim_can', id)); fetchNhoTim(); } };
 
-  const generateMaCan = (type) => {
-    const prefix = type === 'Cho thuê' ? 'CT' : 'CN'; const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'; let result = '';
-    for (let i = 0; i < 5; i++) result += chars.charAt(Math.floor(Math.random() * chars.length)); return prefix + result;
-  };
+  const generateMaCan = (type) => { const prefix = type === 'Cho thuê' ? 'CT' : 'CN'; const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'; let result = ''; for (let i = 0; i < 5; i++) result += chars.charAt(Math.floor(Math.random() * chars.length)); return prefix + result; };
 
   const executeSave = async () => {
     setIsUploading(true);
     try {
       const CLOUD_NAME = "ibzfmsqp"; const UPLOAD_PRESET = "upload preset";
-      
       const uploadPromises = images.map(async (img) => {
         if (img.file) {
           const compressed = await compressImage(img.file); 
-          const data = new FormData(); 
-          data.append('file', compressed); 
-          data.append('upload_preset', UPLOAD_PRESET);
+          const data = new FormData(); data.append('file', compressed); data.append('upload_preset', UPLOAD_PRESET);
           const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, { method: 'POST', body: data });
           const uploadedImage = await res.json(); 
           return uploadedImage.secure_url;
         }
         return img.url;
       });
-
       const imageUrls = await Promise.all(uploadPromises); 
-
       const finalArea = formData.area ? Number(formData.area) : 0; 
       const finalMaCan = editingId ? formData.maCan : generateMaCan(formData.listingType);
       const dataToSave = { ...formData, maCan: finalMaCan, price: Number(formData.price), area: finalArea, images: imageUrls };
@@ -380,7 +326,7 @@ export default function AdminPage() {
       }
 
       sessionStorage.removeItem('cachedProperties'); 
-      setFormData(initialForm); setEditingId(null); setImages([]); setSkipDupCheck(false); setDuplicateWarning(null); fetchProperties();
+      setFormData(initialForm); setEditingId(null); setImages([]); setSkipDupCheck(false); setDuplicateWarning(null); setMissingFields([]); fetchProperties();
     } catch (error) { alert('Có lỗi xảy ra, vui lòng thử lại!'); console.error(error); }
     setIsUploading(false);
   };
@@ -388,22 +334,23 @@ export default function AdminPage() {
   const handleSubmit = async (e) => {
     if(e) e.preventDefault();
     
-    if (!formData.phanKhu || !formData.toaNha || !formData.loaiCan || !formData.noiThat || !formData.price) {
-      return alert('Vui lòng chọn đầy đủ các thông tin: Phân khu, Tòa nhà, Loại căn, Nội thất và Giá!');
+    // Validate và Báo đỏ trường thiếu
+    const missing = [];
+    if (!formData.phanKhu) missing.push('phanKhu');
+    if (!formData.toaNha) missing.push('toaNha');
+    if (!formData.loaiCan) missing.push('loaiCan');
+    if (!formData.noiThat) missing.push('noiThat');
+    if (!formData.price) missing.push('price');
+    if (images.length === 0 && !editingId) missing.push('images');
+
+    if (missing.length > 0) {
+      setMissingFields(missing);
+      return alert('Vui lòng điền đầy đủ các thông tin bị tô đỏ (Phân khu, Tòa, Loại căn, Nội thất, Giá, Ảnh)!');
     }
-    
-    if (images.length === 0 && !editingId) return alert('Vui lòng tải lên ít nhất 1 ảnh căn hộ!');
     
     if (!editingId && !skipDupCheck) {
       setIsUploading(true);
-      
-      const dupQuery = query(collection(db, 'properties'),
-        where('listingType', '==', formData.listingType),
-        where('phanKhu', '==', formData.phanKhu),
-        where('toaNha', '==', formData.toaNha),
-        where('loaiCan', '==', formData.loaiCan),
-        where('noiThat', '==', formData.noiThat)
-      );
+      const dupQuery = query(collection(db, 'properties'), where('listingType', '==', formData.listingType), where('phanKhu', '==', formData.phanKhu), where('toaNha', '==', formData.toaNha), where('loaiCan', '==', formData.loaiCan), where('noiThat', '==', formData.noiThat));
       const dupSnap = await getDocs(dupQuery);
 
       let foundDup = null;
@@ -418,12 +365,8 @@ export default function AdminPage() {
       });
       setIsUploading(false);
       
-      if (foundDup) {
-        setDuplicateWarning(foundDup);
-        return; 
-      }
+      if (foundDup) { setDuplicateWarning(foundDup); return; }
     }
-    
     executeSave();
   };
 
@@ -437,18 +380,36 @@ export default function AdminPage() {
         if (matches.length > 0) {
           const prices = matches.map(m => Number(m.price)).filter(p => !isNaN(p));
           if (prices.length > 0) {
-            const min = Math.min(...prices);
-            const max = Math.max(...prices);
+            const min = Math.min(...prices); const max = Math.max(...prices);
             result[pk][lc] = min === max ? `${min}` : `${min} - ${max}`;
           } else { result[pk][lc] = '-'; }
-        } else {
-          result[pk][lc] = '-';
-        }
+        } else { result[pk][lc] = '-'; }
       });
     });
     return result;
   };
   const priceMatrix = computePriceMatrix();
+
+  // Logic Render Phân Trang Dạng Số
+  const renderPagination = (currentPage, totalPages, setCurrentPage) => {
+    if (totalPages <= 1) return null;
+    let pages = [];
+    for (let i = 1; i <= totalPages; i++) {
+      if (i === 1 || i === totalPages || (i >= currentPage - 1 && i <= currentPage + 1)) pages.push(i);
+      else if (pages[pages.length - 1] !== '...') pages.push('...');
+    }
+    return (
+      <div className="flex justify-center items-center gap-1.5 mt-6 border-t border-gray-100 pt-4">
+        <button disabled={currentPage === 1} onClick={() => setCurrentPage(currentPage - 1)} className="w-8 h-8 flex items-center justify-center rounded-md border border-gray-200 bg-white text-gray-500 hover:bg-gray-50 disabled:opacity-30">‹</button>
+        {pages.map((p, idx) => (
+           <button key={idx} disabled={p === '...'} onClick={() => p !== '...' && setCurrentPage(p)} className={`w-8 h-8 flex items-center justify-center rounded-md font-bold text-sm ${currentPage === p ? 'bg-blue-600 text-white border-blue-600' : p === '...' ? 'text-gray-400 cursor-default' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'}`}>
+             {p}
+           </button>
+        ))}
+        <button disabled={currentPage === totalPages} onClick={() => setCurrentPage(currentPage + 1)} className="w-8 h-8 flex items-center justify-center rounded-md border border-gray-200 bg-white text-gray-500 hover:bg-gray-50 disabled:opacity-30">›</button>
+      </div>
+    );
+  };
 
   if (isCheckingAuth) return <div className="min-h-screen bg-gray-900 flex items-center justify-center"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-white"></div></div>;
 
@@ -492,9 +453,10 @@ export default function AdminPage() {
   return (
     <div className="min-h-screen bg-gray-50 font-sans pb-12 relative">
       <style jsx global>{`
-        input[type=number]::-webkit-inner-spin-button, 
-        input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
         input[type=number] { -moz-appearance: textfield; }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
       `}</style>
 
       <nav className="bg-blue-900 text-white shadow-md sticky top-0 z-40">
@@ -505,9 +467,10 @@ export default function AdminPage() {
           </div>
           
           <div className="flex gap-2 md:gap-4 items-center">
-            <a href="https://analytics.google.com/" target="_blank" rel="noreferrer" className="hidden xl:flex items-center gap-2 bg-[#F9AB00] hover:bg-[#F29900] text-blue-900 px-4 py-2 rounded-lg text-sm font-bold transition whitespace-nowrap shadow-sm">
+            {/* ĐO LƯỜNG ĐÃ CHUYỂN VIỀN TRẮNG ĐỒNG BỘ */}
+            <a href="https://analytics.google.com/" target="_blank" rel="noreferrer" className="hidden xl:flex items-center gap-2 bg-white/10 hover:bg-white/20 border border-white/30 text-white px-4 py-2 rounded-lg text-sm font-medium transition whitespace-nowrap shadow-sm">
                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
-               Đo lường (GA4)
+               Đo lường
             </a>
             
             <button onClick={() => setIsMatrixModalOpen(true)} className="bg-white/10 hover:bg-white/20 border border-white/30 px-3 md:px-4 py-2 rounded-lg text-sm font-medium transition whitespace-nowrap flex items-center gap-1.5">
@@ -517,10 +480,12 @@ export default function AdminPage() {
             <button onClick={openPhanKhuModal} className="hidden md:block bg-white/10 hover:bg-white/20 border border-white/30 px-3 md:px-4 py-2 rounded-lg text-sm font-medium transition whitespace-nowrap">Phân khu</button>
             <button onClick={() => setIsAccountModalOpen(true)} className="hidden md:block bg-white/10 hover:bg-white/20 border border-white/30 px-3 md:px-4 py-2 rounded-lg text-sm font-medium transition whitespace-nowrap">Tài khoản</button>
             
+            {/* LỜI CHÀO FULL EMAIL */}
             {user && <span className="hidden lg:block text-sm font-bold ml-2">Xin chào {user.email}!</span>}
             
+            {/* NÚT ĐĂNG XUẤT ICON ĐỎ BẮT MẮT */}
             <div className="relative group/logout inline-block ml-1">
-               <button onClick={handleLogout} className="bg-red-500/20 text-red-100 hover:bg-red-500 hover:text-white p-2 rounded-lg transition flex items-center justify-center">
+               <button onClick={handleLogout} className="bg-red-500 hover:bg-red-600 text-white p-2 rounded-lg transition flex items-center justify-center shadow-sm">
                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
                </button>
                <span className="absolute top-full right-0 mt-2 hidden group-hover/logout:block bg-gray-800 text-white text-[10px] px-2 py-1 rounded whitespace-nowrap z-50 pointer-events-none shadow-lg">Đăng xuất</span>
@@ -536,7 +501,7 @@ export default function AdminPage() {
                <h2 className="text-xl font-bold text-blue-900 tracking-tight">{editingId ? 'Sửa thông tin căn hộ' : 'Lên giỏ hàng mới'}</h2>
                {editingId && <p className="text-blue-600 font-bold mt-1 text-sm">Đang sửa mã: {formData.maCan}</p>}
              </div>
-             {editingId && <button onClick={() => {setEditingId(null); setFormData(initialForm); setImages([]);}} className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded-md font-bold transition">Hủy sửa</button>}
+             {editingId && <button onClick={() => {setEditingId(null); setFormData(initialForm); setImages([]); setMissingFields([]);}} className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded-md font-bold transition">Hủy sửa</button>}
           </div>
           
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -554,18 +519,18 @@ export default function AdminPage() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-[11px] font-bold mb-1 text-gray-500 uppercase">Phân khu <span className="text-red-500">*</span></label>
-                <select name="phanKhu" value={formData.phanKhu} onChange={handleInputChange} className="w-full p-3 border border-gray-200 rounded-lg focus:border-blue-500 outline-none text-sm font-medium">
+                <select name="phanKhu" value={formData.phanKhu} onChange={handleInputChange} className={`w-full p-3 rounded-lg outline-none text-sm font-medium transition ${missingFields.includes('phanKhu') ? 'border-2 border-red-500 bg-red-50' : 'border border-gray-200 focus:border-blue-500'}`}>
                   <option value="" disabled>-- Chọn --</option>
                   {phanKhuList.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                 </select>
               </div>
               <div>
                 <label className="block text-[11px] font-bold mb-1 text-gray-500 uppercase">Tòa nhà <span className="text-red-500">*</span></label>
-                <input name="toaNha" value={formData.toaNha} onChange={handleInputChange} placeholder="VD: S102" className="w-full p-3 border border-gray-200 rounded-lg focus:border-blue-500 outline-none text-sm font-medium" />
+                <input name="toaNha" value={formData.toaNha} onChange={handleInputChange} placeholder="VD: S102" className={`w-full p-3 rounded-lg outline-none text-sm font-medium transition ${missingFields.includes('toaNha') ? 'border-2 border-red-500 bg-red-50' : 'border border-gray-200 focus:border-blue-500'}`} />
               </div>
               <div>
                 <label className="block text-[11px] font-bold mb-1 text-gray-500 uppercase">Loại căn <span className="text-red-500">*</span></label>
-                <select name="loaiCan" value={formData.loaiCan} onChange={handleInputChange} className="w-full p-3 border border-gray-200 rounded-lg focus:border-blue-500 outline-none text-sm font-medium">
+                <select name="loaiCan" value={formData.loaiCan} onChange={handleInputChange} className={`w-full p-3 rounded-lg outline-none text-sm font-medium transition ${missingFields.includes('loaiCan') ? 'border-2 border-red-500 bg-red-50' : 'border border-gray-200 focus:border-blue-500'}`}>
                   <option value="" disabled>-- Chọn --</option>
                   {['Studio', '1N', '1N+', '2N1WC', '2N2WC', '2N+', '3N', '4N'].map(opt => <option key={opt} value={opt}>{opt}</option>)}
                 </select>
@@ -586,7 +551,7 @@ export default function AdminPage() {
               </div>
               <div>
                 <label className="block text-[11px] font-bold mb-1 text-gray-500 uppercase">Nội thất <span className="text-red-500">*</span></label>
-                <select name="noiThat" value={formData.noiThat} onChange={handleInputChange} className="w-full p-3 border border-gray-200 rounded-lg focus:border-blue-500 outline-none text-sm font-medium">
+                <select name="noiThat" value={formData.noiThat} onChange={handleInputChange} className={`w-full p-3 rounded-lg outline-none text-sm font-medium transition ${missingFields.includes('noiThat') ? 'border-2 border-red-500 bg-red-50' : 'border border-gray-200 focus:border-blue-500'}`}>
                   <option value="" disabled>-- Chọn --</option>
                   {['Nguyên bản CĐT', 'Đồ cơ bản', 'Đầy đủ nội thất'].map(opt => <option key={opt} value={opt}>{opt}</option>)}
                 </select>
@@ -597,7 +562,7 @@ export default function AdminPage() {
                </div>
                <div>
                   <label className="block text-[11px] font-bold mb-1 text-gray-500 uppercase">{formData.listingType === 'Cho thuê' ? 'Giá thuê (Triệu)' : 'Giá bán (Tỷ)'} <span className="text-red-500">*</span></label>
-                  <input name="price" value={formData.price} onChange={handleInputChange} type="number" step="0.01" placeholder="VD: 15.5" onWheel={(e) => e.target.blur()} className="w-full p-3 border border-gray-200 rounded-lg focus:border-blue-500 outline-none text-sm font-medium" />
+                  <input name="price" value={formData.price} onChange={handleInputChange} type="number" step="0.01" placeholder="VD: 15.5" onWheel={(e) => e.target.blur()} className={`w-full p-3 rounded-lg outline-none text-sm font-medium transition ${missingFields.includes('price') ? 'border-2 border-red-500 bg-red-50' : 'border border-gray-200 focus:border-blue-500'}`} />
                </div>
             </div>
 
@@ -607,6 +572,7 @@ export default function AdminPage() {
                   <label className="block text-[11px] font-bold mb-1 text-blue-800 uppercase">Ngày chuyển vào</label>
                   <div className="flex items-center gap-3 mt-1">
                     <div className="flex-1">
+                       {/* ĐÃ BỎ HOÀN TOÀN NOTE NGÀY THÁNG */}
                        <input type="date" name="ngayNhanNha" value={formData.ngayNhanNha || ''} onChange={handleInputChange} disabled={formData.vaoLuon} className="w-full p-2 border border-blue-200 rounded-lg focus:border-blue-500 outline-none text-sm font-medium disabled:opacity-50" />
                     </div>
                     <label className="flex items-center gap-1.5 text-sm font-bold text-blue-900 cursor-pointer whitespace-nowrap">
@@ -640,7 +606,7 @@ export default function AdminPage() {
               <textarea name="moTa" value={formData.moTa || ''} onChange={handleInputChange} rows="2" placeholder="VD: Pass cửa, thông tin chủ nhà, % hoa hồng..." className="w-full p-3 border border-gray-200 rounded-lg focus:border-blue-500 outline-none text-sm font-medium"></textarea>
             </div>
 
-            <div className="border-2 border-dashed border-gray-300 p-5 text-center rounded-xl bg-gray-50 hover:bg-gray-100 transition">
+            <div className={`border-2 border-dashed p-5 text-center rounded-xl bg-gray-50 hover:bg-gray-100 transition ${missingFields.includes('images') ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}>
               <label className="block font-bold mb-2 cursor-pointer text-blue-900 text-sm">Tải lên Ảnh căn hộ <span className="text-red-500">*</span></label>
               <input type="file" multiple accept="image/*" onChange={handleImageChange} className="w-full text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200 cursor-pointer" />
               
@@ -704,13 +670,13 @@ export default function AdminPage() {
              </div>
           )}
 
-          <div className="overflow-x-auto pb-10">
+          <div className="overflow-x-auto pb-6">
             {adminTab === 'quy-can' && (
               <>
-                <table className="w-full text-sm text-left">
-                  <thead className="bg-gray-100 text-gray-500 uppercase text-[10px] font-bold tracking-wider">
+                <table className="w-full text-sm text-left relative">
+                  <thead className="bg-gray-100 text-gray-500 uppercase text-[10px] font-bold tracking-wider sticky top-0 z-10 shadow-sm">
                     <tr>
-                      <th className="px-4 py-3 rounded-l-lg min-w-[140px]">
+                      <th className="px-4 py-3 rounded-tl-lg min-w-[140px]">
                         <div className="flex flex-col gap-1 items-start">
                           <div className="flex items-center gap-2">
                              <input type="checkbox" onChange={handleSelectAll} checked={selectedProperties.length === paginatedProperties.length && paginatedProperties.length > 0} className="w-3.5 h-3.5 rounded text-blue-600" />
@@ -726,7 +692,7 @@ export default function AdminPage() {
                       <th className="px-4 py-3">Tòa / Phân khu</th>
                       <th className="px-4 py-3">Loại / Giá</th>
                       <th className="px-4 py-3">Ghi chú mật</th>
-                      <th className="px-4 py-3 text-center rounded-r-lg w-[120px]">Thao tác</th>
+                      <th className="px-4 py-3 text-center rounded-tr-lg w-[120px]">Thao tác</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
@@ -741,20 +707,26 @@ export default function AdminPage() {
                       <tr key={item.id} className="hover:bg-blue-50/30 transition group">
                         <td className="px-4 py-4 align-top">
                           <div className="flex items-start gap-2">
-                            <input type="checkbox" checked={selectedProperties.includes(item.id)} onChange={() => handleSelectItem(item.id)} className="w-3.5 h-3.5 mt-1 rounded text-blue-600" />
+                            <input type="checkbox" checked={selectedProperties.includes(item.id)} onChange={() => handleSelectItem(item.id)} className="w-3.5 h-3.5 mt-1.5 rounded text-blue-600" />
                             <div>
                               <Link href={`/property/${item.id}`} target="_blank" className="font-extrabold text-blue-900 hover:text-blue-600 hover:underline tracking-wide text-sm block" title="Mở sang tab mới để xem">
                                 {item.maCan} <svg className="w-3 h-3 inline-block opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
                               </Link>
-                              <span className="text-[10px] text-gray-500 font-semibold">{dateStr}</span>
-                              {item.nhanDan && item.nhanDan !== 'Không có' && <span className="block text-[9px] text-red-600 font-bold uppercase mt-1">{item.nhanDan}</span>}
+                              <span className={`inline-block px-1.5 py-0.5 rounded text-[9px] font-bold mt-1 uppercase ${item.listingType === 'Cho thuê' ? 'bg-orange-100 text-orange-700' : 'bg-green-100 text-green-700'}`}>
+                                {item.listingType}
+                              </span>
+                              <span className="text-[10px] text-gray-500 font-semibold block mt-1">{dateStr}</span>
                             </div>
                           </div>
                         </td>
-                        <td className="px-4 py-4 align-top"><span className="font-bold text-gray-800 block">Tòa {item.toaNha || item.building}</span><span className="text-[11px] text-gray-500 font-medium">{item.phanKhu}</span></td>
                         <td className="px-4 py-4 align-top">
-                           <span className="font-semibold text-gray-600 block text-xs">{item.loaiCan || item.type}</span>
-                           <span className="font-black text-blue-700 text-sm">{item.price} {item.listingType === 'Chuyển nhượng' ? 'Tỷ' : 'Tr'}</span>
+                          <span className="font-bold text-gray-800 block">Tòa {item.toaNha || item.building}</span>
+                          <span className="text-[11px] text-gray-500 font-medium">{item.phanKhu}</span>
+                          {item.nhanDan && item.nhanDan !== 'Không có' && <span className="block text-[9px] text-red-600 font-bold uppercase mt-1">{item.nhanDan}</span>}
+                        </td>
+                        <td className="px-4 py-4 align-top">
+                           <span className="inline-block bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full text-[10px] font-bold mb-1">{item.loaiCan || item.type}</span>
+                           <span className="block font-black text-blue-700 text-sm">{item.price} {item.listingType === 'Chuyển nhượng' ? 'Tỷ' : 'Tr'}</span>
                         </td>
                         <td className="px-4 py-4 align-top">
                            <div className="group/note cursor-pointer w-[120px] lg:w-[150px]">
@@ -784,126 +756,132 @@ export default function AdminPage() {
                     {paginatedProperties.length === 0 && <tr><td colSpan="5" className="px-4 py-10 text-center text-gray-400 font-medium">Không tìm thấy dữ liệu.</td></tr>}
                   </tbody>
                 </table>
-                {totalPages > 1 && (
-                  <div className="flex justify-end items-center gap-2 mt-4 pt-4 border-t border-gray-100">
-                    <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="px-3 py-1.5 text-xs font-bold border border-gray-200 rounded-md hover:bg-gray-50 disabled:opacity-50">Trước</button>
-                    <span className="text-xs text-gray-500 font-bold bg-gray-50 px-3 py-1.5 rounded-md">Trang {currentPage} / {totalPages}</span>
-                    <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="px-3 py-1.5 text-xs font-bold border border-gray-200 rounded-md hover:bg-gray-50 disabled:opacity-50">Sau</button>
-                  </div>
-                )}
+                {renderPagination(currentPage, totalPages, setCurrentPage)}
               </>
             )}
 
             {adminTab === 'ky-gui' && (
-              <table className="w-full text-sm text-left">
-                <thead className="bg-gray-100 text-gray-500 uppercase text-[10px] font-bold tracking-wider">
-                  <tr>
-                    <th className="px-4 py-3 rounded-l-lg">Tòa / Số căn</th>
-                    <th className="px-4 py-3">Nhu cầu</th>
-                    <th className="px-4 py-3">SĐT Khách</th>
-                    <th className="px-4 py-3">Trạng thái</th>
-                    <th className="px-4 py-3 text-right rounded-r-lg">Thao tác</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {kyGuiList.filter(item => item.soDienThoai?.includes(searchTerm) || item.toaNha?.toLowerCase().includes(searchTerm.toLowerCase())).map(item => {
-                    let d = new Date();
-                    if (item.createdAt?.seconds) d = new Date(item.createdAt.seconds * 1000);
-                    const dateStr = `${d.getDate()}/${d.getMonth()+1} ${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`;
-                    return (
-                      <tr key={item.id} className={`hover:bg-blue-50/30 transition group ${item.status === 'Chưa xử lý' ? 'bg-red-50/30' : ''}`}>
-                        <td className="px-4 py-4"><span className="font-bold text-gray-900 block">{item.toaNha} - Căn {item.soCan}</span><span className="text-[10px] text-gray-500 font-medium">Gửi lúc: {dateStr}</span></td>
-                        <td className="px-4 py-4"><span className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold uppercase ${item.nhuCau === 'Cho thuê' ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'}`}>{item.nhuCau}</span><span className="block text-xs font-black text-gray-800 mt-1">{item.gia} {item.nhuCau === 'Cho thuê' ? 'Tr' : 'Tỷ'}</span></td>
-                        <td className="px-4 py-4 font-bold text-blue-600">{item.soDienThoai}</td>
-                        <td className="px-4 py-4"><button onClick={() => toggleKyGuiStatus(item.id, item.status)} className={`px-3 py-1 rounded-full text-[10px] font-bold border transition ${item.status === 'Chưa xử lý' ? 'bg-red-100 text-red-700 border-red-200 hover:bg-red-200' : 'bg-green-100 text-green-700 border-green-200 hover:bg-green-200'}`}>{item.status} (Click đổi)</button></td>
-                        <td className="px-4 py-4 text-right">
-                          <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button onClick={() => { setAdminTab('quy-can'); setFormData({ ...initialForm, listingType: item.nhuCau, toaNha: item.toaNha, loaiCan: item.loaiCan, area: item.dienTich, price: item.gia.replace(/[^0-9.]/g, ''), noiThat: item.noiThat, ngayNhanNha: item.ngayVaoO || '', moTa: `Khách ký gửi: SĐT ${item.soDienThoai}. Ghi chú khách: ${item.ghiChu}` }); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="text-blue-600 hover:bg-blue-100 px-3 py-1.5 rounded-md font-bold transition">Lên bài</button>
-                            <button onClick={() => handleDeleteKyGui(item.id)} className="text-red-500 hover:bg-red-50 px-3 py-1.5 rounded-md font-bold transition">Xóa</button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                  {kyGuiList.length === 0 && <tr><td colSpan="5" className="px-4 py-10 text-center text-gray-400 font-medium">Chưa có ai ký gửi.</td></tr>}
-                </tbody>
-              </table>
+              <>
+                <table className="w-full text-sm text-left relative">
+                  <thead className="bg-gray-100 text-gray-500 uppercase text-[10px] font-bold tracking-wider sticky top-0 z-10 shadow-sm">
+                    <tr>
+                      <th className="px-4 py-3 rounded-tl-lg">Tòa / Số căn</th>
+                      <th className="px-4 py-3">Nhu cầu</th>
+                      <th className="px-4 py-3">SĐT Khách</th>
+                      <th className="px-4 py-3">Trạng thái</th>
+                      <th className="px-4 py-3 text-right rounded-tr-lg">Thao tác</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {kyGuiList.filter(item => item.soDienThoai?.includes(searchTerm) || item.toaNha?.toLowerCase().includes(searchTerm.toLowerCase())).slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map(item => {
+                      let d = new Date();
+                      if (item.createdAt?.seconds) d = new Date(item.createdAt.seconds * 1000);
+                      const dateStr = `${d.getDate()}/${d.getMonth()+1} ${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`;
+                      return (
+                        <tr key={item.id} className={`hover:bg-blue-50/30 transition group ${item.status === 'Chưa xử lý' ? 'bg-red-50/30' : ''}`}>
+                          <td className="px-4 py-4"><span className="font-bold text-gray-900 block">{item.toaNha} - Căn {item.soCan}</span><span className="text-[10px] text-gray-500 font-medium">Gửi lúc: {dateStr}</span></td>
+                          <td className="px-4 py-4"><span className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold uppercase ${item.nhuCau === 'Cho thuê' ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'}`}>{item.nhuCau}</span><span className="block text-xs font-black text-gray-800 mt-1">{item.gia} {item.nhuCau === 'Cho thuê' ? 'Tr' : 'Tỷ'}</span></td>
+                          <td className="px-4 py-4 font-bold text-blue-600">{item.soDienThoai}</td>
+                          <td className="px-4 py-4"><button onClick={() => toggleKyGuiStatus(item.id, item.status)} className={`px-3 py-1 rounded-full text-[10px] font-bold border transition ${item.status === 'Chưa xử lý' ? 'bg-red-100 text-red-700 border-red-200 hover:bg-red-200' : 'bg-green-100 text-green-700 border-green-200 hover:bg-green-200'}`}>{item.status} (Click đổi)</button></td>
+                          <td className="px-4 py-4 text-right">
+                            <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <button onClick={() => { setAdminTab('quy-can'); setFormData({ ...initialForm, listingType: item.nhuCau, toaNha: item.toaNha, loaiCan: item.loaiCan, area: item.dienTich, price: item.gia.replace(/[^0-9.]/g, ''), noiThat: item.noiThat, ngayNhanNha: item.ngayVaoO || '', moTa: `Khách ký gửi: SĐT ${item.soDienThoai}. Ghi chú khách: ${item.ghiChu}` }); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="text-blue-600 hover:bg-blue-100 px-3 py-1.5 rounded-md font-bold transition">Lên bài</button>
+                              <button onClick={() => handleDeleteKyGui(item.id)} className="text-red-500 hover:bg-red-50 px-3 py-1.5 rounded-md font-bold transition">Xóa</button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                    {kyGuiList.length === 0 && <tr><td colSpan="5" className="px-4 py-10 text-center text-gray-400 font-medium">Chưa có ai ký gửi.</td></tr>}
+                  </tbody>
+                </table>
+                {renderPagination(currentPage, Math.ceil(kyGuiList.length / itemsPerPage), setCurrentPage)}
+              </>
             )}
 
             {adminTab === 'nho-tim' && (
-              <table className="w-full text-sm text-left">
-                <thead className="bg-gray-100 text-gray-500 uppercase text-[10px] font-bold tracking-wider">
-                  <tr>
-                    <th className="px-4 py-3 rounded-l-lg">Khách Hàng / Nguồn</th>
-                    <th className="px-4 py-3">Nhu cầu Tìm</th>
-                    <th className="px-4 py-3">Yêu cầu khác</th>
-                    <th className="px-4 py-3">Trạng thái</th>
-                    <th className="px-4 py-3 text-right rounded-r-lg">Thao tác</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {nhoTimList.filter(item => item.soDienThoai?.includes(searchTerm) || item.nhuCau?.toLowerCase().includes(searchTerm.toLowerCase())).map(item => {
-                    let d = new Date();
-                    if (item.createdAt?.seconds) d = new Date(item.createdAt.seconds * 1000);
-                    const dateStr = `${d.getDate()}/${d.getMonth()+1} ${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`;
-                    return (
-                      <tr key={item.id} className={`hover:bg-blue-50/30 transition group ${item.status === 'Chưa xử lý' ? 'bg-red-50/30' : ''}`}>
-                        <td className="px-4 py-4">
-                          <span className="font-bold text-gray-900 block">{item.ten || 'Khách Vãng Lai'} - <span className="text-blue-600">{item.soDienThoai}</span></span>
-                          <span className="text-[10px] text-gray-500 font-medium mt-1 block">Nguồn: {item.source} • Gửi lúc: {dateStr}</span>
-                        </td>
-                        <td className="px-4 py-4">
-                          <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold uppercase ${item.nhuCau === 'Cho thuê' ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'}`}>
-                            Tìm {item.nhuCau === 'Cho thuê' ? 'Thuê' : 'Mua'}
-                          </span>
-                          <span className="block text-xs font-black text-gray-800 mt-1">{item.loaiCan || 'N/A'} • {item.taiChinh || 'N/A'}</span>
-                        </td>
-                        <td className="px-4 py-4 max-w-[200px]">
-                          <p className="text-[11px] text-gray-600 line-clamp-2" title={item.ghiChu}>{item.ghiChu || <span className="italic text-gray-400">Không có</span>}</p>
-                        </td>
-                        <td className="px-4 py-4"><button onClick={() => toggleNhoTimStatus(item.id, item.status)} className={`px-3 py-1 rounded-full text-[10px] font-bold border transition ${item.status === 'Chưa xử lý' ? 'bg-red-100 text-red-700 border-red-200 hover:bg-red-200' : 'bg-green-100 text-green-700 border-green-200 hover:bg-green-200'}`}>{item.status} (Click đổi)</button></td>
-                        <td className="px-4 py-4 text-right">
-                          <button onClick={() => handleDeleteNhoTim(item.id)} className="text-red-500 hover:bg-red-50 px-3 py-1.5 rounded-md font-bold transition opacity-0 group-hover:opacity-100">Xóa</button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                  {nhoTimList.length === 0 && <tr><td colSpan="5" className="px-4 py-10 text-center text-gray-400 font-medium">Chưa có dữ liệu.</td></tr>}
-                </tbody>
-              </table>
+              <>
+                <table className="w-full text-sm text-left relative">
+                  <thead className="bg-gray-100 text-gray-500 uppercase text-[10px] font-bold tracking-wider sticky top-0 z-10 shadow-sm">
+                    <tr>
+                      <th className="px-4 py-3 rounded-tl-lg">Khách Hàng / Nguồn</th>
+                      <th className="px-4 py-3">Nhu cầu Tìm</th>
+                      <th className="px-4 py-3">Yêu cầu khác</th>
+                      <th className="px-4 py-3">Trạng thái</th>
+                      <th className="px-4 py-3 text-right rounded-tr-lg">Thao tác</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {nhoTimList.filter(item => item.soDienThoai?.includes(searchTerm) || item.nhuCau?.toLowerCase().includes(searchTerm.toLowerCase())).slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map(item => {
+                      let d = new Date();
+                      if (item.createdAt?.seconds) d = new Date(item.createdAt.seconds * 1000);
+                      const dateStr = `${d.getDate()}/${d.getMonth()+1} ${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`;
+                      return (
+                        <tr key={item.id} className={`hover:bg-blue-50/30 transition group ${item.status === 'Chưa xử lý' ? 'bg-red-50/30' : ''}`}>
+                          <td className="px-4 py-4">
+                            <span className="font-bold text-gray-900 block">{item.ten || 'Khách Vãng Lai'} - <span className="text-blue-600">{item.soDienThoai}</span></span>
+                            <span className="text-[10px] text-gray-500 font-medium mt-1 block">Nguồn: {item.source} • Gửi lúc: {dateStr}</span>
+                          </td>
+                          <td className="px-4 py-4">
+                            <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold uppercase ${item.nhuCau === 'Cho thuê' ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'}`}>
+                              Tìm {item.nhuCau === 'Cho thuê' ? 'Thuê' : 'Mua'}
+                            </span>
+                            <span className="block text-xs font-black text-gray-800 mt-1">{item.loaiCan || 'N/A'} • {item.taiChinh || 'N/A'}</span>
+                          </td>
+                          <td className="px-4 py-4 max-w-[200px]">
+                            <p className="text-[11px] text-gray-600 line-clamp-2" title={item.ghiChu}>{item.ghiChu || <span className="italic text-gray-400">Không có</span>}</p>
+                          </td>
+                          <td className="px-4 py-4"><button onClick={() => toggleNhoTimStatus(item.id, item.status)} className={`px-3 py-1 rounded-full text-[10px] font-bold border transition ${item.status === 'Chưa xử lý' ? 'bg-red-100 text-red-700 border-red-200 hover:bg-red-200' : 'bg-green-100 text-green-700 border-green-200 hover:bg-green-200'}`}>{item.status} (Click đổi)</button></td>
+                          <td className="px-4 py-4 text-right">
+                            <button onClick={() => handleDeleteNhoTim(item.id)} className="text-red-500 hover:bg-red-50 px-3 py-1.5 rounded-md font-bold transition opacity-0 group-hover:opacity-100">Xóa</button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                    {nhoTimList.length === 0 && <tr><td colSpan="5" className="px-4 py-10 text-center text-gray-400 font-medium">Chưa có dữ liệu.</td></tr>}
+                  </tbody>
+                </table>
+                {renderPagination(currentPage, Math.ceil(nhoTimList.length / itemsPerPage), setCurrentPage)}
+              </>
             )}
 
           </div>
         </div>
       </div>
       
+      {/* POPUP THỐNG KÊ GIÁ SIÊU GỌN CHUYÊN NGHIỆP */}
       {isMatrixModalOpen && (
-        <div className="fixed inset-0 bg-blue-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl p-6 md:p-8 w-full max-w-5xl transform transition-all overflow-y-auto max-h-[90vh] animate-fade-in-up">
-            <div className="flex justify-between items-center mb-6">
-              <div><h2 className="text-xl font-bold text-blue-900">Thống Kê Mặt Bằng Giá</h2></div>
-              <button onClick={() => setIsMatrixModalOpen(false)} className="text-gray-400 hover:text-red-500 text-xl font-bold">×</button>
+        <div className="fixed inset-0 bg-blue-950/70 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl p-5 md:p-8 w-full max-w-5xl transform transition-all overflow-y-auto max-h-[95vh] animate-fade-in-up border border-blue-100">
+            <div className="flex justify-between items-center mb-5 pb-3 border-b border-gray-100">
+              <div>
+                <h2 className="text-xl md:text-2xl font-black text-blue-900 uppercase tracking-tight">Thống Kê Mặt Bằng Giá</h2>
+                <p className="text-[11px] font-medium text-gray-500 mt-1">Dữ liệu được cập nhật tự động (Real-time)</p>
+              </div>
+              <button onClick={() => setIsMatrixModalOpen(false)} className="text-gray-400 hover:bg-red-50 hover:text-red-500 w-8 h-8 rounded-full flex items-center justify-center transition">
+                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+              </button>
             </div>
             
-            <div className="flex bg-gray-200/70 p-1.5 rounded-lg mb-6 w-max">
-              <button onClick={() => setMatrixTab('Cho thuê')} className={`py-2 px-5 rounded-md text-sm font-bold transition-all ${matrixTab === 'Cho thuê' ? 'bg-white text-blue-600 shadow-md' : 'text-gray-500 hover:text-gray-800'}`}>Cho thuê (Triệu)</button>
-              <button onClick={() => setMatrixTab('Chuyển nhượng')} className={`py-2 px-5 rounded-md text-sm font-bold transition-all ${matrixTab === 'Chuyển nhượng' ? 'bg-white text-blue-600 shadow-md' : 'text-gray-500 hover:text-gray-800'}`}>Chuyển nhượng (Tỷ)</button>
+            <div className="flex bg-gray-100/80 p-1.5 rounded-xl mb-5 w-max">
+              <button onClick={() => setMatrixTab('Cho thuê')} className={`py-1.5 px-6 rounded-lg text-sm font-black transition-all ${matrixTab === 'Cho thuê' ? 'bg-white text-blue-700 shadow shadow-gray-200/50' : 'text-gray-500 hover:text-gray-900'}`}>Cho thuê (Triệu)</button>
+              <button onClick={() => setMatrixTab('Chuyển nhượng')} className={`py-1.5 px-6 rounded-lg text-sm font-black transition-all ${matrixTab === 'Chuyển nhượng' ? 'bg-white text-blue-700 shadow shadow-gray-200/50' : 'text-gray-500 hover:text-gray-900'}`}>Chuyển nhượng (Tỷ)</button>
             </div>
             
-            <div className="overflow-x-auto rounded-xl shadow-lg border border-gray-200">
-              <table className="w-full text-sm text-left whitespace-nowrap">
-                <thead className="bg-gradient-to-r from-blue-900 to-blue-800 text-white font-black tracking-wider uppercase text-[11px] md:text-xs">
+            <div className="overflow-x-auto rounded-xl shadow-sm border border-blue-100 bg-white">
+              <table className="w-full text-left whitespace-nowrap">
+                <thead className="bg-blue-50 text-blue-900 font-black uppercase text-[10px] md:text-xs">
                   <tr>
-                    <th className="px-4 py-4 md:px-5 md:py-4 border-r border-blue-700/50 sticky left-0 bg-blue-900 z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.3)]">Phân Khu / Loại</th>
-                    {loaiCanList.map(lc => <th key={lc} className="px-4 py-4 md:px-5 md:py-4 text-center border-r border-blue-700/30 last:border-0">{lc}</th>)}
+                    <th className="px-3 py-3 md:px-4 md:py-3.5 border-r border-blue-100 sticky left-0 bg-blue-50 z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)]">Phân Khu / Loại</th>
+                    {loaiCanList.map(lc => <th key={lc} className="px-2 py-3 md:px-3 md:py-3.5 text-center border-r border-blue-100 last:border-0">{lc}</th>)}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200 bg-white">
+                <tbody className="divide-y divide-gray-100">
                   {phanKhuList.map((pk, idx) => (
-                    <tr key={pk} className={`transition hover:bg-blue-50 ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/40'}`}>
-                      <td className="px-4 py-4 md:px-5 md:py-4 font-black border-r border-gray-200 sticky left-0 bg-inherit shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)] text-blue-950">{pk}</td>
+                    <tr key={pk} className={`transition hover:bg-blue-50/50 ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/30'}`}>
+                      <td className="px-3 py-3 md:px-4 md:py-3 font-bold border-r border-gray-100 sticky left-0 bg-inherit shadow-[2px_0_5px_-2px_rgba(0,0,0,0.02)] text-blue-950 text-[11px] md:text-sm">{pk}</td>
                       {loaiCanList.map(lc => (
-                        <td key={lc} className={`px-4 py-4 md:px-5 md:py-4 text-center border-r border-gray-100 last:border-0 ${priceMatrix[pk][lc] === '-' ? 'text-gray-300 font-medium' : 'text-orange-600 font-black text-sm md:text-base'}`}>
+                        <td key={lc} className={`px-2 py-3 md:px-3 md:py-3 text-center border-r border-gray-50 last:border-0 ${priceMatrix[pk][lc] === '-' ? 'text-gray-300 font-medium text-xs' : 'text-blue-900 font-black text-xs md:text-sm'}`}>
                           {priceMatrix[pk][lc]}
                         </td>
                       ))}
@@ -979,33 +957,6 @@ export default function AdminPage() {
               <button onClick={() => setIsPhanKhuModalOpen(false)} className="px-6 py-2.5 rounded-lg text-gray-600 font-bold hover:bg-gray-100">Hủy</button>
               <button onClick={handleSavePK} disabled={isSavingPK} className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-2.5 rounded-lg font-bold shadow-md disabled:opacity-50">Lưu Landing Page</button>
             </div>
-          </div>
-        </div>
-      )}
-
-      {duplicateWarning && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md text-center animate-fade-in-up">
-             <div className="w-16 h-16 bg-red-100 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
-               <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
-             </div>
-             <h3 className="text-xl font-bold text-red-600 mb-2">Phát hiện dữ liệu trùng lặp!</h3>
-             <p className="text-sm text-gray-600 mb-4">Hệ thống nhận thấy bạn đang nhập một căn hộ có thông số giống hệt với căn đang có trên hệ thống.</p>
-             
-             <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6">
-                <span className="text-xs text-gray-500">Mã căn bị trùng:</span>
-                <p className="text-lg font-black text-blue-900">{duplicateWarning.maCan}</p>
-                <a href={`/property/${duplicateWarning.id}`} target="_blank" rel="noreferrer" className="text-blue-600 text-xs font-bold hover:underline mt-2 inline-block">
-                  Mở xem chi tiết căn này ↗
-                </a>
-             </div>
-
-             <div className="flex gap-3">
-               <button onClick={() => setDuplicateWarning(null)} disabled={isUploading} className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-lg font-bold hover:bg-gray-200 disabled:opacity-50">Hủy bỏ</button>
-               <button onClick={() => { setSkipDupCheck(true); executeSave(); }} disabled={isUploading} className="flex-1 bg-red-600 text-white py-3 rounded-lg font-bold shadow-lg hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed">
-                 {isUploading ? 'Đang lưu...' : 'Vẫn lưu bài mới'}
-               </button>
-             </div>
           </div>
         </div>
       )}
