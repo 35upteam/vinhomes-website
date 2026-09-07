@@ -20,8 +20,12 @@ const compressImage = async (file) => {
         canvas.height = img.height * scaleSize;
         const ctx = canvas.getContext('2d');
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        
         canvas.toBlob((blob) => {
-          const compressedFile = new File([blob], file.name, { type: 'image/jpeg', lastModified: Date.now() });
+          const compressedFile = new File([blob], file.name, {
+            type: 'image/jpeg',
+            lastModified: Date.now(),
+          });
           resolve(compressedFile);
         }, 'image/jpeg', 0.7); 
       };
@@ -66,9 +70,7 @@ export default function AdminPage() {
   const [images, setImages] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
   
-  // State quản lý mảng các trường đang bị nhập thiếu
   const [missingFields, setMissingFields] = useState([]);
-
   const [duplicateWarning, setDuplicateWarning] = useState(null);
   const [skipDupCheck, setSkipDupCheck] = useState(false);
 
@@ -202,11 +204,9 @@ export default function AdminPage() {
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
-    // Bỏ trường đang nhập khỏi mảng lỗi báo đỏ
     if (missingFields.includes(name)) {
       setMissingFields(prev => prev.filter(f => f !== name));
     }
-
     if (type === 'checkbox') setFormData({ ...formData, [name]: checked });
     else if (name === 'listingType' && value === 'Cho thuê' && formData.nhanDan === 'Cắt lỗ') setFormData({ ...formData, listingType: value, nhanDan: 'Không có' });
     else setFormData({ ...formData, [name]: value });
@@ -333,8 +333,6 @@ export default function AdminPage() {
 
   const handleSubmit = async (e) => {
     if(e) e.preventDefault();
-    
-    // Validate và Báo đỏ trường thiếu
     const missing = [];
     if (!formData.phanKhu) missing.push('phanKhu');
     if (!formData.toaNha) missing.push('toaNha');
@@ -390,7 +388,6 @@ export default function AdminPage() {
   };
   const priceMatrix = computePriceMatrix();
 
-  // Logic Render Phân Trang Dạng Số
   const renderPagination = (currentPage, totalPages, setCurrentPage) => {
     if (totalPages <= 1) return null;
     let pages = [];
@@ -467,7 +464,6 @@ export default function AdminPage() {
           </div>
           
           <div className="flex gap-2 md:gap-4 items-center">
-            {/* ĐO LƯỜNG ĐÃ CHUYỂN VIỀN TRẮNG ĐỒNG BỘ */}
             <a href="https://analytics.google.com/" target="_blank" rel="noreferrer" className="hidden xl:flex items-center gap-2 bg-white/10 hover:bg-white/20 border border-white/30 text-white px-4 py-2 rounded-lg text-sm font-medium transition whitespace-nowrap shadow-sm">
                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
                Đo lường
@@ -477,13 +473,17 @@ export default function AdminPage() {
                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
                <span className="hidden sm:inline">Thống kê giá</span>
             </button>
-            <button onClick={openPhanKhuModal} className="hidden md:block bg-white/10 hover:bg-white/20 border border-white/30 px-3 md:px-4 py-2 rounded-lg text-sm font-medium transition whitespace-nowrap">Phân khu</button>
-            <button onClick={() => setIsAccountModalOpen(true)} className="hidden md:block bg-white/10 hover:bg-white/20 border border-white/30 px-3 md:px-4 py-2 rounded-lg text-sm font-medium transition whitespace-nowrap">Tài khoản</button>
+            <button onClick={openPhanKhuModal} className="hidden md:flex bg-white/10 hover:bg-white/20 border border-white/30 px-3 md:px-4 py-2 rounded-lg text-sm font-medium transition whitespace-nowrap items-center gap-1.5">
+               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+               Phân khu
+            </button>
+            <button onClick={() => setIsAccountModalOpen(true)} className="hidden md:flex bg-white/10 hover:bg-white/20 border border-white/30 px-3 md:px-4 py-2 rounded-lg text-sm font-medium transition whitespace-nowrap items-center gap-1.5">
+               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+               Tài khoản
+            </button>
             
-            {/* LỜI CHÀO FULL EMAIL */}
             {user && <span className="hidden lg:block text-sm font-bold ml-2">Xin chào {user.email}!</span>}
             
-            {/* NÚT ĐĂNG XUẤT ICON ĐỎ BẮT MẮT */}
             <div className="relative group/logout inline-block ml-1">
                <button onClick={handleLogout} className="bg-red-500 hover:bg-red-600 text-white p-2 rounded-lg transition flex items-center justify-center shadow-sm">
                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
@@ -572,7 +572,6 @@ export default function AdminPage() {
                   <label className="block text-[11px] font-bold mb-1 text-blue-800 uppercase">Ngày chuyển vào</label>
                   <div className="flex items-center gap-3 mt-1">
                     <div className="flex-1">
-                       {/* ĐÃ BỎ HOÀN TOÀN NOTE NGÀY THÁNG */}
                        <input type="date" name="ngayNhanNha" value={formData.ngayNhanNha || ''} onChange={handleInputChange} disabled={formData.vaoLuon} className="w-full p-2 border border-blue-200 rounded-lg focus:border-blue-500 outline-none text-sm font-medium disabled:opacity-50" />
                     </div>
                     <label className="flex items-center gap-1.5 text-sm font-bold text-blue-900 cursor-pointer whitespace-nowrap">
@@ -670,13 +669,13 @@ export default function AdminPage() {
              </div>
           )}
 
-          <div className="overflow-x-auto pb-6">
+          <div className="overflow-x-auto overflow-y-auto max-h-[70vh] pb-6 relative rounded-t-lg">
             {adminTab === 'quy-can' && (
               <>
-                <table className="w-full text-sm text-left relative">
-                  <thead className="bg-gray-100 text-gray-500 uppercase text-[10px] font-bold tracking-wider sticky top-0 z-10 shadow-sm">
+                <table className="w-full text-sm text-left">
+                  <thead className="bg-gray-200 text-gray-700 uppercase text-[11px] font-black tracking-wider sticky top-0 z-20 shadow-md">
                     <tr>
-                      <th className="px-4 py-3 rounded-tl-lg min-w-[140px]">
+                      <th className="px-4 py-3 rounded-tl-lg min-w-[140px] bg-gray-200">
                         <div className="flex flex-col gap-1 items-start">
                           <div className="flex items-center gap-2">
                              <input type="checkbox" onChange={handleSelectAll} checked={selectedProperties.length === paginatedProperties.length && paginatedProperties.length > 0} className="w-3.5 h-3.5 rounded text-blue-600" />
@@ -689,10 +688,10 @@ export default function AdminPage() {
                           </select>
                         </div>
                       </th>
-                      <th className="px-4 py-3">Tòa / Phân khu</th>
-                      <th className="px-4 py-3">Loại / Giá</th>
-                      <th className="px-4 py-3">Ghi chú mật</th>
-                      <th className="px-4 py-3 text-center rounded-tr-lg w-[120px]">Thao tác</th>
+                      <th className="px-4 py-3 bg-gray-200">Tòa / Phân khu</th>
+                      <th className="px-4 py-3 bg-gray-200">Loại / Giá</th>
+                      <th className="px-4 py-3 bg-gray-200">Ghi chú mật</th>
+                      <th className="px-4 py-3 text-center rounded-tr-lg w-[120px] bg-gray-200">Thao tác</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
@@ -712,9 +711,6 @@ export default function AdminPage() {
                               <Link href={`/property/${item.id}`} target="_blank" className="font-extrabold text-blue-900 hover:text-blue-600 hover:underline tracking-wide text-sm block" title="Mở sang tab mới để xem">
                                 {item.maCan} <svg className="w-3 h-3 inline-block opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
                               </Link>
-                              <span className={`inline-block px-1.5 py-0.5 rounded text-[9px] font-bold mt-1 uppercase ${item.listingType === 'Cho thuê' ? 'bg-orange-100 text-orange-700' : 'bg-green-100 text-green-700'}`}>
-                                {item.listingType}
-                              </span>
                               <span className="text-[10px] text-gray-500 font-semibold block mt-1">{dateStr}</span>
                             </div>
                           </div>
@@ -763,13 +759,13 @@ export default function AdminPage() {
             {adminTab === 'ky-gui' && (
               <>
                 <table className="w-full text-sm text-left relative">
-                  <thead className="bg-gray-100 text-gray-500 uppercase text-[10px] font-bold tracking-wider sticky top-0 z-10 shadow-sm">
+                  <thead className="bg-gray-200 text-gray-700 uppercase text-[11px] font-black tracking-wider sticky top-0 z-20 shadow-md">
                     <tr>
-                      <th className="px-4 py-3 rounded-tl-lg">Tòa / Số căn</th>
-                      <th className="px-4 py-3">Nhu cầu</th>
-                      <th className="px-4 py-3">SĐT Khách</th>
-                      <th className="px-4 py-3">Trạng thái</th>
-                      <th className="px-4 py-3 text-right rounded-tr-lg">Thao tác</th>
+                      <th className="px-4 py-3 rounded-tl-lg bg-gray-200">Tòa / Số căn</th>
+                      <th className="px-4 py-3 bg-gray-200">Nhu cầu</th>
+                      <th className="px-4 py-3 bg-gray-200">SĐT Khách</th>
+                      <th className="px-4 py-3 bg-gray-200">Trạng thái</th>
+                      <th className="px-4 py-3 text-right rounded-tr-lg bg-gray-200">Thao tác</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
@@ -802,13 +798,13 @@ export default function AdminPage() {
             {adminTab === 'nho-tim' && (
               <>
                 <table className="w-full text-sm text-left relative">
-                  <thead className="bg-gray-100 text-gray-500 uppercase text-[10px] font-bold tracking-wider sticky top-0 z-10 shadow-sm">
+                  <thead className="bg-gray-200 text-gray-700 uppercase text-[11px] font-black tracking-wider sticky top-0 z-20 shadow-md">
                     <tr>
-                      <th className="px-4 py-3 rounded-tl-lg">Khách Hàng / Nguồn</th>
-                      <th className="px-4 py-3">Nhu cầu Tìm</th>
-                      <th className="px-4 py-3">Yêu cầu khác</th>
-                      <th className="px-4 py-3">Trạng thái</th>
-                      <th className="px-4 py-3 text-right rounded-tr-lg">Thao tác</th>
+                      <th className="px-4 py-3 rounded-tl-lg bg-gray-200">Khách Hàng / Nguồn</th>
+                      <th className="px-4 py-3 bg-gray-200">Nhu cầu Tìm</th>
+                      <th className="px-4 py-3 bg-gray-200">Yêu cầu khác</th>
+                      <th className="px-4 py-3 bg-gray-200">Trạng thái</th>
+                      <th className="px-4 py-3 text-right rounded-tr-lg bg-gray-200">Thao tác</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
@@ -849,7 +845,6 @@ export default function AdminPage() {
         </div>
       </div>
       
-      {/* POPUP THỐNG KÊ GIÁ SIÊU GỌN CHUYÊN NGHIỆP */}
       {isMatrixModalOpen && (
         <div className="fixed inset-0 bg-blue-950/70 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl p-5 md:p-8 w-full max-w-5xl transform transition-all overflow-y-auto max-h-[95vh] animate-fade-in-up border border-blue-100">
@@ -881,7 +876,7 @@ export default function AdminPage() {
                     <tr key={pk} className={`transition hover:bg-blue-50/50 ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/30'}`}>
                       <td className="px-3 py-3 md:px-4 md:py-3 font-bold border-r border-gray-100 sticky left-0 bg-inherit shadow-[2px_0_5px_-2px_rgba(0,0,0,0.02)] text-blue-950 text-[11px] md:text-sm">{pk}</td>
                       {loaiCanList.map(lc => (
-                        <td key={lc} className={`px-2 py-3 md:px-3 md:py-3 text-center border-r border-gray-50 last:border-0 ${priceMatrix[pk][lc] === '-' ? 'text-gray-300 font-medium text-xs' : 'text-blue-900 font-black text-xs md:text-sm'}`}>
+                        <td key={lc} className={`px-2 py-3 md:px-3 md:py-3 text-center border-r border-gray-50 last:border-0 ${priceMatrix[pk][lc] === '-' ? 'text-gray-300 font-medium text-xs' : 'text-orange-600 font-medium text-sm md:text-base'}`}>
                           {priceMatrix[pk][lc]}
                         </td>
                       ))}
