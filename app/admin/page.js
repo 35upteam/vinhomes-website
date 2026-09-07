@@ -669,7 +669,7 @@ export default function AdminPage() {
              </div>
           )}
 
-          <div className="overflow-x-auto overflow-y-auto max-h-[70vh] pb-6 relative rounded-t-lg">
+          <div className="overflow-x-auto pb-6 relative rounded-t-lg">
             {adminTab === 'quy-can' && (
               <>
                 <table className="w-full text-sm text-left">
@@ -689,7 +689,7 @@ export default function AdminPage() {
                         </div>
                       </th>
                       <th className="px-4 py-3 bg-gray-200">Tòa / Phân khu</th>
-                      <th className="px-4 py-3 bg-gray-200">Loại / Giá</th>
+                      <th className="px-4 py-3 bg-gray-200 text-center">Loại / Giá</th>
                       <th className="px-4 py-3 bg-gray-200">Ghi chú mật</th>
                       <th className="px-4 py-3 text-center rounded-tr-lg w-[120px] bg-gray-200">Thao tác</th>
                     </tr>
@@ -720,7 +720,7 @@ export default function AdminPage() {
                           <span className="text-[11px] text-gray-500 font-medium">{item.phanKhu}</span>
                           {item.nhanDan && item.nhanDan !== 'Không có' && <span className="block text-[9px] text-red-600 font-bold uppercase mt-1">{item.nhanDan}</span>}
                         </td>
-                        <td className="px-4 py-4 align-top">
+                        <td className="px-4 py-4 align-top text-center">
                            <span className="inline-block bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full text-[10px] font-bold mb-1">{item.loaiCan || item.type}</span>
                            <span className="block font-black text-blue-700 text-sm">{item.price} {item.listingType === 'Chuyển nhượng' ? 'Tỷ' : 'Tr'}</span>
                         </td>
@@ -876,7 +876,7 @@ export default function AdminPage() {
                     <tr key={pk} className={`transition hover:bg-blue-50/50 ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/30'}`}>
                       <td className="px-3 py-3 md:px-4 md:py-3 font-bold border-r border-gray-100 sticky left-0 bg-inherit shadow-[2px_0_5px_-2px_rgba(0,0,0,0.02)] text-blue-950 text-[11px] md:text-sm">{pk}</td>
                       {loaiCanList.map(lc => (
-                        <td key={lc} className={`px-2 py-3 md:px-3 md:py-3 text-center border-r border-gray-50 last:border-0 ${priceMatrix[pk][lc] === '-' ? 'text-gray-300 font-medium text-xs' : 'text-orange-600 font-medium text-sm md:text-base'}`}>
+                        <td key={lc} className={`px-2 py-3 md:px-3 md:py-3 text-center border-r border-gray-50 last:border-0 ${priceMatrix[pk][lc] === '-' ? 'text-gray-300 font-medium text-xs' : 'text-black font-bold text-sm md:text-base'}`}>
                           {priceMatrix[pk][lc]}
                         </td>
                       ))}
