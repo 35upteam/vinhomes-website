@@ -516,7 +516,7 @@ export default function AdminPage() {
               </label>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-[11px] font-bold mb-1 text-gray-500 uppercase">Phân khu <span className="text-red-500">*</span></label>
                 <select name="phanKhu" value={formData.phanKhu} onChange={handleInputChange} className={`w-full p-3 rounded-lg outline-none text-sm font-medium transition ${missingFields.includes('phanKhu') ? 'border-2 border-red-500 bg-red-50' : 'border border-gray-200 focus:border-blue-500'}`}>
@@ -635,8 +635,8 @@ export default function AdminPage() {
           </form>
         </div>
 
-        <div className="flex-1 w-full bg-white p-6 md:p-8 rounded-2xl shadow-sm shadow-gray-200/50 border border-gray-100 overflow-hidden">
-          <div className="flex flex-wrap gap-4 mb-6 border-b border-gray-100 pb-2">
+        <div className="flex-1 w-full bg-white p-6 md:p-8 rounded-2xl shadow-sm shadow-gray-200/50 border border-gray-100 overflow-hidden flex flex-col h-full min-h-[800px]">
+          <div className="flex flex-wrap gap-4 mb-6 border-b border-gray-100 pb-2 flex-shrink-0">
             <button onClick={() => setAdminTab('quy-can')} className={`font-bold pb-3 border-b-2 transition ${adminTab === 'quy-can' ? 'border-blue-900 text-blue-900' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
               Quỹ căn ({properties.length})
             </button>
@@ -650,7 +650,7 @@ export default function AdminPage() {
             </button>
           </div>
 
-          <div className="mb-4 flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
+          <div className="mb-4 flex flex-col md:flex-row gap-4 items-start md:items-center justify-between flex-shrink-0">
             <input 
               type="text" 
               placeholder={adminTab === 'quy-can' ? "Tìm mã căn, tòa nhà..." : "Tìm SĐT, nhu cầu khách..."}
@@ -661,7 +661,7 @@ export default function AdminPage() {
           </div>
 
           {adminTab === 'quy-can' && selectedProperties.length > 0 && (
-             <div className="flex items-center gap-3 bg-blue-50 border border-blue-200 p-3 rounded-lg mb-4">
+             <div className="flex items-center gap-3 bg-blue-50 border border-blue-200 p-3 rounded-lg mb-4 flex-shrink-0">
                <span className="text-sm font-bold text-blue-900">Đã chọn {selectedProperties.length} căn</span>
                <button onClick={handleBulkBump} className="bg-green-600 hover:bg-green-700 text-white px-4 py-1.5 rounded-md text-xs font-bold transition">Đẩy tin hàng loạt</button>
                <button onClick={handleBulkDelete} className="bg-red-500 hover:bg-red-600 text-white px-4 py-1.5 rounded-md text-xs font-bold transition">Xóa hàng loạt</button>
@@ -669,178 +669,175 @@ export default function AdminPage() {
              </div>
           )}
 
-          <div className="overflow-x-auto pb-6 relative rounded-t-lg">
+          <div className="overflow-x-auto flex-grow rounded-lg border border-gray-100 shadow-sm relative">
             {adminTab === 'quy-can' && (
-              <>
-                <table className="w-full text-sm text-left">
-                  <thead className="bg-gray-200 text-gray-700 uppercase text-[11px] font-black tracking-wider sticky top-0 z-20 shadow-md">
-                    <tr>
-                      <th className="px-4 py-3 rounded-tl-lg min-w-[140px] bg-gray-200">
-                        <div className="flex flex-col gap-1 items-start">
-                          <div className="flex items-center gap-2">
-                             <input type="checkbox" onChange={handleSelectAll} checked={selectedProperties.length === paginatedProperties.length && paginatedProperties.length > 0} className="w-3.5 h-3.5 rounded text-blue-600" />
-                             <span>Mã căn</span>
-                          </div>
-                          <select value={filterType} onChange={(e) => {setFilterType(e.target.value); setCurrentPage(1);}} className="text-[10px] p-1 mt-1 rounded-md border border-gray-300 font-bold outline-none focus:border-blue-500 bg-white cursor-pointer w-full text-gray-700">
-                            <option value="Tất cả">Tất cả ({countAll})</option>
-                            <option value="Cho thuê">Cho thuê ({countThu})</option>
-                            <option value="Chuyển nhượng">Chuyển nhượng ({countBan})</option>
-                          </select>
+              <table className="w-full text-sm text-left min-w-[900px]">
+                <thead className="bg-gray-200 text-gray-800 uppercase text-[11px] font-black tracking-wider sticky top-0 z-20 shadow-sm shadow-gray-300/30">
+                  <tr>
+                    <th className="px-4 py-3 min-w-[140px] bg-gray-200">
+                      <div className="flex flex-col gap-1 items-start">
+                        <div className="flex items-center gap-2">
+                           <input type="checkbox" onChange={handleSelectAll} checked={selectedProperties.length === paginatedProperties.length && paginatedProperties.length > 0} className="w-3.5 h-3.5 rounded text-blue-600" />
+                           <span>Mã căn</span>
                         </div>
-                      </th>
-                      <th className="px-4 py-3 bg-gray-200">Tòa / Phân khu</th>
-                      <th className="px-4 py-3 bg-gray-200 text-center">Loại / Giá</th>
-                      <th className="px-4 py-3 bg-gray-200">Ghi chú mật</th>
-                      <th className="px-4 py-3 text-center rounded-tr-lg w-[120px] bg-gray-200">Thao tác</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {paginatedProperties.map(item => {
-                      let dateStr = 'Đang cập nhật';
-                      if (item.createdAt?.seconds) {
-                        const d = new Date(item.createdAt.seconds * 1000);
-                        dateStr = `Đăng: ${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
-                      }
+                        <select value={filterType} onChange={(e) => {setFilterType(e.target.value); setCurrentPage(1);}} className="text-[10px] p-1 mt-1 rounded-md border border-gray-300 font-bold outline-none focus:border-blue-500 bg-white cursor-pointer w-full text-gray-700">
+                          <option value="Tất cả">Tất cả ({countAll})</option>
+                          <option value="Cho thuê">Cho thuê ({countThu})</option>
+                          <option value="Chuyển nhượng">Chuyển nhượng ({countBan})</option>
+                        </select>
+                      </div>
+                    </th>
+                    <th className="px-4 py-3 bg-gray-200">Tòa / Phân khu</th>
+                    <th className="px-4 py-3 bg-gray-200 text-center">Loại / Giá</th>
+                    <th className="px-4 py-3 bg-gray-200">Ghi chú mật</th>
+                    <th className="px-4 py-3 text-center w-[120px] bg-gray-200">Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100 bg-white">
+                  {paginatedProperties.map(item => {
+                    let dateStr = 'Đang cập nhật';
+                    if (item.createdAt?.seconds) {
+                      const d = new Date(item.createdAt.seconds * 1000);
+                      dateStr = `Đăng: ${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+                    }
 
-                      return (
-                      <tr key={item.id} className="hover:bg-blue-50/30 transition group">
-                        <td className="px-4 py-4 align-top">
-                          <div className="flex items-start gap-2">
-                            <input type="checkbox" checked={selectedProperties.includes(item.id)} onChange={() => handleSelectItem(item.id)} className="w-3.5 h-3.5 mt-1.5 rounded text-blue-600" />
-                            <div>
-                              <Link href={`/property/${item.id}`} target="_blank" className="font-extrabold text-blue-900 hover:text-blue-600 hover:underline tracking-wide text-sm block" title="Mở sang tab mới để xem">
-                                {item.maCan} <svg className="w-3 h-3 inline-block opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
-                              </Link>
-                              <span className="text-[10px] text-gray-500 font-semibold block mt-1">{dateStr}</span>
-                            </div>
+                    return (
+                    <tr key={item.id} className="hover:bg-blue-50/30 transition group">
+                      <td className="px-4 py-4 align-top">
+                        <div className="flex items-start gap-2">
+                          <input type="checkbox" checked={selectedProperties.includes(item.id)} onChange={() => handleSelectItem(item.id)} className="w-3.5 h-3.5 mt-1 rounded text-blue-600" />
+                          <div>
+                            <Link href={`/property/${item.id}`} target="_blank" className="font-extrabold text-blue-900 hover:text-blue-600 hover:underline tracking-wide text-sm block" title="Mở sang tab mới để xem">
+                              {item.maCan} <svg className="w-3 h-3 inline-block opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+                            </Link>
+                            <span className="text-[10px] text-gray-500 font-semibold block mt-1">{dateStr}</span>
                           </div>
-                        </td>
-                        <td className="px-4 py-4 align-top">
-                          <span className="font-bold text-gray-800 block">Tòa {item.toaNha || item.building}</span>
-                          <span className="text-[11px] text-gray-500 font-medium">{item.phanKhu}</span>
-                          {item.nhanDan && item.nhanDan !== 'Không có' && <span className="block text-[9px] text-red-600 font-bold uppercase mt-1">{item.nhanDan}</span>}
-                        </td>
-                        <td className="px-4 py-4 align-top text-center">
-                           <span className="inline-block bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full text-[10px] font-bold mb-1">{item.loaiCan || item.type}</span>
-                           <span className="block font-black text-blue-700 text-sm">{item.price} {item.listingType === 'Chuyển nhượng' ? 'Tỷ' : 'Tr'}</span>
-                        </td>
-                        <td className="px-4 py-4 align-top">
-                           <div className="group/note cursor-pointer w-[120px] lg:w-[150px]">
-                             <p className="text-[11px] text-gray-600 font-medium line-clamp-2 group-hover/note:line-clamp-none transition-all duration-300">
-                               {item.moTa || <span className="text-gray-300 italic">Trống</span>}
-                             </p>
-                           </div>
-                        </td>
-                        <td className="px-4 py-4 text-center align-top">
-                          <div className="flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <div className="relative group/btn inline-block">
-                              <button onClick={() => handleBump(item.id)} className="text-green-600 hover:bg-green-100 p-1.5 rounded-md transition"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 10l7-7m0 0l7 7m-7-7v18"></path></svg></button>
-                              <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden group-hover/btn:block bg-gray-800 text-white text-[10px] px-2 py-1 rounded whitespace-nowrap z-50 pointer-events-none">Đẩy tin</span>
-                            </div>
-                            <div className="relative group/btn inline-block">
-                              <button onClick={() => handleEdit(item)} className="text-blue-600 hover:bg-blue-100 p-1.5 rounded-md transition"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg></button>
-                              <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden group-hover/btn:block bg-gray-800 text-white text-[10px] px-2 py-1 rounded whitespace-nowrap z-50 pointer-events-none">Sửa căn</span>
-                            </div>
-                            <div className="relative group/btn inline-block">
-                              <button onClick={() => handleDelete(item)} className="text-red-500 hover:bg-red-50 p-1.5 rounded-md transition"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button>
-                              <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden group-hover/btn:block bg-gray-800 text-white text-[10px] px-2 py-1 rounded whitespace-nowrap z-50 pointer-events-none">Xóa căn</span>
-                            </div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-4 align-top">
+                        <span className="font-bold text-gray-800 block">Tòa {item.toaNha || item.building}</span>
+                        <span className="text-[11px] text-gray-500 font-medium">{item.phanKhu}</span>
+                        {item.nhanDan && item.nhanDan !== 'Không có' && <span className="block text-[9px] text-red-600 font-bold uppercase mt-1">{item.nhanDan}</span>}
+                      </td>
+                      <td className="px-4 py-4 align-top text-center">
+                         <span className="inline-block bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full text-[10px] font-bold mb-1">{item.loaiCan || item.type}</span>
+                         <span className="block font-black text-blue-700 text-sm">{item.price} {item.listingType === 'Chuyển nhượng' ? 'Tỷ' : 'Tr'}</span>
+                      </td>
+                      <td className="px-4 py-4 align-top">
+                         <div className="group/note cursor-pointer w-[120px] lg:w-[150px]">
+                           <p className="text-[11px] text-gray-600 font-medium line-clamp-2 group-hover/note:line-clamp-none transition-all duration-300">
+                             {item.moTa || <span className="text-gray-300 italic">Trống</span>}
+                           </p>
+                         </div>
+                      </td>
+                      <td className="px-4 py-4 text-center align-top">
+                        <div className="flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="relative group/btn inline-block">
+                            <button onClick={() => handleBump(item.id)} className="text-green-600 hover:bg-green-100 p-1.5 rounded-md transition"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 10l7-7m0 0l7 7m-7-7v18"></path></svg></button>
+                            <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden group-hover/btn:block bg-gray-800 text-white text-[10px] px-2 py-1 rounded whitespace-nowrap z-50 pointer-events-none">Đẩy tin</span>
                           </div>
-                        </td>
-                      </tr>
-                    )})}
-                    {paginatedProperties.length === 0 && <tr><td colSpan="5" className="px-4 py-10 text-center text-gray-400 font-medium">Không tìm thấy dữ liệu.</td></tr>}
-                  </tbody>
-                </table>
-                {renderPagination(currentPage, totalPages, setCurrentPage)}
-              </>
+                          <div className="relative group/btn inline-block">
+                            <button onClick={() => handleEdit(item)} className="text-blue-600 hover:bg-blue-100 p-1.5 rounded-md transition"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg></button>
+                            <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden group-hover/btn:block bg-gray-800 text-white text-[10px] px-2 py-1 rounded whitespace-nowrap z-50 pointer-events-none">Sửa căn</span>
+                          </div>
+                          <div className="relative group/btn inline-block">
+                            <button onClick={() => handleDelete(item)} className="text-red-500 hover:bg-red-50 p-1.5 rounded-md transition"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button>
+                            <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden group-hover/btn:block bg-gray-800 text-white text-[10px] px-2 py-1 rounded whitespace-nowrap z-50 pointer-events-none">Xóa căn</span>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  )})}
+                  {paginatedProperties.length === 0 && <tr><td colSpan="5" className="px-4 py-10 text-center text-gray-400 font-medium">Không tìm thấy dữ liệu.</td></tr>}
+                </tbody>
+              </table>
             )}
 
             {adminTab === 'ky-gui' && (
-              <>
-                <table className="w-full text-sm text-left relative">
-                  <thead className="bg-gray-200 text-gray-700 uppercase text-[11px] font-black tracking-wider sticky top-0 z-20 shadow-md">
-                    <tr>
-                      <th className="px-4 py-3 rounded-tl-lg bg-gray-200">Tòa / Số căn</th>
-                      <th className="px-4 py-3 bg-gray-200">Nhu cầu</th>
-                      <th className="px-4 py-3 bg-gray-200">SĐT Khách</th>
-                      <th className="px-4 py-3 bg-gray-200">Trạng thái</th>
-                      <th className="px-4 py-3 text-right rounded-tr-lg bg-gray-200">Thao tác</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {kyGuiList.filter(item => item.soDienThoai?.includes(searchTerm) || item.toaNha?.toLowerCase().includes(searchTerm.toLowerCase())).slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map(item => {
-                      let d = new Date();
-                      if (item.createdAt?.seconds) d = new Date(item.createdAt.seconds * 1000);
-                      const dateStr = `${d.getDate()}/${d.getMonth()+1} ${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`;
-                      return (
-                        <tr key={item.id} className={`hover:bg-blue-50/30 transition group ${item.status === 'Chưa xử lý' ? 'bg-red-50/30' : ''}`}>
-                          <td className="px-4 py-4"><span className="font-bold text-gray-900 block">{item.toaNha} - Căn {item.soCan}</span><span className="text-[10px] text-gray-500 font-medium">Gửi lúc: {dateStr}</span></td>
-                          <td className="px-4 py-4"><span className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold uppercase ${item.nhuCau === 'Cho thuê' ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'}`}>{item.nhuCau}</span><span className="block text-xs font-black text-gray-800 mt-1">{item.gia} {item.nhuCau === 'Cho thuê' ? 'Tr' : 'Tỷ'}</span></td>
-                          <td className="px-4 py-4 font-bold text-blue-600">{item.soDienThoai}</td>
-                          <td className="px-4 py-4"><button onClick={() => toggleKyGuiStatus(item.id, item.status)} className={`px-3 py-1 rounded-full text-[10px] font-bold border transition ${item.status === 'Chưa xử lý' ? 'bg-red-100 text-red-700 border-red-200 hover:bg-red-200' : 'bg-green-100 text-green-700 border-green-200 hover:bg-green-200'}`}>{item.status} (Click đổi)</button></td>
-                          <td className="px-4 py-4 text-right">
-                            <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <button onClick={() => { setAdminTab('quy-can'); setFormData({ ...initialForm, listingType: item.nhuCau, toaNha: item.toaNha, loaiCan: item.loaiCan, area: item.dienTich, price: item.gia.replace(/[^0-9.]/g, ''), noiThat: item.noiThat, ngayNhanNha: item.ngayVaoO || '', moTa: `Khách ký gửi: SĐT ${item.soDienThoai}. Ghi chú khách: ${item.ghiChu}` }); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="text-blue-600 hover:bg-blue-100 px-3 py-1.5 rounded-md font-bold transition">Lên bài</button>
-                              <button onClick={() => handleDeleteKyGui(item.id)} className="text-red-500 hover:bg-red-50 px-3 py-1.5 rounded-md font-bold transition">Xóa</button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                    {kyGuiList.length === 0 && <tr><td colSpan="5" className="px-4 py-10 text-center text-gray-400 font-medium">Chưa có ai ký gửi.</td></tr>}
-                  </tbody>
-                </table>
-                {renderPagination(currentPage, Math.ceil(kyGuiList.length / itemsPerPage), setCurrentPage)}
-              </>
+              <table className="w-full text-sm text-left min-w-[800px]">
+                <thead className="bg-gray-200 text-gray-800 uppercase text-[11px] font-black tracking-wider sticky top-0 z-20 shadow-sm shadow-gray-300/30">
+                  <tr>
+                    <th className="px-4 py-3 rounded-tl-lg bg-gray-200">Tòa / Số căn</th>
+                    <th className="px-4 py-3 bg-gray-200">Nhu cầu</th>
+                    <th className="px-4 py-3 bg-gray-200">SĐT Khách</th>
+                    <th className="px-4 py-3 bg-gray-200">Trạng thái</th>
+                    <th className="px-4 py-3 text-right rounded-tr-lg bg-gray-200">Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100 bg-white">
+                  {kyGuiList.filter(item => item.soDienThoai?.includes(searchTerm) || item.toaNha?.toLowerCase().includes(searchTerm.toLowerCase())).slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map(item => {
+                    let d = new Date();
+                    if (item.createdAt?.seconds) d = new Date(item.createdAt.seconds * 1000);
+                    const dateStr = `${d.getDate()}/${d.getMonth()+1} ${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`;
+                    return (
+                      <tr key={item.id} className={`hover:bg-blue-50/30 transition group ${item.status === 'Chưa xử lý' ? 'bg-red-50/30' : ''}`}>
+                        <td className="px-4 py-4"><span className="font-bold text-gray-900 block">{item.toaNha} - Căn {item.soCan}</span><span className="text-[10px] text-gray-500 font-medium">Gửi lúc: {dateStr}</span></td>
+                        <td className="px-4 py-4"><span className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold uppercase ${item.nhuCau === 'Cho thuê' ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'}`}>{item.nhuCau}</span><span className="block text-xs font-black text-gray-800 mt-1">{item.gia} {item.nhuCau === 'Cho thuê' ? 'Tr' : 'Tỷ'}</span></td>
+                        <td className="px-4 py-4 font-bold text-blue-600">{item.soDienThoai}</td>
+                        <td className="px-4 py-4"><button onClick={() => toggleKyGuiStatus(item.id, item.status)} className={`px-3 py-1 rounded-full text-[10px] font-bold border transition ${item.status === 'Chưa xử lý' ? 'bg-red-100 text-red-700 border-red-200 hover:bg-red-200' : 'bg-green-100 text-green-700 border-green-200 hover:bg-green-200'}`}>{item.status} (Click đổi)</button></td>
+                        <td className="px-4 py-4 text-right">
+                          <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button onClick={() => { setAdminTab('quy-can'); setFormData({ ...initialForm, listingType: item.nhuCau, toaNha: item.toaNha, loaiCan: item.loaiCan, area: item.dienTich, price: item.gia.replace(/[^0-9.]/g, ''), noiThat: item.noiThat, ngayNhanNha: item.ngayVaoO || '', moTa: `Khách ký gửi: SĐT ${item.soDienThoai}. Ghi chú khách: ${item.ghiChu}` }); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="text-blue-600 hover:bg-blue-100 px-3 py-1.5 rounded-md font-bold transition">Lên bài</button>
+                            <button onClick={() => handleDeleteKyGui(item.id)} className="text-red-500 hover:bg-red-50 px-3 py-1.5 rounded-md font-bold transition">Xóa</button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {kyGuiList.length === 0 && <tr><td colSpan="5" className="px-4 py-10 text-center text-gray-400 font-medium">Chưa có ai ký gửi.</td></tr>}
+                </tbody>
+              </table>
             )}
 
             {adminTab === 'nho-tim' && (
-              <>
-                <table className="w-full text-sm text-left relative">
-                  <thead className="bg-gray-200 text-gray-700 uppercase text-[11px] font-black tracking-wider sticky top-0 z-20 shadow-md">
-                    <tr>
-                      <th className="px-4 py-3 rounded-tl-lg bg-gray-200">Khách Hàng / Nguồn</th>
-                      <th className="px-4 py-3 bg-gray-200">Nhu cầu Tìm</th>
-                      <th className="px-4 py-3 bg-gray-200">Yêu cầu khác</th>
-                      <th className="px-4 py-3 bg-gray-200">Trạng thái</th>
-                      <th className="px-4 py-3 text-right rounded-tr-lg bg-gray-200">Thao tác</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {nhoTimList.filter(item => item.soDienThoai?.includes(searchTerm) || item.nhuCau?.toLowerCase().includes(searchTerm.toLowerCase())).slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map(item => {
-                      let d = new Date();
-                      if (item.createdAt?.seconds) d = new Date(item.createdAt.seconds * 1000);
-                      const dateStr = `${d.getDate()}/${d.getMonth()+1} ${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`;
-                      return (
-                        <tr key={item.id} className={`hover:bg-blue-50/30 transition group ${item.status === 'Chưa xử lý' ? 'bg-red-50/30' : ''}`}>
-                          <td className="px-4 py-4">
-                            <span className="font-bold text-gray-900 block">{item.ten || 'Khách Vãng Lai'} - <span className="text-blue-600">{item.soDienThoai}</span></span>
-                            <span className="text-[10px] text-gray-500 font-medium mt-1 block">Nguồn: {item.source} • Gửi lúc: {dateStr}</span>
-                          </td>
-                          <td className="px-4 py-4">
-                            <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold uppercase ${item.nhuCau === 'Cho thuê' ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'}`}>
-                              Tìm {item.nhuCau === 'Cho thuê' ? 'Thuê' : 'Mua'}
-                            </span>
-                            <span className="block text-xs font-black text-gray-800 mt-1">{item.loaiCan || 'N/A'} • {item.taiChinh || 'N/A'}</span>
-                          </td>
-                          <td className="px-4 py-4 max-w-[200px]">
-                            <p className="text-[11px] text-gray-600 line-clamp-2" title={item.ghiChu}>{item.ghiChu || <span className="italic text-gray-400">Không có</span>}</p>
-                          </td>
-                          <td className="px-4 py-4"><button onClick={() => toggleNhoTimStatus(item.id, item.status)} className={`px-3 py-1 rounded-full text-[10px] font-bold border transition ${item.status === 'Chưa xử lý' ? 'bg-red-100 text-red-700 border-red-200 hover:bg-red-200' : 'bg-green-100 text-green-700 border-green-200 hover:bg-green-200'}`}>{item.status} (Click đổi)</button></td>
-                          <td className="px-4 py-4 text-right">
-                            <button onClick={() => handleDeleteNhoTim(item.id)} className="text-red-500 hover:bg-red-50 px-3 py-1.5 rounded-md font-bold transition opacity-0 group-hover:opacity-100">Xóa</button>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                    {nhoTimList.length === 0 && <tr><td colSpan="5" className="px-4 py-10 text-center text-gray-400 font-medium">Chưa có dữ liệu.</td></tr>}
-                  </tbody>
-                </table>
-                {renderPagination(currentPage, Math.ceil(nhoTimList.length / itemsPerPage), setCurrentPage)}
-              </>
+              <table className="w-full text-sm text-left min-w-[800px]">
+                <thead className="bg-gray-200 text-gray-800 uppercase text-[11px] font-black tracking-wider sticky top-0 z-20 shadow-sm shadow-gray-300/30">
+                  <tr>
+                    <th className="px-4 py-3 rounded-tl-lg bg-gray-200">Khách Hàng / Nguồn</th>
+                    <th className="px-4 py-3 bg-gray-200">Nhu cầu Tìm</th>
+                    <th className="px-4 py-3 bg-gray-200">Yêu cầu khác</th>
+                    <th className="px-4 py-3 bg-gray-200">Trạng thái</th>
+                    <th className="px-4 py-3 text-right rounded-tr-lg bg-gray-200">Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100 bg-white">
+                  {nhoTimList.filter(item => item.soDienThoai?.includes(searchTerm) || item.nhuCau?.toLowerCase().includes(searchTerm.toLowerCase())).slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map(item => {
+                    let d = new Date();
+                    if (item.createdAt?.seconds) d = new Date(item.createdAt.seconds * 1000);
+                    const dateStr = `${d.getDate()}/${d.getMonth()+1} ${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`;
+                    return (
+                      <tr key={item.id} className={`hover:bg-blue-50/30 transition group ${item.status === 'Chưa xử lý' ? 'bg-red-50/30' : ''}`}>
+                        <td className="px-4 py-4">
+                          <span className="font-bold text-gray-900 block">{item.ten || 'Khách Vãng Lai'} - <span className="text-blue-600">{item.soDienThoai}</span></span>
+                          <span className="text-[10px] text-gray-500 font-medium mt-1 block">Nguồn: {item.source} • Gửi lúc: {dateStr}</span>
+                        </td>
+                        <td className="px-4 py-4">
+                          <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold uppercase ${item.nhuCau === 'Cho thuê' ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'}`}>
+                            Tìm {item.nhuCau === 'Cho thuê' ? 'Thuê' : 'Mua'}
+                          </span>
+                          <span className="block text-xs font-black text-gray-800 mt-1">{item.loaiCan || 'N/A'} • {item.taiChinh || 'N/A'}</span>
+                        </td>
+                        <td className="px-4 py-4 max-w-[200px]">
+                          <p className="text-[11px] text-gray-600 line-clamp-2" title={item.ghiChu}>{item.ghiChu || <span className="italic text-gray-400">Không có</span>}</p>
+                        </td>
+                        <td className="px-4 py-4"><button onClick={() => toggleNhoTimStatus(item.id, item.status)} className={`px-3 py-1 rounded-full text-[10px] font-bold border transition ${item.status === 'Chưa xử lý' ? 'bg-red-100 text-red-700 border-red-200 hover:bg-red-200' : 'bg-green-100 text-green-700 border-green-200 hover:bg-green-200'}`}>{item.status} (Click đổi)</button></td>
+                        <td className="px-4 py-4 text-right">
+                          <button onClick={() => handleDeleteNhoTim(item.id)} className="text-red-500 hover:bg-red-50 px-3 py-1.5 rounded-md font-bold transition opacity-0 group-hover:opacity-100">Xóa</button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {nhoTimList.length === 0 && <tr><td colSpan="5" className="px-4 py-10 text-center text-gray-400 font-medium">Chưa có dữ liệu.</td></tr>}
+                </tbody>
+              </table>
             )}
-
+          </div>
+          
+          {/* Vùng Phân trang nằm gọn ở đáy bảng */}
+          <div className="flex-shrink-0 mt-4">
+             {adminTab === 'quy-can' && renderPagination(currentPage, totalPages, setCurrentPage)}
+             {adminTab === 'ky-gui' && renderPagination(currentPage, Math.ceil(kyGuiList.length / itemsPerPage), setCurrentPage)}
+             {adminTab === 'nho-tim' && renderPagination(currentPage, Math.ceil(nhoTimList.length / itemsPerPage), setCurrentPage)}
           </div>
         </div>
       </div>
@@ -876,7 +873,7 @@ export default function AdminPage() {
                     <tr key={pk} className={`transition hover:bg-blue-50/50 ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/30'}`}>
                       <td className="px-3 py-3 md:px-4 md:py-3 font-bold border-r border-gray-100 sticky left-0 bg-inherit shadow-[2px_0_5px_-2px_rgba(0,0,0,0.02)] text-blue-950 text-[11px] md:text-sm">{pk}</td>
                       {loaiCanList.map(lc => (
-                        <td key={lc} className={`px-2 py-3 md:px-3 md:py-3 text-center border-r border-gray-50 last:border-0 ${priceMatrix[pk][lc] === '-' ? 'text-gray-300 font-medium text-xs' : 'text-black font-bold text-sm md:text-base'}`}>
+                        <td key={lc} className={`px-2 py-3 md:px-3 md:py-3 text-center border-r border-gray-50 last:border-0 ${priceMatrix[pk][lc] === '-' ? 'text-gray-300 font-medium text-xs' : 'text-black font-normal text-sm md:text-base'}`}>
                           {priceMatrix[pk][lc]}
                         </td>
                       ))}

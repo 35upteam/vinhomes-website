@@ -703,7 +703,7 @@ export default function Home() {
                  </div>
                  <div>
                    <label className="block font-bold text-gray-700 mb-1">Yêu cầu thêm</label>
-                   <textarea rows="2" placeholder={`VD: Cần tìm căn bên khu ${exactName} giá tốt nhất...`} value={findData.ghiChu} onChange={(e)=>setFindData({...findData, ghiChu: e.target.value})} className="w-full p-3 border border-gray-300 rounded-lg outline-none focus:border-blue-600 bg-gray-50 font-medium"></textarea>
+                   <textarea rows="2" placeholder="VD: Cần tìm căn view thoáng, giá tốt nhất..." value={findData.ghiChu} onChange={(e)=>setFindData({...findData, ghiChu: e.target.value})} className="w-full p-3 border border-gray-300 rounded-lg outline-none focus:border-blue-600 bg-gray-50 font-medium"></textarea>
                  </div>
                  <button type="submit" disabled={isSendingFind} className="w-full bg-blue-700 hover:bg-blue-800 text-white p-3.5 rounded-lg font-bold text-base transition shadow-md disabled:bg-gray-400 flex items-center justify-center gap-2 mt-2">
                    {isSendingFind ? 'Đang gửi...' : <><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg> Gửi yêu cầu & Nhận báo giá</>}
