@@ -254,7 +254,7 @@ export default function AdminPage() {
       await updateDoc(doc(db, 'properties', id), { createdAt: serverTimestamp() });
       sessionStorage.removeItem('cachedProperties');
       alert('Đã đẩy tin thành công!'); fetchProperties();
-    } catch (e) { alert('Đã xảy ra lỗi khi đẩy tin!'); }
+    } catch (e) { alert('Đã xảy ra khi đẩy tin!'); }
   };
 
   const handleSelectAll = (e) => {
@@ -353,7 +353,7 @@ export default function AdminPage() {
 
       let foundDup = null;
       const newPrice = Number(formData.price);
-      const threshold = formData.listingType === 'Cho thuê' ? 1.5 : 0.25;
+      const threshold = formData.listingType === 'Cho thuê' ? 0.01 : 0.1; // Chênh 100k cho thuê, 100tr cho bán
 
       dupSnap.forEach(doc => {
         const existingPrice = Number(doc.data().price);
@@ -369,18 +369,27 @@ export default function AdminPage() {
   };
 
   const computePriceMatrix = () => {
-    const listToFilter = properties.filter(p => p.listingType === matrixTab);
+    const listToFilter = properties.filter(p => p.listingType === (matrixTab === 'Bán theo M2' ? 'Chuyển nhượng' : matrixTab));
     const result = {};
     phanKhuList.forEach(pk => {
       result[pk] = {};
       loaiCanList.forEach(lc => {
         const matches = listToFilter.filter(p => p.phanKhu === pk && p.loaiCan === lc);
         if (matches.length > 0) {
-          const prices = matches.map(m => Number(m.price)).filter(p => !isNaN(p));
-          if (prices.length > 0) {
-            const min = Math.min(...prices); const max = Math.max(...prices);
-            result[pk][lc] = min === max ? `${min}` : `${min} - ${max}`;
-          } else { result[pk][lc] = '-'; }
+          if (matrixTab === 'Bán theo M2') {
+             const pricesPerM2 = matches.filter(m => Number(m.area) > 0 && Number(m.price) > 0).map(m => (Number(m.price) * 1000) / Number(m.area));
+             if(pricesPerM2.length > 0) {
+               const min = Math.min(...pricesPerM2).toFixed(1);
+               const max = Math.max(...pricesPerM2).toFixed(1);
+               result[pk][lc] = min === max ? `${min}` : `${min} - ${max}`;
+             } else { result[pk][lc] = '-'; }
+          } else {
+             const prices = matches.map(m => Number(m.price)).filter(p => !isNaN(p));
+             if (prices.length > 0) {
+               const min = Math.min(...prices); const max = Math.max(...prices);
+               result[pk][lc] = min === max ? `${min}` : `${min} - ${max}`;
+             } else { result[pk][lc] = '-'; }
+          }
         } else { result[pk][lc] = '-'; }
       });
     });
@@ -532,7 +541,7 @@ export default function AdminPage() {
                 <label className="block text-[11px] font-bold mb-1 text-gray-500 uppercase">Loại căn <span className="text-red-500">*</span></label>
                 <select name="loaiCan" value={formData.loaiCan} onChange={handleInputChange} className={`w-full p-3 rounded-lg outline-none text-[16px] md:text-sm font-medium transition ${missingFields.includes('loaiCan') ? 'border-2 border-red-500 bg-red-50' : 'border border-gray-200 focus:border-blue-500'}`}>
                   <option value="" disabled>-- Chọn --</option>
-                  {['Studio', '1N', '1N+', '2N1WC', '2N2WC', '2N+', '3N', '4N'].map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                  {['Studio', '1N', '1N+', '2N1WC', '2N2WC', '2N+', '3N', '4N'].map(opt => <option key={opt}>{opt}</option>)}
                 </select>
               </div>
               <div>
@@ -855,8 +864,9 @@ export default function AdminPage() {
             </div>
             
             <div className="flex bg-gray-100/80 p-1.5 rounded-xl mb-5 w-max">
-              <button onClick={() => setMatrixTab('Cho thuê')} className={`py-1.5 px-6 rounded-lg text-sm font-black transition-all ${matrixTab === 'Cho thuê' ? 'bg-white text-blue-700 shadow shadow-gray-200/50' : 'text-gray-500 hover:text-gray-900'}`}>Cho thuê (Triệu)</button>
-              <button onClick={() => setMatrixTab('Chuyển nhượng')} className={`py-1.5 px-6 rounded-lg text-sm font-black transition-all ${matrixTab === 'Chuyển nhượng' ? 'bg-white text-blue-700 shadow shadow-gray-200/50' : 'text-gray-500 hover:text-gray-900'}`}>Chuyển nhượng (Tỷ)</button>
+              <button onClick={() => setMatrixTab('Cho thuê')} className={`py-1.5 px-6 rounded-lg text-sm font-black transition-all ${matrixTab === 'Cho thuê' ? 'bg-white text-blue-700 shadow shadow-gray-200/50' : 'text-gray-500 hover:text-gray-900'}`}>Cho thuê (Tr/tháng)</button>
+              <button onClick={() => setMatrixTab('Chuyển nhượng')} className={`py-1.5 px-6 rounded-lg text-sm font-black transition-all ${matrixTab === 'Chuyển nhượng' ? 'bg-white text-blue-700 shadow shadow-gray-200/50' : 'text-gray-500 hover:text-gray-900'}`}>Bán (Tỷ)</button>
+              <button onClick={() => setMatrixTab('Bán theo M2')} className={`py-1.5 px-6 rounded-lg text-sm font-black transition-all ${matrixTab === 'Bán theo M2' ? 'bg-white text-blue-700 shadow shadow-gray-200/50' : 'text-gray-500 hover:text-gray-900'}`}>Bán (Tr/m²)</button>
             </div>
             
             <div className="overflow-x-auto rounded-xl shadow-sm border border-blue-100 bg-white">
