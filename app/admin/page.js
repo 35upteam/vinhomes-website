@@ -254,7 +254,7 @@ export default function AdminPage() {
       await updateDoc(doc(db, 'properties', id), { createdAt: serverTimestamp() });
       sessionStorage.removeItem('cachedProperties');
       alert('Đã đẩy tin thành công!'); fetchProperties();
-    } catch (e) { alert('Đã xảy ra lỗi khi đẩy tin!'); }
+    } catch (e) { alert('Đã xảy ra khi đẩy tin!'); }
   };
 
   const handleSelectAll = (e) => {
@@ -317,7 +317,7 @@ export default function AdminPage() {
       const imageUrls = await Promise.all(uploadPromises); 
       const finalArea = formData.area ? Number(formData.area) : 0; 
       const finalMaCan = editingId ? formData.maCan : generateMaCan(formData.listingType);
-      const dataToSave = { ...formData, maCan: finalMaCan, price: Number(formData.price), area: finalArea, images: imageUrls };
+      const dataToSave = { ...formData, toaNha: formData.toaNha.trim(), maCan: finalMaCan, price: Number(formData.price), area: finalArea, images: imageUrls };
 
       if (editingId) {
         await updateDoc(doc(db, 'properties', editingId), dataToSave); alert('Cập nhật thông tin thành công!');
@@ -348,23 +348,30 @@ export default function AdminPage() {
     
     if (!editingId && !skipDupCheck) {
       setIsUploading(true);
-      const dupQuery = query(collection(db, 'properties'), 
-        where('listingType', '==', formData.listingType), 
-        where('phanKhu', '==', formData.phanKhu), 
-        where('toaNha', '==', formData.toaNha), 
-        where('loaiCan', '==', formData.loaiCan), 
-        where('noiThat', '==', formData.noiThat)
-      );
-      const dupSnap = await getDocs(dupQuery);
+      try {
+        const dupQuery = query(collection(db, 'properties'), 
+          where('listingType', '==', formData.listingType), 
+          where('phanKhu', '==', formData.phanKhu), 
+          where('toaNha', '==', formData.toaNha.trim()), 
+          where('loaiCan', '==', formData.loaiCan), 
+          where('noiThat', '==', formData.noiThat)
+        );
+        const dupSnap = await getDocs(dupQuery);
 
-      let foundDup = null;
-      if (!dupSnap.empty) {
-        const firstDoc = dupSnap.docs[0];
-        foundDup = { id: firstDoc.id, maCan: firstDoc.data().maCan };
+        let foundDup = null;
+        if (!dupSnap.empty) {
+          const firstDoc = dupSnap.docs[0];
+          foundDup = { id: firstDoc.id, maCan: firstDoc.data().maCan };
+        }
+        
+        if (foundDup) { 
+          setIsUploading(false);
+          setDuplicateWarning(foundDup); 
+          return; 
+        }
+      } catch (err) {
+        console.warn("Bỏ qua lỗi Index Firestore, tiếp tục lưu bài:", err);
       }
-      setIsUploading(false);
-      
-      if (foundDup) { setDuplicateWarning(foundDup); return; }
     }
     executeSave();
   };
@@ -850,7 +857,7 @@ export default function AdminPage() {
                         </td>
                         <td className="px-4 py-4"><button onClick={() => toggleNhoTimStatus(item.id, item.status)} className={`px-3 py-1 rounded-full text-[10px] font-bold border transition ${item.status === 'Chưa xử lý' ? 'bg-red-100 text-red-700 border-red-200 hover:bg-red-200' : 'bg-green-100 text-green-700 border-green-200 hover:bg-green-200'}`}>{item.status} (Click đổi)</button></td>
                         <td className="px-4 py-4 text-right">
-                          <button onClick={() => handleDeleteNhoTim(item.id)} className="text-red-500 hover:bg-red-50 px-3 py-1.5 rounded-md font-bold transition opacity-100 lg:opacity-0 group-hover:opacity-100">Xóa</button>
+                          <button onClick={() => handleDeleteNhoTim(item.id)} className="text-red-500 hover:bg-red-50 px-3 py-1.5 rounded-md font-bold transition">Xóa</button>
                         </td>
                       </tr>
                     );
@@ -915,6 +922,33 @@ export default function AdminPage() {
                 </tbody>
               </table>
             </div>
+          </div>
+        </div>
+      )}
+
+      {duplicateWarning && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md text-center animate-fade-in-up">
+             <div className="w-16 h-16 bg-red-100 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+               <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+             </div>
+             <h3 className="text-xl font-bold text-red-600 mb-2">Phát hiện dữ liệu trùng lặp!</h3>
+             <p className="text-sm text-gray-600 mb-4">Hệ thống nhận thấy bạn đang nhập một căn hộ có thông số giống hệt với căn đang có trên hệ thống.</p>
+             
+             <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6">
+                <span className="text-xs text-gray-500">Mã căn bị trùng:</span>
+                <p className="text-lg font-black text-blue-900">{duplicateWarning.maCan}</p>
+                <a href={`/property/${duplicateWarning.id}`} target="_blank" rel="noreferrer" className="text-blue-600 text-xs font-bold hover:underline mt-2 inline-block">
+                  Mở xem chi tiết căn này ↗
+                </a>
+             </div>
+
+             <div className="flex gap-3">
+               <button onClick={() => setDuplicateWarning(null)} disabled={isUploading} className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-lg font-bold hover:bg-gray-200 disabled:opacity-50">Hủy bỏ</button>
+               <button onClick={() => { setSkipDupCheck(true); executeSave(); setDuplicateWarning(null); }} disabled={isUploading} className="flex-1 bg-red-600 text-white py-3 rounded-lg font-bold shadow-lg hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed">
+                 {isUploading ? 'Đang lưu...' : 'Vẫn lưu bài mới'}
+               </button>
+             </div>
           </div>
         </div>
       )}
