@@ -254,7 +254,7 @@ export default function AdminPage() {
       await updateDoc(doc(db, 'properties', id), { createdAt: serverTimestamp() });
       sessionStorage.removeItem('cachedProperties');
       alert('Đã đẩy tin thành công!'); fetchProperties();
-    } catch (e) { alert('Đã xảy ra khi đẩy tin!'); }
+    } catch (e) { alert('Đã xảy ra lỗi khi đẩy tin!'); }
   };
 
   const handleSelectAll = (e) => {
@@ -348,19 +348,20 @@ export default function AdminPage() {
     
     if (!editingId && !skipDupCheck) {
       setIsUploading(true);
-      const dupQuery = query(collection(db, 'properties'), where('listingType', '==', formData.listingType), where('phanKhu', '==', formData.phanKhu), where('toaNha', '==', formData.toaNha), where('loaiCan', '==', formData.loaiCan), where('noiThat', '==', formData.noiThat));
+      const dupQuery = query(collection(db, 'properties'), 
+        where('listingType', '==', formData.listingType), 
+        where('phanKhu', '==', formData.phanKhu), 
+        where('toaNha', '==', formData.toaNha), 
+        where('loaiCan', '==', formData.loaiCan), 
+        where('noiThat', '==', formData.noiThat)
+      );
       const dupSnap = await getDocs(dupQuery);
 
       let foundDup = null;
-      const newPrice = Number(formData.price);
-      const threshold = formData.listingType === 'Cho thuê' ? 0.01 : 0.1; // Chênh 100k cho thuê, 100tr cho bán
-
-      dupSnap.forEach(doc => {
-        const existingPrice = Number(doc.data().price);
-        if (!isNaN(existingPrice) && !isNaN(newPrice) && Math.abs(existingPrice - newPrice) <= threshold) {
-          foundDup = { id: doc.id, maCan: doc.data().maCan };
-        }
-      });
+      if (!dupSnap.empty) {
+        const firstDoc = dupSnap.docs[0];
+        foundDup = { id: firstDoc.id, maCan: firstDoc.data().maCan };
+      }
       setIsUploading(false);
       
       if (foundDup) { setDuplicateWarning(foundDup); return; }
@@ -371,8 +372,23 @@ export default function AdminPage() {
   const computePriceMatrix = () => {
     const listToFilter = properties.filter(p => p.listingType === (matrixTab === 'Bán theo M2' ? 'Chuyển nhượng' : matrixTab));
     const result = {};
+    const pkMinMax = {};
+    
     phanKhuList.forEach(pk => {
       result[pk] = {};
+      
+      if (matrixTab === 'Bán theo M2') {
+         const matchesPk = listToFilter.filter(p => p.phanKhu === pk);
+         const pricesPerM2Pk = matchesPk.filter(m => Number(m.area) > 0 && Number(m.price) > 0).map(m => (Number(m.price) * 1000) / Number(m.area));
+         if(pricesPerM2Pk.length > 0) {
+           const min = Math.min(...pricesPerM2Pk).toFixed(1);
+           const max = Math.max(...pricesPerM2Pk).toFixed(1);
+           pkMinMax[pk] = min === max ? `${min}` : `${min} - ${max}`;
+         } else { 
+           pkMinMax[pk] = ''; 
+         }
+      }
+
       loaiCanList.forEach(lc => {
         const matches = listToFilter.filter(p => p.phanKhu === pk && p.loaiCan === lc);
         if (matches.length > 0) {
@@ -393,9 +409,12 @@ export default function AdminPage() {
         } else { result[pk][lc] = '-'; }
       });
     });
-    return result;
+    return { result, pkMinMax };
   };
-  const priceMatrix = computePriceMatrix();
+  
+  const priceMatrixData = computePriceMatrix();
+  const priceMatrix = priceMatrixData.result;
+  const pkMinMaxData = priceMatrixData.pkMinMax;
 
   const renderPagination = (currentPage, totalPages, setCurrentPage) => {
     if (totalPages <= 1) return null;
@@ -541,7 +560,7 @@ export default function AdminPage() {
                 <label className="block text-[11px] font-bold mb-1 text-gray-500 uppercase">Loại căn <span className="text-red-500">*</span></label>
                 <select name="loaiCan" value={formData.loaiCan} onChange={handleInputChange} className={`w-full p-3 rounded-lg outline-none text-[16px] md:text-sm font-medium transition ${missingFields.includes('loaiCan') ? 'border-2 border-red-500 bg-red-50' : 'border border-gray-200 focus:border-blue-500'}`}>
                   <option value="" disabled>-- Chọn --</option>
-                  {['Studio', '1N', '1N+', '2N1WC', '2N2WC', '2N+', '3N', '4N'].map(opt => <option key={opt}>{opt}</option>)}
+                  {['Studio', '1N', '1N+', '2N1WC', '2N2WC', '2N+', '3N', '4N'].map(opt => <option key={opt} value={opt}>{opt}</option>)}
                 </select>
               </div>
               <div>
@@ -831,7 +850,7 @@ export default function AdminPage() {
                         </td>
                         <td className="px-4 py-4"><button onClick={() => toggleNhoTimStatus(item.id, item.status)} className={`px-3 py-1 rounded-full text-[10px] font-bold border transition ${item.status === 'Chưa xử lý' ? 'bg-red-100 text-red-700 border-red-200 hover:bg-red-200' : 'bg-green-100 text-green-700 border-green-200 hover:bg-green-200'}`}>{item.status} (Click đổi)</button></td>
                         <td className="px-4 py-4 text-right">
-                          <button onClick={() => handleDeleteNhoTim(item.id)} className="text-red-500 hover:bg-red-50 px-3 py-1.5 rounded-md font-bold transition">Xóa</button>
+                          <button onClick={() => handleDeleteNhoTim(item.id)} className="text-red-500 hover:bg-red-50 px-3 py-1.5 rounded-md font-bold transition opacity-100 lg:opacity-0 group-hover:opacity-100">Xóa</button>
                         </td>
                       </tr>
                     );
@@ -864,9 +883,9 @@ export default function AdminPage() {
             </div>
             
             <div className="flex bg-gray-100/80 p-1.5 rounded-xl mb-5 w-max">
-              <button onClick={() => setMatrixTab('Cho thuê')} className={`py-1.5 px-6 rounded-lg text-sm font-black transition-all ${matrixTab === 'Cho thuê' ? 'bg-white text-blue-700 shadow shadow-gray-200/50' : 'text-gray-500 hover:text-gray-900'}`}>Cho thuê (Tr/tháng)</button>
-              <button onClick={() => setMatrixTab('Chuyển nhượng')} className={`py-1.5 px-6 rounded-lg text-sm font-black transition-all ${matrixTab === 'Chuyển nhượng' ? 'bg-white text-blue-700 shadow shadow-gray-200/50' : 'text-gray-500 hover:text-gray-900'}`}>Bán (Tỷ)</button>
-              <button onClick={() => setMatrixTab('Bán theo M2')} className={`py-1.5 px-6 rounded-lg text-sm font-black transition-all ${matrixTab === 'Bán theo M2' ? 'bg-white text-blue-700 shadow shadow-gray-200/50' : 'text-gray-500 hover:text-gray-900'}`}>Bán (Tr/m²)</button>
+              <button onClick={() => setMatrixTab('Cho thuê')} className={`py-1.5 px-6 rounded-lg text-sm font-black transition-all ${matrixTab === 'Cho thuê' ? 'bg-white text-blue-700 shadow shadow-gray-200/50' : 'text-gray-500 hover:text-gray-900'}`}>Cho thuê (Triệu/tháng)</button>
+              <button onClick={() => setMatrixTab('Chuyển nhượng')} className={`py-1.5 px-6 rounded-lg text-sm font-black transition-all ${matrixTab === 'Chuyển nhượng' ? 'bg-white text-blue-700 shadow shadow-gray-200/50' : 'text-gray-500 hover:text-gray-900'}`}>Chuyển nhượng (Tỷ)</button>
+              <button onClick={() => setMatrixTab('Bán theo M2')} className={`py-1.5 px-6 rounded-lg text-sm font-black transition-all ${matrixTab === 'Bán theo M2' ? 'bg-white text-blue-700 shadow shadow-gray-200/50' : 'text-gray-500 hover:text-gray-900'}`}>Chuyển nhượng (Triệu/m²)</button>
             </div>
             
             <div className="overflow-x-auto rounded-xl shadow-sm border border-blue-100 bg-white">
@@ -880,7 +899,12 @@ export default function AdminPage() {
                 <tbody className="divide-y divide-gray-100">
                   {phanKhuList.map((pk, idx) => (
                     <tr key={pk} className={`transition hover:bg-blue-50/50 ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/30'}`}>
-                      <td className="px-3 py-3 md:px-4 md:py-3 font-bold border-r border-gray-100 sticky left-0 bg-inherit shadow-[2px_0_5px_-2px_rgba(0,0,0,0.02)] text-blue-950 text-[11px] md:text-sm">{pk}</td>
+                      <td className="px-3 py-3 md:px-4 md:py-3 font-bold border-r border-gray-100 sticky left-0 bg-inherit shadow-[2px_0_5px_-2px_rgba(0,0,0,0.02)] text-blue-950 text-[11px] md:text-sm">
+                        {pk}
+                        {matrixTab === 'Bán theo M2' && pkMinMaxData[pk] && (
+                          <span className="block text-[10px] text-gray-500 font-medium mt-0.5 whitespace-nowrap">({pkMinMaxData[pk]})</span>
+                        )}
+                      </td>
                       {loaiCanList.map(lc => (
                         <td key={lc} className={`px-2 py-3 md:px-3 md:py-3 text-center border-r border-gray-50 last:border-0 ${priceMatrix[pk][lc] === '-' ? 'text-gray-300 font-medium text-xs' : 'text-black font-normal text-sm md:text-base'}`}>
                           {priceMatrix[pk][lc]}
