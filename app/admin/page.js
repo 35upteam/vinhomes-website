@@ -42,6 +42,7 @@ export default function AdminPage() {
   
   const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
   const [isMatrixModalOpen, setIsMatrixModalOpen] = useState(false);
+  const [isAnalyticsModalOpen, setIsAnalyticsModalOpen] = useState(false);
 
   const defaultPkConfig = {
     "Sapphire": { phi: "8.800 VNĐ/m2", tongQuan: "", uuDiem: "", tienIch: "", images: [] },
@@ -499,13 +500,13 @@ export default function AdminPage() {
           </div>
           
           <div className="flex gap-2 md:gap-4 items-center">
-            <a href="https://analytics.google.com/" target="_blank" rel="noreferrer" className="flex items-center gap-2 bg-white/10 hover:bg-white/20 border border-white/30 text-white px-3 md:px-4 py-2 rounded-lg text-sm font-medium transition whitespace-nowrap shadow-sm">
+            <button onClick={() => setIsAnalyticsModalOpen(true)} className="flex items-center gap-2 bg-white/10 hover:bg-white/20 border border-white/30 text-white px-3 md:px-4 py-2 rounded-lg text-sm font-medium transition whitespace-nowrap shadow-sm">
                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
                <span className="hidden md:inline">Đo lường</span>
-            </a>
+            </button>
             
             <button onClick={() => setIsMatrixModalOpen(true)} className="bg-white/10 hover:bg-white/20 border border-white/30 px-3 md:px-4 py-2 rounded-lg text-sm font-medium transition whitespace-nowrap flex items-center gap-1.5">
-               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012-2h2a2 2 0 01-2-2z"></path></svg>
                <span className="hidden md:inline">Thống kê giá</span>
             </button>
             <button onClick={openPhanKhuModal} className="flex bg-white/10 hover:bg-white/20 border border-white/30 px-3 md:px-4 py-2 rounded-lg text-sm font-medium transition whitespace-nowrap items-center gap-1.5">
@@ -857,7 +858,7 @@ export default function AdminPage() {
                         </td>
                         <td className="px-4 py-4"><button onClick={() => toggleNhoTimStatus(item.id, item.status)} className={`px-3 py-1 rounded-full text-[10px] font-bold border transition ${item.status === 'Chưa xử lý' ? 'bg-red-100 text-red-700 border-red-200 hover:bg-red-200' : 'bg-green-100 text-green-700 border-green-200 hover:bg-green-200'}`}>{item.status} (Click đổi)</button></td>
                         <td className="px-4 py-4 text-right">
-                          <button onClick={() => handleDeleteNhoTim(item.id)} className="text-red-500 hover:bg-red-50 px-3 py-1.5 rounded-md font-bold transition">Xóa</button>
+                          <button onClick={() => handleDeleteNhoTim(item.id)} className="text-red-500 hover:bg-red-50 px-3 py-1.5 rounded-md font-bold transition opacity-100 lg:opacity-0 group-hover:opacity-100">Xóa</button>
                         </td>
                       </tr>
                     );
@@ -876,6 +877,35 @@ export default function AdminPage() {
         </div>
       </div>
       
+      {/* MODAL GOOGLE LOOKER STUDIO */}
+      {isAnalyticsModalOpen && (
+        <div className="fixed inset-0 bg-blue-950/80 backdrop-blur-md z-[100] flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl p-2 w-full max-w-6xl h-[85vh] flex flex-col transform transition-all animate-fade-in-up border border-blue-100">
+            <div className="flex justify-between items-center p-4 border-b border-gray-100 shrink-0">
+              <div>
+                <h2 className="text-xl font-black text-blue-900 uppercase tracking-tight">Thống Kê Đo Lường (GA4)</h2>
+                <p className="text-xs text-gray-500 font-medium mt-1">Dữ liệu truy cập thực tế từ Google Analytics</p>
+              </div>
+              <button onClick={() => setIsAnalyticsModalOpen(false)} className="text-gray-400 hover:bg-red-50 hover:text-red-500 w-8 h-8 rounded-full flex items-center justify-center transition">
+                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+              </button>
+            </div>
+            
+            <div className="flex-grow w-full h-full p-2">
+              <iframe 
+                width="100%" 
+                height="100%" 
+                src="https://datastudio.google.com/embed/reporting/b6d0d93a-2ac9-4f99-b39b-afc9549d3a15/page/ZxU8F" 
+                frameBorder="0" 
+                style={{ border: 0, borderRadius: '8px' }} 
+                allowFullScreen 
+                sandbox="allow-storage-access-by-user-activation allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"
+              ></iframe>
+            </div>
+          </div>
+        </div>
+      )}
+
       {isMatrixModalOpen && (
         <div className="fixed inset-0 bg-blue-950/70 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl p-5 md:p-8 w-full max-w-5xl transform transition-all overflow-y-auto max-h-[95vh] animate-fade-in-up border border-blue-100">
